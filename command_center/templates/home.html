@@ -1,0 +1,86 @@
+{% extends "cc_layout.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+<div class="cc-page-head">
+  <h1 class="cc-page-title">Command Center</h1>
+  <p class="cc-page-sub">통신유통 업무를 돕는 AI 에이전트</p>
+</div>
+
+<section class="agent-grid" aria-label="에이전트 목록">
+  {% for agent in agents %}
+  <a class="agent-card cc-card tone-{{ agent.color }}"
+     {% if agent.url %}href="{{ agent.url }}" target="_blank" rel="noopener"{% else %}href="#" data-no-url="{{ agent.name }}"{% endif %}>
+    <span class="agent-icon">{{ icon(agent.icon, 38) }}</span>
+    <span class="agent-body">
+      <span class="cc-badge {% if agent.status == '운영 중' %}is-live{% endif %}">{{ agent.status }}</span>
+      <strong class="agent-name">{{ agent.name }}</strong>
+      <span class="agent-desc">{{ agent.description }}</span>
+    </span>
+    {{ icon("chevron-right", 22, "agent-arrow") }}
+  </a>
+  {% endfor %}
+
+  <button type="button" class="agent-add" id="agent-add-open">
+    <span class="agent-add-plus">{{ icon("plus", 22) }}</span>
+    <strong>새 에이전트 추가</strong>
+    <small>더 많은 AI 에이전트로<br>업무의 가능성을 넓혀보세요.</small>
+  </button>
+</section>
+
+<dialog class="cc-dialog" id="agent-dialog" aria-labelledby="agent-dialog-title">
+  <form id="agent-form" novalidate>
+    <div class="cc-dialog-head">
+      <h2 id="agent-dialog-title">새 에이전트 추가</h2>
+      <button type="button" class="cc-icon-btn" data-close aria-label="닫기">{{ icon("x") }}</button>
+    </div>
+    <div class="cc-dialog-body">
+      <label class="cc-field">
+        <span class="cc-label">에이전트 이름</span>
+        <input class="cc-input" name="name" maxlength="20" placeholder="예) 통하길 QR 현장 안내" required>
+      </label>
+      <label class="cc-field">
+        <span class="cc-label">설명</span>
+        <input class="cc-input" name="description" maxlength="60" placeholder="카드에 보일 한두 줄 설명">
+      </label>
+      <label class="cc-field">
+        <span class="cc-label">접속 주소 (URL)</span>
+        <input class="cc-input" name="url" type="url" placeholder="http://localhost:5005">
+      </label>
+      <div class="form-row">
+        <label class="cc-field">
+          <span class="cc-label">아이콘</span>
+          <select class="cc-select" name="icon">
+            {% for value, label in icon_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="cc-field">
+          <span class="cc-label">색상</span>
+          <select class="cc-select" name="color">
+            {% for value, label in color_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="cc-field">
+          <span class="cc-label">상태</span>
+          <select class="cc-select" name="status">
+            {% for value in status_choices %}<option>{{ value }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+      <p class="form-error" id="agent-form-error" role="alert"></p>
+    </div>
+    <div class="cc-dialog-foot">
+      <button type="button" class="cc-btn" data-close>취소</button>
+      <button type="submit" class="cc-btn cc-btn-primary">추가하기</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='home.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% from "_icons.html" import icon %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Command Center{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="{{ url_for('shared.static', filename='common.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="cc-app">
+  <aside class="cc-sidebar">
+    <a class="cc-brand" href="{{ command_center_url }}">
+      <span class="cc-brand-full">Command Center</span><span class="cc-brand-short">CC</span>
+    </a>
+
+    <nav class="cc-nav" aria-label="메인 메뉴">
+      <a class="cc-nav-item {% if active_agent_id is none %}is-active{% endif %}" href="{{ command_center_url }}" title="홈">
+        {{ icon("home") }}<span>홈</span>
+      </a>
+      <button type="button" class="cc-nav-item" data-coming-soon title="에이전트">{{ icon("bot") }}<span>에이전트</span></button>
+      <button type="button" class="cc-nav-item" data-coming-soon title="활동 내역">{{ icon("history") }}<span>활동 내역</span></button>
+      <button type="button" class="cc-nav-item" data-coming-soon title="설정">{{ icon("settings") }}<span>설정</span></button>
+    </nav>
+
+    {#- agents.json 에 에이전트가 추가되면 여기에 한 줄씩 자동으로 늘어난다 #}
+    <p class="cc-nav-label">에이전트 바로가기</p>
+    <nav class="cc-nav" aria-label="에이전트">
+      {% for agent in agents %}
+        {% if agent.id == active_agent_id %}
+          <a class="cc-nav-item is-active" href="/" aria-current="page" title="{{ agent.name }}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+        {% elif agent.url %}
+          <a class="cc-nav-item" href="{{ agent.url }}" target="_blank" rel="noopener" title="{{ agent.name }} (새 탭)">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+        {% else %}
+          <button type="button" class="cc-nav-item" data-no-url="{{ agent.name }}" title="{{ agent.name }}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></button>
+        {% endif %}
+      {% endfor %}
+    </nav>
+
+    <div class="cc-sidebar-spacer"></div>
+    <div class="cc-sidebar-note">
+      <p>AI와 함께<br>더 나은 유통의 내일을<br>만듭니다.</p>
+      <span class="cc-sidebar-note-bar"></span>
+    </div>
+  </aside>
+
+  <div class="cc-main">
+    <header class="cc-topbar">
+      <div class="cc-breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+      <label class="cc-search">
+        {{ icon("search", 16) }}
+        <input type="search" placeholder="무엇을 도와드릴까요?" aria-label="검색">
+      </label>
+      <button type="button" class="cc-icon-btn" aria-label="알림" data-coming-soon>{{ icon("bell") }}</button>
+      <div class="cc-user">
+        <span class="cc-avatar">{{ icon("user", 18) }}</span>
+        <span class="cc-user-name">{{ user_name }}</span>
+        {{ icon("chevron-down", 16) }}
+      </div>
+    </header>
+    <main class="cc-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="cc-toast" id="cc-toast" role="status" aria-live="polite"></div>
+<script src="{{ url_for('shared.static', filename='common.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

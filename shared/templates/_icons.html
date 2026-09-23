@@ -1,0 +1,50 @@
+{#- 선 아이콘 모음. 사용: {% from "_icons.html" import icon %} {{ icon("home", 20) }} -#}
+{% macro icon(name, size=20, cls="") -%}
+<svg class="icon {{ cls }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == "home" -%}
+<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>
+{%- elif name == "bot" -%}
+<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><path d="M9 13v2M15 13v2"/>
+{%- elif name == "history" -%}
+<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+{%- elif name == "settings" -%}
+<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+{%- elif name == "search" -%}
+<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{%- elif name == "bell" -%}
+<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+{%- elif name == "user" -%}
+<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+{%- elif name == "chevron-right" -%}
+<path d="m9 18 6-6-6-6"/>
+{%- elif name == "chevron-down" -%}
+<path d="m6 9 6 6 6-6"/>
+{%- elif name == "plus" -%}
+<path d="M12 5v14M5 12h14"/>
+{%- elif name == "calendar-x" -%}
+<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m14 13-4 4M10 13l4 4"/>
+{%- elif name == "coins" -%}
+<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v4c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 9v5c0 1.66 3.58 3 8 3s8-1.34 8-3V9"/><path d="M4 14v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5"/>
+{%- elif name == "headset" -%}
+<path d="M3 13a9 9 0 0 1 18 0"/><path d="M3 13h3a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2z"/><path d="M21 13h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a2 2 0 0 0 2-2z"/><path d="M19 19v.5a2.5 2.5 0 0 1-2.5 2.5H13"/>
+{%- elif name == "image" -%}
+<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>
+{%- elif name == "qr-code" -%}
+<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v.01M14 21h.01M17 21h4v-4"/>
+{%- elif name == "sparkles" -%}
+<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 3v4M17 5h4"/><path d="M5 17v3M3.5 18.5h3"/>
+{%- elif name == "more" -%}
+<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+{%- elif name == "download" -%}
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>
+{%- elif name == "external" -%}
+<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+{%- elif name == "x" -%}
+<path d="M18 6 6 18M6 6l12 12"/>
+{%- elif name == "check" -%}
+<path d="M20 6 9 17l-5-5"/>
+{%- else -%}
+<circle cx="12" cy="12" r="9"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}

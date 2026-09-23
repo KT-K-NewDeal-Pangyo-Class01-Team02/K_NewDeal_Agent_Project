@@ -1,0 +1,74 @@
+[
+  {
+    "id": "sample-fireworks",
+    "title": "불꽃축제",
+    "event_type": "축제",
+    "style": "화려한 축제",
+    "prompt": "2025 한강 불꽃축제 포스터. 밤하늘을 가득 채운 불꽃 느낌으로.",
+    "image_url": "/placeholder.svg?theme=fireworks&title=밤하늘을 더 가까이&sub=2025 한강 불꽃축제&date=2025. 10. 25 (토) 여의도 한강공원",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-10-01T10:00:00"
+  },
+  {
+    "id": "sample-spring",
+    "title": "봄 축제",
+    "event_type": "공연",
+    "style": "따뜻한 감성",
+    "prompt": "벚꽃이 흩날리는 봄 음악축제 포스터.",
+    "image_url": "/placeholder.svg?theme=spring&title=2025 봄 음악축제&sub=꽃이 피는 순간, 음악이 흐른다&date=4.12 (토) - 4.13 (일) 서울 어린이대공원",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-09-28T14:20:00"
+  },
+  {
+    "id": "sample-night-market",
+    "title": "야시장",
+    "event_type": "야시장",
+    "style": "따뜻한 감성",
+    "prompt": "조명이 켜진 활기찬 야시장 포스터.",
+    "image_url": "/placeholder.svg?theme=night-market&title=오늘, 더 특별한 야시장&sub=맛있는 하루가 여기서 시작된다&date=매주 금·토 18:00 - 23:00",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-09-25T19:05:00"
+  },
+  {
+    "id": "sample-family",
+    "title": "가족 행사",
+    "event_type": "가족 행사",
+    "style": "따뜻한 감성",
+    "prompt": "풍선과 맑은 하늘, 가족 단위 방문객을 위한 행사 포스터.",
+    "image_url": "/placeholder.svg?theme=family&title=가족이 함께 만드는 행복한 하루&sub=2025 가족 한마음 행사&date=5.5 (월) 어린이대공원",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-09-20T11:30:00"
+  },
+  {
+    "id": "sample-lantern",
+    "title": "소원등 축제",
+    "event_type": "축제",
+    "style": "화려한 축제",
+    "prompt": "하늘로 떠오르는 소원등이 가득한 밤 축제 포스터.",
+    "image_url": "/placeholder.svg?theme=lantern&title=소원을 담은 밤&sub=빛나는 오늘, 더 나은 내일로&date=2025. 11. 8 (토) 청계천",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-09-15T20:10:00"
+  },
+  {
+    "id": "sample-summer",
+    "title": "여름 축제",
+    "event_type": "축제",
+    "style": "힙한 감성",
+    "prompt": "바다와 야자수가 있는 시원한 여름 축제 포스터.",
+    "image_url": "/placeholder.svg?theme=summer&title=여름을 다시, 여기서&sub=시원한 추억이 시작되는 곳&date=7.26 (토) - 7.27 (일) 해운대",
+    "share_url": "",
+    "download_url": "",
+    "source": "sample",
+    "created_at": "2025-09-10T09:40:00"
+  }
+]

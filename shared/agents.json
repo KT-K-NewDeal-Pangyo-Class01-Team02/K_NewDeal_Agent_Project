@@ -1,0 +1,38 @@
+[
+  {
+    "id": "reservation-churn",
+    "name": "예약판매 이탈 방지",
+    "description": "예약 고객 이탈 위험을 분석하고 선제적으로 대응합니다.",
+    "icon": "calendar-x",
+    "color": "red",
+    "status": "운영 중",
+    "url": ""
+  },
+  {
+    "id": "deo-jwo",
+    "name": "더 줘",
+    "description": "고객 맞춤형 추가 혜택을 제안하고 인센티브 관리를 지원합니다.",
+    "icon": "coins",
+    "color": "blue",
+    "status": "운영 중",
+    "url": ""
+  },
+  {
+    "id": "aftercare",
+    "name": "사후관리",
+    "description": "개통 후 고객 관리를 자동화하고 만족도를 높입니다.",
+    "icon": "headset",
+    "color": "green",
+    "status": "운영 중",
+    "url": ""
+  },
+  {
+    "id": "tonghagil-studio",
+    "name": "통하길 스튜디오",
+    "description": "행사에 맞는 홍보 포스터를 손쉽게 제작합니다.",
+    "icon": "image",
+    "color": "purple",
+    "status": "운영 중",
+    "url": "http://localhost:5004"
+  }
+]

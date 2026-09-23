@@ -1,0 +1,147 @@
+{% extends "cc_layout.html" %}
+
+{% block title %}통하길 스튜디오 · Command Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='studio.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ command_center_url }}">Command Center</a><span>/</span><strong>통하길 스튜디오</strong>
+{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+<div class="cc-page-head">
+  <h1 class="cc-page-title">통하길 스튜디오</h1>
+  <p class="cc-page-sub">특별한 순간을 만드는 행사 포스터, AI가 함께합니다.</p>
+</div>
+
+<div class="studio">
+  {# ---------- 왼쪽: 채팅으로 포스터 요청 ---------- #}
+  <section class="cc-card composer" aria-labelledby="composer-title">
+    <header class="panel-head">
+      <div>
+        <h2 id="composer-title">포스터 제작</h2>
+        <p>만들고 싶은 포스터를 대화하듯 설명해 주세요.</p>
+      </div>
+      {% if n8n_connected %}
+        <span class="conn is-live" title="n8n 워크플로로 이미지를 생성합니다">n8n 연결됨</span>
+      {% else %}
+        <span class="conn is-demo" title=".env 에 N8N_WEBHOOK_URL 을 넣으면 실제 이미지를 생성합니다">데모 모드</span>
+      {% endif %}
+    </header>
+
+    <div class="chat-log" id="chat-log" aria-live="polite">
+      <div class="msg msg-bot">
+        <p>안녕하세요! 행사 이름, 날짜, 장소, 원하는 분위기를 알려 주시면 포스터 시안을 만들어 드릴게요.</p>
+        <div class="examples">
+          <button type="button" class="example" data-example="10월 25일 여의도 한강 불꽃축제 포스터. 밤하늘을 가득 채운 불꽃과 'KT 부스 A구역 방문 시 기념품 증정' 문구를 넣어 주세요.">🎆 한강 불꽃축제 포스터</button>
+          <button type="button" class="example" data-example="5월 5일 어린이날 가족 한마음 행사 포스터. 풍선과 맑은 하늘, 아이와 부모가 함께하는 따뜻한 분위기로.">🎈 어린이날 가족 행사 포스터</button>
+          <button type="button" class="example" data-example="금·토 저녁 전통시장 야시장 포스터. 조명과 먹거리가 가득한 활기찬 분위기로 만들어 주세요.">🏮 전통시장 야시장 포스터</button>
+        </div>
+      </div>
+    </div>
+
+    <form class="composer-form" id="composer-form">
+      <fieldset class="style-field">
+        <legend class="composer-label">참고 스타일</legend>
+        <div class="style-picker">
+          {% for s in styles %}
+          <label class="style-option style-{{ s.id }}" title="{{ s.hint }}">
+            <input type="radio" name="style" value="{{ s.id }}" {% if loop.first %}checked{% endif %}>
+            <span class="style-thumb">{{ icon("check", 12, "style-check") }}</span>
+            <span class="style-label">{{ s.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <label class="event-row">
+        <span class="composer-label">행사 유형</span>
+        <select class="cc-select" name="event_type">
+          {% for t in event_types %}<option>{{ t }}</option>{% endfor %}
+        </select>
+      </label>
+
+      <div class="composer-input">
+        <label class="sr-only" for="message">포스터 설명</label>
+        <textarea id="message" name="message" rows="3" maxlength="{{ max_message }}"
+                  placeholder="예) 10월 25일 한강 불꽃축제, KT 부스는 A구역. 밤하늘과 불꽃이 가득한 느낌으로"></textarea>
+        <div class="composer-foot">
+          <span>Enter 전송 · Shift+Enter 줄바꿈</span>
+          <span id="counter">0/{{ max_message }}</span>
+        </div>
+      </div>
+
+      <button type="submit" class="cc-btn cc-btn-primary composer-submit" id="submit-btn">
+        {{ icon("sparkles", 18) }}<span>포스터 생성</span>
+      </button>
+    </form>
+  </section>
+
+  {# ---------- 오른쪽: 생성 이미지 갤러리 ---------- #}
+  <section class="cc-card gallery" aria-labelledby="gallery-title">
+    <header class="panel-head gallery-head">
+      <div>
+        <h2 id="gallery-title">생성 이미지 갤러리</h2>
+        <p>AI가 생성한 포스터를 확인하고, 원하는 이미지를 다운로드하세요.</p>
+      </div>
+      <div class="gallery-filters">
+        <button type="button" class="pill is-active" id="filter-all">전체</button>
+        <select class="pill-select" id="filter-event" aria-label="행사별 보기">
+          <option value="">행사별</option>
+          {% for t in event_types %}<option>{{ t }}</option>{% endfor %}
+        </select>
+        <select class="pill-select" id="sort" aria-label="정렬">
+          <option value="latest">최신순</option>
+          <option value="oldest">오래된순</option>
+        </select>
+      </div>
+    </header>
+    <div class="gallery-grid" id="gallery-grid"></div>
+    <p class="gallery-empty" id="gallery-empty" hidden>조건에 맞는 포스터가 없어요.</p>
+  </section>
+</div>
+
+<template id="poster-card-tpl">
+  <article class="poster">
+    <button type="button" class="poster-thumb" data-action="preview" aria-label="크게 보기">
+      <img alt="" loading="lazy" referrerpolicy="no-referrer">
+    </button>
+    <div class="poster-meta">
+      <div class="poster-text">
+        <strong class="poster-title"></strong>
+        <span class="poster-sub"></span>
+      </div>
+      <div class="poster-menu">
+        <button type="button" class="cc-icon-btn poster-more" data-action="menu" aria-label="더보기" aria-haspopup="menu" aria-expanded="false">{{ icon("more", 18) }}</button>
+        <div class="menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-action="preview">{{ icon("image", 16) }}크게 보기</button>
+          <a role="menuitem" data-link="download" target="_blank" rel="noopener">{{ icon("download", 16) }}다운로드</a>
+          <a role="menuitem" data-link="share" target="_blank" rel="noopener">{{ icon("external", 16) }}원본 링크 열기</a>
+        </div>
+      </div>
+    </div>
+  </article>
+</template>
+
+<dialog class="cc-dialog preview-dialog" id="preview-dialog" aria-labelledby="preview-title">
+  <div class="cc-dialog-head">
+    <h2 id="preview-title"></h2>
+    <button type="button" class="cc-icon-btn" data-close aria-label="닫기">{{ icon("x") }}</button>
+  </div>
+  <div class="preview-body">
+    <img id="preview-img" alt="" referrerpolicy="no-referrer">
+    <p id="preview-prompt"></p>
+  </div>
+  <div class="cc-dialog-foot">
+    <a class="cc-btn" id="preview-share" target="_blank" rel="noopener">{{ icon("external", 16) }}원본 링크</a>
+    <a class="cc-btn cc-btn-primary" id="preview-download" target="_blank" rel="noopener">{{ icon("download", 16) }}다운로드</a>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='studio.js') }}"></script>
+{% endblock %}
