@@ -174,8 +174,8 @@ cython_debug/
 .pypirc
 
 # 통하길 스튜디오: 실행 중에 생성되는 포스터 기록
-tonghagil_studio/data/posters.json
-tonghagil_studio/data/*.tmp
+**/tonghagil_studio/data/posters.json
+**/tonghagil_studio/data/*.tmp
 
 # Cursor
 #  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 
