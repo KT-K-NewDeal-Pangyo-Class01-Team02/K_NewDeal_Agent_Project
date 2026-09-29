@@ -1,0 +1,20 @@
+[
+  {
+    "model": "GalaxyZ Fold6",
+    "color": "Black",
+    "storage": "256GB",
+    "price": 1800000
+  },
+  {
+    "model": "GalaxyZ Fold6",
+    "color": "Silver",
+    "storage": "512GB",
+    "price": 2000000
+  },
+  {
+    "model": "iPhone 16",
+    "color": "Blue",
+    "storage": "128GB",
+    "price": 1250000
+  }
+]

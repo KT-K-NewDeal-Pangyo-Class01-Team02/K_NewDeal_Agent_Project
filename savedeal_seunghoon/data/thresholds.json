@@ -1,0 +1,8 @@
+{
+  "inventory": {
+    "transfer_lead_days": 1
+  },
+  "churn_risk_weights": {
+    "note": "not_implemented_yet"
+  }
+}

@@ -17,6 +17,7 @@ K_NewDeal_Agent_Project/
 | 서버 | 포트 | 폴더 | 실행 방식 |
 |---|---|---|---|
 | Command Center 홈 | **5000** | `command_center/` | Python (Flask) |
+| 예약판매 이탈 방지 (SaveDeal) | **5001** | `savedeal_seunghoon/` | Python (Flask) |
 | 통하길 스튜디오 | **5004** | `tonghagil_LEESEUNGHYUN/` | Python (Flask) |
 | 더 줘 | **5000** (`/thejo/`) | `thejo_project/` | Python (Flask Blueprint, 홈과 같은 프로세스) |
 | (최우용) | 미정 | `vicDDory_wooyong/` | 미정 |

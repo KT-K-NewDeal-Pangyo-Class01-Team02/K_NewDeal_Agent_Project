@@ -1,0 +1,619 @@
+/* 예약 운영 대시보드 */
+.dashboard-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-actions .btn-primary {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-ghost,
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-ghost {
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover,
+.btn-secondary:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.btn-small {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.btn-danger-outline {
+  background: var(--color-surface);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 요약 카드 */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s ease;
+}
+
+.summary-card:hover,
+.summary-card.is-active {
+  border-color: var(--color-accent-red);
+}
+
+.summary-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.summary-value {
+  font-size: 28px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tone-warning {
+  color: var(--color-warning);
+}
+
+.tone-danger {
+  color: var(--color-danger);
+}
+
+.tone-success {
+  color: var(--color-success);
+}
+
+/* 목록 + 상세 */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.dashboard-layout.has-detail {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.list-panel,
+.detail-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.list-panel {
+  padding: 20px;
+  min-width: 0;
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-tab[aria-selected="true"] {
+  background: var(--color-sidebar-bg);
+  border-color: var(--color-sidebar-bg);
+  color: #ffffff;
+}
+
+.filter-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.reservation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.reservation-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.reservation-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.reservation-row {
+  cursor: pointer;
+}
+
+.reservation-row:hover {
+  background: #fafafb;
+}
+
+.reservation-row.is-selected {
+  background: #fff5f4;
+  box-shadow: inset 3px 0 0 var(--color-accent-red);
+}
+
+.reservation-row.is-closed {
+  color: var(--color-text-secondary);
+}
+
+.reservation-row:focus-visible {
+  outline: 2px solid var(--color-accent-red);
+  outline-offset: -2px;
+}
+
+.reservation-table td:nth-child(2),
+.reservation-table td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.table-empty {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 32px 10px;
+}
+
+.priority-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.priority-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-bg);
+}
+
+.priority-rank.is-top {
+  background: var(--color-accent-red);
+  color: #ffffff;
+}
+
+.priority-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell-main {
+  font-weight: 600;
+  display: block;
+}
+
+.cell-sub {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  display: block;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+.pill-risk-high,
+.pill-status-ACTION_REQUIRED {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.pill-risk-medium,
+.pill-status-IN_PROGRESS {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.pill-risk-low,
+.pill-status-READY,
+.pill-status-COMPLETED {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.deadline-overdue {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.list-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* 상세 패널 */
+.detail-panel {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-eyebrow {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section h3 {
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.score-tile {
+  background: var(--color-bg);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+}
+
+.score-tile-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.score-tile-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-tile-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.info-list {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.info-list dt {
+  color: var(--color-text-secondary);
+}
+
+.info-list dd {
+  margin: 0;
+}
+
+.issue-cards,
+.action-cards,
+.timeline,
+.factor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-card {
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.issue-card strong {
+  color: var(--color-danger);
+  display: block;
+}
+
+.action-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 12px;
+  font-size: 13px;
+}
+
+.action-card.is-approved {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.action-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.action-type {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.action-title {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.action-desc {
+  margin: 0 0 10px;
+  color: var(--color-text-secondary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ready-box {
+  background: var(--color-success-bg);
+  border-radius: var(--radius-control);
+  padding: 12px;
+  font-size: 13px;
+  color: var(--color-success);
+}
+
+.ready-box p {
+  margin: 0 0 10px;
+}
+
+.factor-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.factor-points {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.factor-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.factor-columns h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.timeline li {
+  font-size: 13px;
+  padding-left: 14px;
+  position: relative;
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+}
+
+.timeline-meta {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.panel-message {
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.panel-message.is-error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.panel-message.is-info {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 1280px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 좁은 화면: 상세 패널을 오른쪽 drawer로 띄운다 */
+@media (max-width: 1100px) {
+  .dashboard-layout.has-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(440px, 100vw);
+    max-height: none;
+    border-radius: 0;
+    z-index: 20;
+  }
+
+  .drawer-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 10;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .score-grid,
+  .factor-columns {
+    grid-template-columns: 1fr;
+  }
+}

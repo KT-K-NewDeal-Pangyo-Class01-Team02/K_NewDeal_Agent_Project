@@ -1,0 +1,78 @@
+[
+  {
+    "customer_id": "C001",
+    "name": "김지수",
+    "phone": "010-****-1024",
+    "identity_verified": true,
+    "verification_method": "mobile_ok",
+    "required_documents": [
+      "신분증"
+    ],
+    "submitted_documents": [
+      "신분증"
+    ],
+    "overdue_payment": false,
+    "installment_limit": 2000000,
+    "existing_lines_count": 1,
+    "max_lines_allowed": 5,
+    "last_contact_at": "2026-09-25T10:00:00",
+    "contact_response_pending": false
+  },
+  {
+    "customer_id": "C002",
+    "name": "이도현",
+    "phone": "010-****-2231",
+    "identity_verified": false,
+    "verification_method": null,
+    "required_documents": [
+      "신분증",
+      "가족관계증명서"
+    ],
+    "submitted_documents": [],
+    "overdue_payment": true,
+    "installment_limit": 500000,
+    "existing_lines_count": 4,
+    "max_lines_allowed": 5,
+    "last_contact_at": "2026-09-15T09:00:00",
+    "contact_response_pending": true
+  },
+  {
+    "customer_id": "C003",
+    "name": "박서윤",
+    "phone": "010-****-3348",
+    "identity_verified": true,
+    "verification_method": "mobile_ok",
+    "required_documents": [
+      "신분증",
+      "가족관계증명서"
+    ],
+    "submitted_documents": [
+      "신분증"
+    ],
+    "overdue_payment": false,
+    "installment_limit": 2000000,
+    "existing_lines_count": 1,
+    "max_lines_allowed": 5,
+    "last_contact_at": "2026-09-27T11:00:00",
+    "contact_response_pending": false
+  },
+  {
+    "customer_id": "C004",
+    "name": "최민호",
+    "phone": "010-****-4410",
+    "identity_verified": true,
+    "verification_method": "mobile_ok",
+    "required_documents": [
+      "신분증"
+    ],
+    "submitted_documents": [
+      "신분증"
+    ],
+    "overdue_payment": false,
+    "installment_limit": 500000,
+    "existing_lines_count": 1,
+    "max_lines_allowed": 5,
+    "last_contact_at": "2026-09-27T11:00:00",
+    "contact_response_pending": false
+  }
+]

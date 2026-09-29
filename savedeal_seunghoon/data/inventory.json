@@ -1,0 +1,38 @@
+[
+  {
+    "sku": "SKU001",
+    "model": "GalaxyZ Fold6",
+    "color": "Black",
+    "storage": "256GB",
+    "store_id": "S001",
+    "quantity_on_hand": 3,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU002",
+    "model": "GalaxyZ Fold6",
+    "color": "Silver",
+    "storage": "512GB",
+    "store_id": "S001",
+    "quantity_on_hand": 0,
+    "expected_restock_date": "2026-10-10"
+  },
+  {
+    "sku": "SKU003",
+    "model": "iPhone 16",
+    "color": "Blue",
+    "storage": "128GB",
+    "store_id": "S002",
+    "quantity_on_hand": 5,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU004",
+    "model": "iPhone 16",
+    "color": "Blue",
+    "storage": "128GB",
+    "store_id": "S001",
+    "quantity_on_hand": 0,
+    "expected_restock_date": null
+  }
+]
