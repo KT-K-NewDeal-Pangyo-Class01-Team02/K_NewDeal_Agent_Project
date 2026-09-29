@@ -1,21 +1,52 @@
 {% extends "cc_layout.html" %}
 
-{% block title %}빅또리 · Command Center{% endblock %}
+{% block title %}{{ agent.name }} · Command Center{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='campaign.css') }}">
 {% endblock %}
 
 {% block breadcrumb %}
-<a href="{{ command_center_url }}">Command Center</a><span>/</span><strong>빅또리</strong>
+<a href="{{ command_center_url }}">Command Center</a><span>/</span><strong>{{ agent.name }}</strong>
 {% endblock %}
 
 {% block content %}
 {% from "_icons.html" import icon %}
 <div class="cc-page-head">
-  <h1 class="cc-page-title">빅또리</h1>
+  <h1 class="cc-page-title">{{ agent.name }}</h1>
   <p class="cc-page-sub">현장에서 3시간 만에 끝내는 옥외 BTL 캠페인 기획과 성과 환류.</p>
 </div>
+
+{# ---------- 맨 위: F-01 이번 주 옥외 기회 ---------- #}
+<section class="cc-card panel opp" aria-labelledby="opp-title">
+  <header class="panel-head">
+    <div>
+      <h2 id="opp-title">이번 주 옥외 기회</h2>
+      <p>내일부터 7일 동안 유동 · 주변 행사 · 기상 · 프로모션 · 출동 인력을 비교해 기회 3건을 제안합니다. 캠페인을 열지는 점장이 정합니다.</p>
+    </div>
+    {% if f01_connected %}
+      <span class="conn is-live" title="n8n F01_scan 워크플로가 기회를 찾습니다">n8n 연결됨</span>
+    {% else %}
+      <span class="conn is-demo" title=".env 에 N8N_BASE_URL(또는 N8N_WEBHOOK_URL)을 넣으면 실제 기회를 찾습니다">데모 모드</span>
+    {% endif %}
+  </header>
+
+  <div class="opp-toolbar">
+    <label class="opp-store">
+      <span class="cc-label">매장</span>
+      <select class="cc-select" id="opp-store">
+        {% for s in stores %}<option value="{{ s.id }}" data-name="{{ s.name }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="button" class="cc-btn cc-btn-primary" id="scan-btn">{{ icon("refresh", 16) }}<span>기회 스캔</span></button>
+    <p class="opp-meta" id="opp-meta" aria-live="polite"></p>
+  </div>
+
+  <div class="opp-grid" id="opp-grid">
+    <div class="opp-empty" id="opp-empty">매장을 고르고 <strong>기회 스캔</strong>을 누르면 이번 주 옥외 캠페인 기회 3건이 여기에 나옵니다.</div>
+  </div>
+  <div class="opp-notice" id="opp-notice" role="status"></div>
+</section>
 
 <div class="campaign">
   {# ---------- 왼쪽: 캠페인 발의 파라미터 ---------- #}
@@ -111,4 +142,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='campaign.js') }}"></script>
+<script src="{{ url_for('static', filename='f01.js') }}"></script>
 {% endblock %}

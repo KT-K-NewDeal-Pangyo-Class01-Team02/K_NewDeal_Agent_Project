@@ -5,6 +5,7 @@
 """
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 if not __package__:
@@ -15,9 +16,15 @@ from flask import Flask, jsonify, render_template, request
 
 from vicddory_campaign import config
 from vicddory_campaign.layout import AGENT, AGENT_ID, init_cc_layout
-from vicddory_campaign.n8n_client import N8nError, request_plan
+from vicddory_campaign.n8n_client import N8nError, request_json, request_plan
 
 MAX_CONSTRAINTS = 200
+
+# F-01 기회 스캔 대상 매장 (roster · 00_dummy_data 의 store_id 와 같다)
+STORES = [
+    {"id": "ST-SINCHEON", "name": "신천역점"},
+    {"id": "ST-GANGNAM", "name": "강남직영점"},
+]
 
 TARGET_GROUPS = [
     {"id": "2030_5G", "label": "2030 청년층 (5G 무제한 요금제)"},
@@ -51,7 +58,53 @@ def home():
         insight=INSIGHT,
         max_constraints=MAX_CONSTRAINTS,
         n8n_connected=bool(config.N8N_WEBHOOK_URL),
+        stores=STORES,
+        f01_connected=bool(config.F01_SCAN_URL),
     )
+
+
+@app.post("/api/f01/scan")
+def f01_scan():
+    """F-01: 내일부터 7일의 옥외 캠페인 기회를 점수화해 카드 3건을 받아 온다."""
+    data = request.get_json(silent=True) or {}
+    store = next((s for s in STORES if s["id"] == data.get("store_id")), None)
+    if not store:
+        return jsonify(error="기회를 찾을 매장을 선택해 주세요."), 400
+
+    if not config.F01_SCAN_URL:
+        time.sleep(0.6)
+        return jsonify(_demo_scan(store))
+
+    try:
+        result = request_json(config.F01_SCAN_URL, {"store_id": store["id"], "storeName": store["name"]},
+                              timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    if result.get("status") != "success":
+        return jsonify(error=result.get("message") or "기회 스캔 결과를 받지 못했어요."), 502
+    return jsonify({**result, "source": "n8n"})
+
+
+@app.post("/api/f01/select")
+def f01_select():
+    """F-01: 점장이 고른 기회 카드로 캠페인을 연다 (기획 마감 = 선택 후 3시간)."""
+    data = request.get_json(silent=True) or {}
+    try:
+        card_id = int(data.get("card_id"))
+    except (TypeError, ValueError):
+        return jsonify(error="선택한 카드 번호가 없어요. 기회 스캔을 다시 실행해 주세요."), 400
+
+    if not config.F01_SELECT_URL:
+        return jsonify(_demo_select(card_id, data.get("target_date"), data.get("store_id")))
+
+    try:
+        result = request_json(config.F01_SELECT_URL, {"card_id": card_id}, timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    if result.get("status") != "success":
+        # 이미 선택된 카드 · 없는 카드 등 (F01_select 의 '오류 응답')
+        return jsonify(error=result.get("message") or "카드를 선택하지 못했어요."), 409
+    return jsonify({**result, "source": "n8n"})
 
 
 @app.post("/api/plan")
@@ -86,6 +139,42 @@ def create_plan():
     except N8nError as exc:
         return jsonify(error=str(exc)), 502
     return jsonify(plan=plan, source="n8n")
+
+
+def _demo_scan(store):
+    """n8n 없이 F-01 화면 흐름을 확인하는 샘플 카드 3건."""
+    today = datetime.now(timezone(timedelta(hours=9))).date()
+    samples = [(5, "주말", "weekend", 89, 2), (4, "공휴일", "holiday", 87, 1), (6, "공휴일", "holiday", 71, 1)]
+    cards = []
+    for rank, (days, label, day_type, score, teams) in enumerate(samples, start=1):
+        cards.append({
+            "card_id": -rank, "rank": rank, "target_date": (today + timedelta(days=days)).isoformat(),
+            "day_type": day_type, "score": score, "score_status": "partial",
+            "title": f"{label} 공원 가족 나들이 (데모)",
+            "summary": "가족 유동이 높은 날입니다. 데모 모드라 실제 기상·행사 데이터는 반영되지 않았습니다.",
+            "risk": "데모 데이터입니다.", "tags": ["확인 필요: 기상 지표 없음"], "teams": teams,
+            "top_site": {"site_name": "석촌호수 동호 산책로", "distance_to_store_m": 1650},
+            "indicators": {
+                "footfall": {"label": "유동", "score": 95, "note": "데모"},
+                "event": {"label": "행사", "score": 70, "note": "데모"},
+                "weather": {"label": "기상", "score": None, "note": "데이터 없음"},
+                "promo": {"label": "프로모션", "score": 100, "note": "데모"},
+                "staff": {"label": "출동 인력", "score": 100 if teams >= 2 else 70, "note": "데모"},
+            },
+        })
+    return {"status": "success", "source": "demo", "store_id": store["id"], "store_name": store["name"],
+            "scannedAt": datetime.now(timezone.utc).isoformat(), "dataTags": [],
+            "sources": {"kma": True, "tour": True, "roster": True, "dummy": True, "llm": True, "db": True},
+            "cards": cards}
+
+
+def _demo_select(card_id, target_date, store_id):
+    now = datetime.now(timezone.utc)
+    return {"status": "success", "source": "demo", "campaign": {
+        "campaign_id": "DEMO", "card_id": card_id, "store_id": store_id, "target_date": target_date,
+        "selection_status": "selected", "selected_at": now.isoformat(),
+        "plan_due_at": (now + timedelta(hours=3)).isoformat(),
+    }}
 
 
 def _demo_plan(store_name, target_label, constraints):

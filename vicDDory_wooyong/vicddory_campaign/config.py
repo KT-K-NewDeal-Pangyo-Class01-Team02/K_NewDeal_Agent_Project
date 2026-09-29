@@ -21,3 +21,18 @@ N8N_TIMEOUT = float(os.getenv("N8N_TIMEOUT", "120"))
 
 # Command Center 는 5000, 통하길 스튜디오는 5004, 빅또리는 5500
 VICDDORY_PORT = int(os.getenv("VICDDORY_PORT", "5500"))
+
+
+def _webhook_base(url):
+    """'https://.../webhook/plan-gen' → 'https://.../webhook'"""
+    if "/webhook/" in url:
+        return url[: url.index("/webhook/") + len("/webhook")]
+    return url.rsplit("/", 1)[0] if url else ""
+
+
+# F 기능별 n8n 웹훅은 이 주소 뒤에 경로를 붙여 부른다 (예: .../webhook/f01-scan).
+# 비워 두면 N8N_WEBHOOK_URL 에서 '/webhook' 까지를 잘라 쓴다. 둘 다 비면 F 기능도 데모 모드.
+N8N_BASE_URL = (os.getenv("N8N_BASE_URL") or _webhook_base(N8N_WEBHOOK_URL)).strip().rstrip("/")
+
+F01_SCAN_URL = f"{N8N_BASE_URL}/f01-scan" if N8N_BASE_URL else ""
+F01_SELECT_URL = f"{N8N_BASE_URL}/f01-select" if N8N_BASE_URL else ""

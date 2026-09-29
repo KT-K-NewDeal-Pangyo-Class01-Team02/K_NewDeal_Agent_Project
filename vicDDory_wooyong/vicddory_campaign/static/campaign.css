@@ -85,9 +85,54 @@
 .insight .icon { margin-top: 2px; flex-shrink: 0; }
 .insight strong { display: block; margin-bottom: 2px; color: #6f1a21; }
 
+/* ---------- 맨 위: F-01 이번 주 옥외 기회 ---------- */
+.opp + .campaign { margin-top: 20px; }
+.opp-toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.opp-store { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+.opp-store .cc-label { margin: 0; }
+.opp-toolbar .cc-btn { height: 42px; }
+.opp-meta { flex: 1 1 260px; margin: 0; font-size: 13px; line-height: 1.6; color: var(--cc-text-sub); }
+.opp-meta .is-warn { color: #d46b12; font-weight: 600; }
+
+.opp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.opp-empty, .opp-grid > .opp-error {
+  grid-column: 1 / -1; padding: 28px 16px; border: 1px dashed var(--cc-border); border-radius: 12px;
+  text-align: center; font-size: 14px; color: var(--cc-muted);
+}
+.opp-grid > .opp-error { color: var(--cc-accent); border-color: var(--cc-accent-soft); }
+.opp-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 18px;
+  border: 1px solid var(--cc-border); border-radius: 12px; background: #fbfcfd;
+}
+.opp-card.is-selected { border: 2px solid #d46b12; background: #fffaf4; }
+.opp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.opp-date { font-size: 13px; color: var(--cc-text-sub); }
+.opp-score { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.opp-status { margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; vertical-align: 4px; }
+.opp-status.is-valid { background: #e3f5ea; color: #1d7a4b; }
+.opp-status.is-partial { background: #fff1e3; color: #d46b12; }
+.opp-card h3 { margin: 0; font-size: 16px; font-weight: 700; }
+.opp-card p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--cc-text-sub); }
+.opp-card p strong { color: var(--cc-text); }
+.opp-bars { display: grid; gap: 4px; }
+.opp-bar { display: grid; grid-template-columns: 64px 1fr 28px; align-items: center; gap: 8px; font-size: 12px; color: var(--cc-text-sub); }
+.opp-bar i { display: block; height: 6px; border-radius: 3px; background: #eef0f4; overflow: hidden; }
+.opp-bar i b { display: block; height: 100%; background: #d46b12; }
+.opp-bar span:last-child { text-align: right; }
+.opp-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.opp-tag { padding: 3px 8px; border-radius: 999px; background: #fff1e3; color: #b85a0d; font-size: 12px; }
+.opp-tag.is-block { background: var(--cc-accent-soft); color: var(--cc-accent); }
+.opp-card .cc-btn { margin-top: auto; width: 100%; }
+.opp-notice:not(:empty) {
+  margin-top: 14px; padding: 12px 16px; border-radius: 12px;
+  background: #fff1e3; color: #8a4a0c; font-size: 13px; line-height: 1.6;
+}
+.opp-notice.is-error:not(:empty) { background: var(--cc-accent-soft); color: #8d2129; }
+
 /* ---------- 반응형 ---------- */
 @media (max-width: 1080px) {
   .campaign { grid-template-columns: minmax(0, 1fr); }
+  .opp-grid { grid-template-columns: minmax(0, 1fr); }
   .plan-box, .plan-empty { min-height: 260px; }
 }
 @media (max-width: 640px) {

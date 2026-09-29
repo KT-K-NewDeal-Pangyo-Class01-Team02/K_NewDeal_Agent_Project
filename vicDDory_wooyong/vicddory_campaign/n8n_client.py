@@ -13,8 +13,7 @@ class N8nError(Exception):
     """n8n 호출이 실패했거나, 응답에서 기획안을 찾지 못했을 때."""
 
 
-def request_plan(webhook_url, payload, timeout=120):
-    """웹훅에 payload 를 POST 하고 기획안 텍스트를 돌려준다."""
+def _post(webhook_url, payload, timeout):
     try:
         response = requests.post(webhook_url, json=payload, timeout=timeout)
     except requests.Timeout:
@@ -24,11 +23,25 @@ def request_plan(webhook_url, payload, timeout=120):
 
     if response.status_code >= 400:
         raise N8nError(f"n8n 이 오류를 돌려줬어요 (HTTP {response.status_code}). 워크플로가 활성화돼 있는지 확인해 주세요.")
+    return response
 
-    plan = _extract_plan(_parse(response))
+
+def request_plan(webhook_url, payload, timeout=120):
+    """웹훅에 payload 를 POST 하고 기획안 텍스트를 돌려준다."""
+    plan = _extract_plan(_parse(_post(webhook_url, payload, timeout)))
     if not plan:
         raise N8nError("n8n 응답에서 기획안 내용을 찾지 못했어요. 워크플로의 'Respond to Webhook' 출력을 확인해 주세요.")
     return plan
+
+
+def request_json(webhook_url, payload, timeout=120):
+    """F 기능 웹훅(F01_scan 등)처럼 JSON 객체를 돌려주는 워크플로를 호출한다."""
+    data = _parse(_post(webhook_url, payload, timeout))
+    if isinstance(data, list) and data:
+        data = data[0]
+    if not isinstance(data, dict):
+        raise N8nError("n8n 응답이 JSON 형식이 아니에요. 워크플로의 'Respond to Webhook' 출력을 확인해 주세요.")
+    return data
 
 
 def _parse(response):
