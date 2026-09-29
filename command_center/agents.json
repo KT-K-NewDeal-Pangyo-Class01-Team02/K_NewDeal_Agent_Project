@@ -24,7 +24,7 @@
     "icon": "headset",
     "color": "green",
     "status": "운영 중",
-    "url": ""
+    "url": "http://localhost:5500"
   },
   {
     "id": "tonghagil-studio",
