@@ -4,8 +4,8 @@
 드라이브 링크만 저장하고, 화면에서는 드라이브의 이미지를 그대로 불러온다.
 posters.json 이 아직 없으면 sample_posters.json(더미 데이터)을 보여 준다.
 
-나중에 '드라이브 폴더에 있는 이미지 전체'를 직접 읽어 오고 싶다면,
-list()/add() 를 가진 다른 저장소 클래스(예: DriveFolderPosterStore)를 만들어 app.py 에서 바꿔 끼우면 된다.
+드라이브 폴더가 설정되면 app.py 가 DriveFolderPosterStore(drive_store.py)를 갤러리로 쓰고,
+이 저장소는 스튜디오에서 요청한 포스터의 부가 정보(제목·행사 유형·요청 문구) 기록용으로만 쓰인다.
 """
 import json
 import threading
@@ -38,6 +38,20 @@ class JsonPosterStore:
             posters.append(poster)
             self._write(posters)
         return poster
+
+    def update_by_file_id(self, file_id, **fields):
+        """드라이브 파일 ID로 기록을 찾아 필드를 바꾼다. 스튜디오 밖에서 만든 파일이라 기록이 없으면 그냥 넘어간다."""
+        if not self.path.exists():
+            return
+        with self._lock:
+            posters = self._read()
+            changed = False
+            for poster in posters:
+                if poster.get("drive_file_id") == file_id:
+                    poster.update(fields)
+                    changed = True
+            if changed:
+                self._write(posters)
 
     def _read(self):
         path = self.path if self.path.exists() else self.seed_path

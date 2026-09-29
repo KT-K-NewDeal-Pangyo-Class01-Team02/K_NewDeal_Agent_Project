@@ -1,9 +1,15 @@
 """Command Center 홈: 에이전트 카드를 보여 주고, 카드를 누르면 각 에이전트 앱을 새 탭으로 연다.
 
-실행 (프로젝트 루트에서):  python -m command_center.app
+실행: VS Code 실행(▶) 버튼, 또는 tonghagil_LEESEUNGHYUN 폴더에서  python -m command_center.app
 """
 import os
 import re
+import sys
+from pathlib import Path
+
+if not __package__:
+    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 shared/ 를 찾을 수 있게 한다
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request

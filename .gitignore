@@ -173,9 +173,32 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# 통하길 스튜디오: 실행 중에 생성되는 포스터 기록
+# 통하길 스튜디오: 실행 중에 생성되는 포스터 기록 · 드라이브 썸네일 캐시
 **/tonghagil_studio/data/posters.json
 **/tonghagil_studio/data/*.tmp
+**/tonghagil_studio/data/drive_cache/
+
+# ─────────────────────────────────────────────────────────────
+# 🔒 비밀 파일: 저장소 어느 폴더에 있든 절대 커밋하지 않는다 (팀 전체 적용)
+#    (슬래시 없이 쓴 규칙은 모든 하위 폴더에 적용된다)
+# ─────────────────────────────────────────────────────────────
+# 환경 변수 파일 (.env, .env.local, .env.production, prod.env …). 예시 파일(.env.example)만 올린다.
+.env
+.env.*
+*.env
+!.env.example
+
+# 인증 정보 폴더·파일 (credentials/, .credentials, credentials.json, 서비스 계정 키, OAuth 토큰 …)
+credentials/
+.credentials*
+credentials*.json
+*service-account*.json
+*service_account*.json
+client_secret*.json
+token.json
+*.pem
+*.key
+*.p12
 
 # Cursor
 #  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 

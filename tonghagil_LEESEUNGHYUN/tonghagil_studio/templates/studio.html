@@ -84,10 +84,18 @@
   <section class="cc-card gallery" aria-labelledby="gallery-title">
     <header class="panel-head gallery-head">
       <div>
-        <h2 id="gallery-title">생성 이미지 갤러리</h2>
+        <h2 id="gallery-title">
+          생성 이미지 갤러리
+          {% if drive_connected %}
+            <span class="conn is-live" title="구글 드라이브 폴더의 이미지를 보여 줍니다">구글 드라이브</span>
+          {% else %}
+            <span class="conn is-demo" title=".env 에 DRIVE_FOLDER_ID 와 서비스 계정 키를 설정하면 드라이브 폴더를 보여 줍니다">샘플 데이터</span>
+          {% endif %}
+        </h2>
         <p>AI가 생성한 포스터를 확인하고, 원하는 이미지를 다운로드하세요.</p>
       </div>
       <div class="gallery-filters">
+        <button type="button" class="cc-icon-btn refresh-btn" id="refresh-btn" aria-label="새로고침" title="드라이브에서 다시 불러오기">{{ icon("refresh", 18) }}</button>
         <button type="button" class="pill is-active" id="filter-all">전체</button>
         <select class="pill-select" id="filter-event" aria-label="행사별 보기">
           <option value="">행사별</option>
@@ -120,6 +128,8 @@
           <button type="button" role="menuitem" data-action="preview">{{ icon("image", 16) }}크게 보기</button>
           <a role="menuitem" data-link="download" target="_blank" rel="noopener">{{ icon("download", 16) }}다운로드</a>
           <a role="menuitem" data-link="share" target="_blank" rel="noopener">{{ icon("external", 16) }}원본 링크 열기</a>
+          <button type="button" role="menuitem" data-action="edit" data-drive-only>{{ icon("edit", 16) }}정보 수정</button>
+          <button type="button" role="menuitem" data-action="delete" data-drive-only class="menu-danger">{{ icon("trash", 16) }}삭제</button>
         </div>
       </div>
     </div>
@@ -138,6 +148,50 @@
   <div class="cc-dialog-foot">
     <a class="cc-btn" id="preview-share" target="_blank" rel="noopener">{{ icon("external", 16) }}원본 링크</a>
     <a class="cc-btn cc-btn-primary" id="preview-download" target="_blank" rel="noopener">{{ icon("download", 16) }}다운로드</a>
+  </div>
+</dialog>
+
+<dialog class="cc-dialog" id="edit-dialog" aria-labelledby="edit-title">
+  <form id="edit-form" novalidate>
+    <div class="cc-dialog-head">
+      <h2 id="edit-title">포스터 정보 수정</h2>
+      <button type="button" class="cc-icon-btn" data-close aria-label="닫기">{{ icon("x") }}</button>
+    </div>
+    <div class="cc-dialog-body">
+      <label class="cc-field">
+        <span class="cc-label">제목</span>
+        <input class="cc-input" name="title" maxlength="40" required>
+      </label>
+      <label class="cc-field">
+        <span class="cc-label">행사 유형</span>
+        <select class="cc-select" name="event_type">
+          <option value="">지정 안 함</option>
+          {% for t in event_types %}<option>{{ t }}</option>{% endfor %}
+        </select>
+      </label>
+      <p class="edit-hint">드라이브 파일 이름도 <code id="edit-filename"></code> 으로 바뀌어요.</p>
+      <p class="form-error" id="edit-error" role="alert"></p>
+    </div>
+    <div class="cc-dialog-foot">
+      <button type="button" class="cc-btn" data-close>취소</button>
+      <button type="submit" class="cc-btn cc-btn-primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="cc-dialog" id="delete-dialog" aria-labelledby="delete-title">
+  <div class="cc-dialog-head">
+    <h2 id="delete-title">포스터를 삭제할까요?</h2>
+    <button type="button" class="cc-icon-btn" data-close aria-label="닫기">{{ icon("x") }}</button>
+  </div>
+  <div class="cc-dialog-body">
+    <p class="delete-text"><strong id="delete-name"></strong> 포스터를 갤러리에서 빼고, 드라이브 폴더 안 <strong>_보관함</strong> 폴더로 옮겨요.
+      드라이브에서 언제든 다시 꺼낼 수 있어요.</p>
+    <p class="form-error" id="delete-error" role="alert"></p>
+  </div>
+  <div class="cc-dialog-foot">
+    <button type="button" class="cc-btn" data-close>취소</button>
+    <button type="button" class="cc-btn cc-btn-danger" id="delete-confirm">{{ icon("trash", 16) }}삭제</button>
   </div>
 </dialog>
 {% endblock %}

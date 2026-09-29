@@ -14,6 +14,7 @@
   const filterAll = $('filter-all');
   const filterEvent = $('filter-event');
   const sortSelect = $('sort');
+  const refreshBtn = $('refresh-btn');
 
   const preview = $('preview-dialog');
 
@@ -24,19 +25,29 @@
 
   // ---------------- 갤러리 ----------------
 
-  async function loadPosters() {
+  async function loadPosters(refresh = false) {
+    refreshBtn.classList.add('is-loading');
+    refreshBtn.disabled = true;
     try {
-      const res = await fetch('/api/posters');
-      if (!res.ok) throw new Error();
-      posters = await res.json();
+      const res = await fetch(refresh ? '/api/posters?refresh=1' : '/api/posters');
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(body)) throw new Error((body && body.error) || '포스터 목록을 불러오지 못했어요. 새로고침해 주세요.');
+      posters = body;
       renderGallery();
-    } catch {
-      empty.textContent = '포스터 목록을 불러오지 못했어요. 새로고침해 주세요.';
+    } catch (err) {
+      grid.replaceChildren();
+      empty.textContent = err.message;
       empty.hidden = false;
+    } finally {
+      refreshBtn.classList.remove('is-loading');
+      refreshBtn.disabled = false;
     }
   }
 
+  refreshBtn.addEventListener('click', () => loadPosters(true));
+
   function renderGallery() {
+    empty.textContent = '조건에 맞는 포스터가 없어요.';
     const type = filterEvent.value;
     const oldestFirst = sortSelect.value === 'oldest';
     const list = posters
@@ -63,6 +74,8 @@
     card.querySelector('.poster-sub').textContent = [poster.event_type, formatDate(poster.created_at)].filter(Boolean).join(' · ');
     setLink(card.querySelector('[data-link="download"]'), downloadUrl(poster), poster);
     setLink(card.querySelector('[data-link="share"]'), shareUrl(poster));
+    // 수정·삭제는 드라이브 포스터만 가능 (샘플·데모 포스터는 메뉴에서 뺀다)
+    if (poster.source !== 'drive') card.querySelectorAll('[data-drive-only]').forEach((el) => el.remove());
     return card;
   }
 
@@ -85,6 +98,12 @@
     } else if (target.dataset.action === 'preview') {
       closeMenus();
       openPreview(poster);
+    } else if (target.dataset.action === 'edit') {
+      closeMenus();
+      openEdit(poster);
+    } else if (target.dataset.action === 'delete') {
+      closeMenus();
+      openDelete(poster);
     }
   });
 
@@ -117,9 +136,94 @@
     setLink($('preview-share'), shareUrl(poster));
     preview.showModal();
   }
-  preview.querySelector('[data-close]').addEventListener('click', () => preview.close());
-  preview.addEventListener('click', (event) => {
-    if (event.target === preview) preview.close();
+  // ---------------- 정보 수정 · 삭제 (드라이브 포스터) ----------------
+
+  const editDialog = $('edit-dialog');
+  const editForm = $('edit-form');
+  const editError = $('edit-error');
+  const deleteDialog = $('delete-dialog');
+  const deleteError = $('delete-error');
+  const deleteConfirm = $('delete-confirm');
+  let editing = null;
+
+  function openEdit(poster) {
+    editing = poster;
+    editForm.elements.title.value = poster.title;
+    editForm.elements.event_type.value = poster.event_type || '';
+    editError.textContent = '';
+    updateFilenamePreview();
+    editDialog.showModal();
+    editForm.elements.title.select();
+  }
+
+  function updateFilenamePreview() {
+    const title = editForm.elements.title.value.replace(/[_/\\]+/g, ' ').trim() || '제목';
+    const date = (editing.created_at || '').slice(0, 10).replaceAll('-', '');
+    $('edit-filename').textContent = [editForm.elements.event_type.value, title, date].filter(Boolean).join('_') + '.png';
+  }
+  editForm.addEventListener('input', updateFilenamePreview);
+
+  editForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = editForm.querySelector('[type="submit"]');
+    submit.disabled = true;
+    editError.textContent = '';
+    try {
+      const updated = await requestJson(`/api/posters/${encodeURIComponent(editing.id)}`, 'PATCH', {
+        title: editForm.elements.title.value.trim(),
+        event_type: editForm.elements.event_type.value,
+      });
+      posters = posters.map((p) => (p.id === updated.id ? updated : p));
+      renderGallery();
+      editDialog.close();
+      window.ccToast('포스터 정보를 수정했어요. 드라이브 파일 이름도 바뀌었어요.');
+    } catch (err) {
+      editError.textContent = err.message;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  function openDelete(poster) {
+    editing = poster;
+    $('delete-name').textContent = `'${poster.title}'`;
+    deleteError.textContent = '';
+    deleteDialog.showModal();
+  }
+
+  deleteConfirm.addEventListener('click', async () => {
+    deleteConfirm.disabled = true;
+    deleteError.textContent = '';
+    try {
+      await requestJson(`/api/posters/${encodeURIComponent(editing.id)}`, 'DELETE');
+      posters = posters.filter((p) => p.id !== editing.id);
+      renderGallery();
+      deleteDialog.close();
+      window.ccToast("드라이브의 '_보관함' 폴더로 옮겼어요.");
+    } catch (err) {
+      deleteError.textContent = err.message;
+    } finally {
+      deleteConfirm.disabled = false;
+    }
+  });
+
+  async function requestJson(url, method, payload) {
+    const res = await fetch(url, {
+      method,
+      headers: payload ? { 'Content-Type': 'application/json' } : {},
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
+    const body = res.status === 204 ? null : await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((body && body.error) || '요청을 처리하지 못했어요. 다시 시도해 주세요.');
+    return body;
+  }
+
+  // 모든 팝업 공통: 닫기 버튼 · 바깥 클릭으로 닫기
+  [preview, editDialog, deleteDialog].forEach((dialog) => {
+    dialog.querySelectorAll('[data-close]').forEach((btn) => btn.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
   });
 
   // ---------------- 채팅 ----------------
@@ -262,8 +366,9 @@
 
   function setLink(anchor, url, poster) {
     anchor.href = url;
-    // 같은 서버의 파일(데모/샘플 SVG)은 바로 저장되게 한다. 드라이브 링크는 드라이브가 다운로드를 처리한다.
-    if (poster && url.startsWith('/')) anchor.download = `${poster.title}.svg`;
+    // 데모/샘플 SVG 는 바로 저장되게 한다. 드라이브 이미지는 서버(/drive-image/…?download=1)가 파일 이름을 붙여 준다.
+    if (poster && url.startsWith('/placeholder')) anchor.download = `${poster.title}.svg`;
+    else if (poster && url.startsWith('/')) anchor.download = '';
     else anchor.removeAttribute('download');
   }
 
