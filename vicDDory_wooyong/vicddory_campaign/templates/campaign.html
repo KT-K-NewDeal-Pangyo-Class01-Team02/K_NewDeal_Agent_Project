@@ -1,0 +1,114 @@
+{% extends "cc_layout.html" %}
+
+{% block title %}빅또리 · Command Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='campaign.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ command_center_url }}">Command Center</a><span>/</span><strong>빅또리</strong>
+{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+<div class="cc-page-head">
+  <h1 class="cc-page-title">빅또리</h1>
+  <p class="cc-page-sub">현장에서 3시간 만에 끝내는 옥외 BTL 캠페인 기획과 성과 환류.</p>
+</div>
+
+<div class="campaign">
+  {# ---------- 왼쪽: 캠페인 발의 파라미터 ---------- #}
+  <section class="cc-card panel" aria-labelledby="brief-title">
+    <header class="panel-head">
+      <div>
+        <h2 id="brief-title">캠페인 발의</h2>
+        <p>현장 조건을 입력하면 AI가 기획안을 편성합니다.</p>
+      </div>
+      {% if n8n_connected %}
+        <span class="conn is-live" title="n8n 워크플로가 기획안을 생성합니다">n8n 연결됨</span>
+      {% else %}
+        <span class="conn is-demo" title=".env 에 N8N_WEBHOOK_URL 을 넣으면 실제 기획안이 생성됩니다">데모 모드</span>
+      {% endif %}
+    </header>
+
+    <form class="brief-form" id="brief-form">
+      <label class="cc-field">
+        <span class="cc-label">운영 매장</span>
+        <input class="cc-input" name="store_name" maxlength="40" value="강남직영점" required>
+      </label>
+
+      <label class="cc-field">
+        <span class="cc-label">타깃층 &amp; 제품</span>
+        <select class="cc-select" name="target_group">
+          {% for t in target_groups %}<option value="{{ t.id }}">{{ t.label }}</option>{% endfor %}
+        </select>
+      </label>
+
+      <label class="cc-field">
+        <span class="cc-label">운영 형태</span>
+        <input class="cc-input" value="2인 1조 (20/10분 사이클)" readonly>
+      </label>
+
+      <div class="cc-field">
+        <span class="cc-label">주요 제약조건 (예산 · 입지 규제)</span>
+        <textarea class="cc-textarea" id="constraints" name="constraints" rows="3"
+                  maxlength="{{ max_constraints }}">부스 지원금 150만원 이내 / 보행자 안전통로 2m 확보</textarea>
+        <div class="field-foot"><span id="counter">0/{{ max_constraints }}</span></div>
+      </div>
+
+      <button type="submit" class="cc-btn cc-btn-primary brief-submit" id="submit-btn">
+        {{ icon("sparkles", 18) }}<span>BTL 기획서 생성</span>
+      </button>
+      <p class="form-error" id="form-error" role="alert"></p>
+    </form>
+  </section>
+
+  {# ---------- 오른쪽: 생성된 기획 확정안 ---------- #}
+  <section class="cc-card panel" aria-labelledby="plan-title">
+    <header class="panel-head">
+      <div>
+        <h2 id="plan-title">3시간 기획 확정안</h2>
+        <p>입지 분석 · 카피 · A4 콜시트를 한 번에 편성합니다.</p>
+      </div>
+      <button type="button" class="cc-btn copy-btn" id="copy-btn" hidden>{{ icon("check", 16) }}<span>복사</span></button>
+    </header>
+
+    <div class="plan-box" id="plan-box" aria-live="polite">
+      <div class="plan-empty" id="plan-empty">
+        {{ icon("qr-code", 28) }}
+        <p>왼쪽에 현장 조건을 입력하고 <strong>BTL 기획서 생성</strong>을 누르면,<br>
+          입지 분석과 카피, 콜시트가 여기에 편성됩니다.</p>
+      </div>
+      <pre class="plan-text" id="plan-text" hidden></pre>
+    </div>
+  </section>
+</div>
+
+{# ---------- 아래: 성과 환류 대시보드 ---------- #}
+<section class="cc-card panel funnel" aria-labelledby="funnel-title">
+  <header class="panel-head">
+    <div>
+      <h2 id="funnel-title">성과 환류</h2>
+      <p>POS 판매 · 개통 퍼널을 모아 다음 기획의 기준선을 제안합니다.</p>
+    </div>
+    <span class="conn is-demo" title="POS 연동 전까지는 지난 캠페인 집계를 보여 줍니다">지난 캠페인 집계</span>
+  </header>
+
+  <div class="stat-row">
+    {% for s in funnel %}
+    <div class="stat">
+      <span class="stat-label">{{ s.label }}</span>
+      <strong class="stat-value">{{ s.value }}</strong>
+      <span class="stat-sub">{{ s.sub }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="insight">{{ icon("sparkles", 18) }}<span><strong>AI 차기 기준선 제안</strong>{{ insight }}</span></p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='campaign.js') }}"></script>
+{% endblock %}

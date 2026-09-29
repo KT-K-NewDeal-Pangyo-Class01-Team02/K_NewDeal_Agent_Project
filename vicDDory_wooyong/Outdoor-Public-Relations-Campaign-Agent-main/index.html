@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>또리출동 - BTL 옥외 캠페인 AI 포털</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 32px 16px; }
+    .container { max-width: 1040px; margin: 0 auto; }
+    
+    header { margin-bottom: 28px; border-bottom: 2px solid var(--border); padding-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+    h1 { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .badge { background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+    button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    button:hover { background: #1d4ed8; }
+
+    .output-box { background: #f1f5f9; border-radius: 6px; padding: 14px; min-height: 260px; font-size: 14px; white-space: pre-wrap; line-height: 1.6; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .stat-card { background: #f8fafc; border: 1px solid var(--border); padding: 12px; border-radius: 6px; text-align: center; }
+    .stat-val { font-size: 18px; font-weight: 700; color: var(--primary); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>또리출동 AI 캠페인 센터</h1>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">직영점 발의 3시간 기획 확정 & 환류 루프 콘솔</p>
+      </div>
+      <span class="badge">MVP v0.1 Live</span>
+    </header>
+
+    <div class="grid">
+      <!-- 좌측: 8개 파라미터 입력부 (워크플로우 2~3단계) -->
+      <div class="card">
+        <div class="card-title">📝 2단계: 캠페인 발의 파라미터</div>
+        <div class="form-group">
+          <label>운영 매장</label>
+          <input type="text" id="storeName" value="강남직영점">
+        </div>
+        <div class="form-group">
+          <label>타깃층 & 제품</label>
+          <select id="targetGroup">
+            <option value="2030_5G">2030 청년층 (5G 무제한 요금제)</option>
+            <option value="SENIOR_PHONE">시니어 실속형 스마트폰</option>
+            <option value="FAMILY_INTERNET">가족 결합 인터넷/TV</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>운영 형태</label>
+          <input type="text" value="2인 1조 (20/10분 사이클)" readonly>
+        </div>
+        <div class="form-group">
+          <label>주요 제약조건 (예산/입지 규제)</label>
+          <input type="text" id="constraints" value="부스 지원금 150만원 이내 / 보행자 안전통로 2m 확보">
+        </div>
+        <button id="genBtn" onclick="requestAiPlan()">AI BTL 기획서 생성 요청 (F-06)</button>
+      </div>
+
+      <!-- 우측: 생성 결과물 뷰 (워크플로우 4단계) -->
+      <div class="card">
+        <div class="card-title">📄 4단계: 3시간 기획 확정안</div>
+        <div class="output-box" id="outputArea">좌측 파라미터를 입력하고 [AI BTL 기획서 생성 요청]을 누르면, n8n 에이전트가 입지 분석(F-03), 카피(F-04), A4 콜시트(F-05)를 즉시 편성합니다.</div>
+      </div>
+    </div>
+
+    <!-- 하단: 14단계 성과 환류 대시보드 맛보기 -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">📊 14단계: POS 판매·개통 퍼널 집계 및 AI 환류 리포트</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <label>부스 방문 (익명 QR)</label>
+          <div class="stat-val">342명</div>
+        </div>
+        <div class="stat-card">
+          <label>매장 내방율</label>
+          <div class="stat-val">28.4% (97명)</div>
+        </div>
+        <div class="stat-card">
+          <label>POS 최종 개통</label>
+          <div class="stat-val">19건</div>
+        </div>
+      </div>
+      <div style="margin-top: 14px; padding: 12px; background: #eff6ff; border-radius: 6px; font-size: 13px; color: #1e40af;">
+        <strong>💡 AI 차기 기준선 제안:</strong> "2030 타깃 요금제 캠페인의 점심 시간대(12~14시) 인입 전환율이 통상치 대비 1.8배 높았습니다. 차기 기획 시 부스 운영 인력을 해당 피크 시간대에 집중 배치할 것을 권장합니다."
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. 발급받으신 n8n 웹훅 URL을 그대로 넣습니다.
+    const N8N_WEBHOOK_URL = "https://fairytalegames.app.n8n.cloud/webhook/plan-gen";
+
+    // 2. 가짜(setTimeout)를 지우고 실제 통신(fetch)으로 동작하는 함수입니다.
+    async function requestAiPlan() {
+      const output = document.getElementById("outputArea");
+      const btn = document.getElementById("genBtn");
+      
+      btn.innerText = "에이전트 연산 중...";
+      output.innerText = "n8n 에이전트로 파라미터를 전송하여 BTL 기획안을 생성하고 있습니다...";
+
+      try {
+        // fetch 함수가 n8n 서버로 실제 데이터를 전송합니다.
+        const response = await fetch(N8N_WEBHOOK_URL, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json" 
+          },
+          body: JSON.stringify({
+            storeName: document.getElementById("storeName").value,
+            targetGroup: document.getElementById("targetGroup").value,
+            constraints: document.getElementById("constraints").value
+          })
+        });
+
+        // n8n에서 돌려준 {"status": "success", "plan": "..."} JSON 응답을 파싱합니다.
+        const data = await response.json();
+        
+        // n8n이 생성해 준 실제 plan 결과를 화면에 표시
+        output.innerText = data.plan;
+        btn.innerText = "AI BTL 기획서 생성 요청 (F-06)";
+
+      } catch (err) {
+        output.innerText = "호출 실패: n8n 웹훅 연결 상태를 확인해주세요.";
+        btn.innerText = "AI BTL 기획서 생성 요청 (F-06)";
+      }
+    }
+  </script>
+</body>
+</html>
