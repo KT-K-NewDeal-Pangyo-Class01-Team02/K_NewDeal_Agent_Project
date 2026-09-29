@@ -1,0 +1,201 @@
+/* 더 줘 전용 스타일. 색·글꼴·반경은 command_center/static/common.css 의 변수를 그대로 쓴다.
+   클래스 이름은 전부 tj- 접두사를 붙여 Command Center 스타일과 겹치지 않게 한다. */
+
+.tj-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.tj-btn-back { flex-shrink: 0; }
+
+/* ---------- 요약 카드 ---------- */
+.tj-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.tj-stats-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); max-width: 640px; }
+.tj-stats-3 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+.tj-stat {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--cc-border);
+}
+.tj-stat-label { font-size: 13px; font-weight: 600; color: var(--cc-text-sub); }
+.tj-stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.tj-stat-value small { font-size: 15px; font-weight: 600; color: var(--cc-text-sub); }
+.tj-stat-hint { font-size: 12px; color: var(--cc-muted); }
+.tj-stat-danger { border-left-color: var(--cc-accent); }
+.tj-stat-danger .tj-stat-value { color: var(--cc-accent); }
+.tj-stat-good { border-left-color: #1d7a4b; }
+.tj-stat-good .tj-stat-value { color: #1d7a4b; }
+
+/* ---------- 두 칸 레이아웃 ---------- */
+.tj-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px; align-items: start; }
+.tj-col { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.tj-col-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tj-col-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 19px; font-weight: 700; }
+.tj-more { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: var(--cc-text-sub); text-decoration: none; }
+.tj-more:hover { color: var(--cc-accent); }
+
+.tj-list { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- 위험 경고 카드 ---------- */
+.tj-warning { padding: 18px 20px; border-left: 4px solid var(--cc-border); scroll-margin-top: 20px; }
+.tj-warning.level-high { border-left-color: var(--cc-accent); }
+.tj-warning.level-medium { border-left-color: #d46b12; }
+.tj-warning.level-low { border-left-color: #8a93a3; }
+.tj-warning.is-done { opacity: 0.55; }
+
+.tj-warning-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.tj-level {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px;
+  border-radius: 999px; background: #eef0f3; color: var(--cc-text-sub);
+  font-size: 12px; font-weight: 700;
+}
+.level-high .tj-level { background: var(--cc-accent-soft); color: var(--cc-accent); }
+.level-medium .tj-level { background: #fff1e3; color: #d46b12; }
+.tj-kind { font-size: 12px; font-weight: 600; color: var(--cc-muted); }
+.tj-done-badge { gap: 4px; }
+.tj-sms-badge { gap: 4px; background: #e9effd; color: #2f58c7; }
+.tj-sms-badge time { font-weight: 500; opacity: 0.8; }
+.tj-sms-badge[hidden] { display: none; }
+
+.tj-warning-title { margin: 0 0 8px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.tj-warning-msg { margin: 0 0 14px; font-size: 15px; line-height: 1.65; color: var(--cc-text-sub); }
+.tj-warning-msg b { color: var(--cc-text); }
+.tj-loss { color: var(--cc-accent) !important; }
+
+.tj-warning-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 14px; }
+.tj-warning-meta div { display: flex; flex-direction: column; gap: 2px; }
+.tj-warning-meta dt { font-size: 12px; color: var(--cc-muted); }
+.tj-warning-meta dd { margin: 0; font-size: 14px; font-weight: 600; }
+
+.tj-action {
+  display: flex; gap: 8px; margin: 0 0 12px; padding: 12px 14px;
+  border-radius: 10px; background: #f6f7f9;
+  font-size: 14px; line-height: 1.6; color: var(--cc-text-sub);
+}
+.tj-action b { color: var(--cc-text); margin-right: 4px; }
+.tj-action .icon { flex-shrink: 0; margin-top: 2px; color: var(--cc-accent); }
+
+.tj-detail {
+  margin: 0 0 14px; padding: 12px 14px;
+  border: 1px dashed var(--cc-border); border-radius: 10px;
+  font-size: 14px; line-height: 1.7; color: var(--cc-text-sub);
+}
+
+.tj-warning-foot, .tj-chance-foot { display: flex; flex-wrap: wrap; gap: 8px; }
+.tj-warning-foot form { margin: 0; }
+.tj-btn-quiet { margin-left: auto; color: var(--cc-text-sub); }
+
+/* ---------- 수익 기회 카드 ---------- */
+.tj-chance { padding: 18px 20px; border-left: 4px solid #1d7a4b; }
+.tj-chance-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.tj-chance-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1d7a4b; }
+.tj-chance-note { font-size: 12px; color: var(--cc-muted); }
+.tj-chance-msg { margin: 0 0 16px; font-size: 15px; line-height: 1.7; color: var(--cc-text-sub); }
+.tj-chance-msg b { color: var(--cc-text); }
+.tj-gain { color: #1d7a4b !important; }
+
+.tj-tier { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 10px; background: #f6f7f9; }
+.tj-tier > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.tj-tier span { font-size: 12px; color: var(--cc-muted); }
+.tj-tier strong { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.tj-tier-next strong { color: #1d7a4b; }
+.tj-tier-arrow { flex-shrink: 0; color: var(--cc-muted); }
+.tj-tier-note { margin: 8px 0 16px; font-size: 12px; color: var(--cc-muted); }
+
+/* ---------- 고객 안내 문자 모달 ---------- */
+/* cc-dialog 의 기본 틀(모서리·그림자·backdrop)을 그대로 쓰고 너비만 넓힌다. */
+.tj-sms-dialog { width: min(600px, calc(100vw - 32px)); }
+.tj-sms-dialog .cc-dialog-head h2 { display: flex; align-items: center; gap: 8px; }
+.tj-sms-dialog .cc-dialog-head .icon { color: var(--cc-accent); }
+.tj-sms-dialog .cc-dialog-body { max-height: min(62vh, 560px); overflow-y: auto; }
+
+/* 거래·고객 정보: 연한 회색 박스 */
+.tj-sms-info {
+  padding: 14px 16px; margin-bottom: 18px;
+  border: 1px solid var(--cc-border); border-radius: 10px; background: #f6f7f9;
+}
+.tj-sms-info dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; margin: 0; }
+.tj-sms-info div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tj-sms-info dt { font-size: 12px; color: var(--cc-muted); }
+.tj-sms-info dd { margin: 0; font-size: 14px; font-weight: 600; word-break: break-all; }
+.tj-sms-info .is-warn dd { color: var(--cc-accent); }
+
+/* 템플릿 칩 */
+.tj-sms-templates { margin-bottom: 14px; }
+.tj-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.tj-chip {
+  height: 34px; padding: 0 14px;
+  border: 1px solid var(--cc-border); border-radius: 999px;
+  background: var(--cc-surface); color: var(--cc-text-sub);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tj-chip:hover { background: #f5f6f8; border-color: #c5cbd6; }
+.tj-chip:focus-visible { outline: none; box-shadow: var(--cc-focus-ring); }
+.tj-chip.is-active { background: var(--cc-accent-soft); border-color: var(--cc-accent); color: var(--cc-accent); }
+
+/* 문자 입력 */
+.tj-sms-field { margin-bottom: 6px; }
+.tj-sms-text { resize: vertical; min-height: 130px; line-height: 1.7; font-size: 14px; }
+.tj-sms-count { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: var(--cc-muted); }
+.tj-sms-kind {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+  border-radius: 999px; background: #e9effd; color: #2f58c7; font-weight: 700;
+}
+.tj-sms-kind.is-lms { background: #fff1e3; color: #d46b12; }
+.tj-sms-limit { margin-left: auto; }
+
+/* 전송 버튼: 활성 빨강 / 비활성 회색 */
+.tj-sms-dialog [data-sms-send]:disabled {
+  background: #e3e7ed; border-color: #e3e7ed; color: #9aa3b1; opacity: 1; cursor: not-allowed;
+}
+
+/* ---------- 시뮬레이터 ---------- */
+.tj-sim { margin-top: 24px; padding: 22px 24px; scroll-margin-top: 20px; }
+.tj-sim h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 19px; }
+.tj-sim h2 .icon { color: var(--cc-accent); }
+.tj-sim-lead { margin: 0 0 18px; font-size: 14px; color: var(--cc-text-sub); }
+.tj-sim-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.tj-sim-form .cc-field { margin-bottom: 0; width: 200px; }
+
+.tj-sim-out {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px; margin: 20px 0 0;
+}
+.tj-sim-out div { padding: 12px 14px; border: 1px solid var(--cc-border); border-radius: 10px; background: #fbfcfd; }
+.tj-sim-out dt { font-size: 12px; color: var(--cc-muted); margin-bottom: 4px; }
+.tj-sim-out dd { margin: 0; font-size: 18px; font-weight: 700; }
+.tj-sim-out .is-highlight { border-color: #1d7a4b; background: #e4f5ec; }
+.tj-sim-out .is-highlight dd { color: #1d7a4b; }
+
+.form-error { min-height: 18px; margin: 10px 0 0; font-size: 13px; color: var(--cc-accent); }
+
+/* ---------- 빈 상태 ---------- */
+.tj-empty {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0; padding: 24px;
+  font-size: 15px; color: var(--cc-text-sub);
+}
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 900px) {
+  .tj-columns { grid-template-columns: 1fr; }
+  .tj-head { flex-direction: column; }
+}
+@media (max-width: 640px) {
+  .tj-stat-value { font-size: 24px; }
+  .tj-sim { padding: 18px 16px; }
+  .tj-sim-form .cc-field { width: 100%; }
+  .tj-warning-foot .cc-btn, .tj-chance-foot .cc-btn,
+  .tj-warning-foot form, .tj-warning-foot button { width: 100%; }
+  .tj-btn-quiet { margin-left: 0; }
+
+  .tj-sms-dialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+  .tj-sms-dialog .cc-dialog-body { max-height: none; }
+  .tj-sms-info dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tj-sms-dialog .cc-dialog-foot { flex-direction: column-reverse; }
+  .tj-sms-dialog .cc-dialog-foot .cc-btn { width: 100%; }
+  .tj-sms-limit { display: none; }
+}

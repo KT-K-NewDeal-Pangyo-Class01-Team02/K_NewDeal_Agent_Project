@@ -1,0 +1,55 @@
+{% extends "thejo/base.html" %}
+{% from "_icons.html" import icon %}
+{% from "thejo/_parts.html" import stat, opportunity_card, back_to_command_center %}
+
+{% block title %}수익 기회 · 더 줘{% endblock %}
+{% block crumb %}수익 기회{% endblock %}
+
+{% block content %}
+<div class="cc-page-head tj-head">
+  <div>
+    <h1 class="cc-page-title">놓치고 있는 수익 기회</h1>
+    <p class="cc-page-sub">누적 판매량과 인센티브 구간을 계산해 알려 드립니다.</p>
+  </div>
+  {{ back_to_command_center() }}
+</div>
+
+<section class="tj-stats tj-stats-3" aria-label="수익 기회 요약">
+  {{ stat("이번 달 누적 판매량", summary.units_sold, "건") }}
+  {{ stat("구간 달성 시 증가액", summary.tier_gain | manwon, " 원", "총인센티브 기준") }}
+  {{ stat("고객 혜택 활용 가능", summary.benefit_budget | manwon, " 원", "", "good") }}
+</section>
+
+<section class="tj-list">
+  {% for o in opportunities %}
+    {{ opportunity_card(o) }}
+  {% else %}
+    <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다.</p>
+  {% endfor %}
+</section>
+
+<section class="tj-sim cc-card" id="simulator" aria-labelledby="tj-sim-title">
+  <h2 id="tj-sim-title">{{ icon("sparkles", 22) }} 혜택 시뮬레이션</h2>
+  <p class="tj-sim-lead">판매 건수를 바꿔 보세요. 금액은 서버에서 다시 계산합니다.</p>
+
+  <form class="tj-sim-form" data-sim-form data-sim-url="{{ url_for('thejo.simulate') }}">
+    <label class="cc-field">
+      <span class="cc-label">이번 달 판매 건수</span>
+      <input class="cc-input" type="number" name="units" min="0" max="999"
+             value="{{ summary.units_sold }}" data-sim-input required>
+    </label>
+    <button type="submit" class="cc-btn cc-btn-primary">계산하기</button>
+  </form>
+
+  <p class="form-error" role="alert" data-sim-error></p>
+
+  <dl class="tj-sim-out" data-sim-out hidden>
+    <div><dt>건당 인센티브</dt><dd data-sim="per_unit"></dd></div>
+    <div><dt>총인센티브</dt><dd data-sim="monthly_incentive"></dd></div>
+    <div><dt>다음 구간까지</dt><dd data-sim="units_needed"></dd></div>
+    <div><dt>구간 달성 시 증가액</dt><dd data-sim="tier_gain"></dd></div>
+    <div><dt>최소 확보 수익</dt><dd data-sim="minimum_secured_profit"></dd></div>
+    <div class="is-highlight"><dt>고객 혜택 활용 가능</dt><dd data-sim="benefit_budget"></dd></div>
+  </dl>
+</section>
+{% endblock %}

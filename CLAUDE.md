@@ -37,10 +37,14 @@
 | Command Center 홈 | 5000 | `command_center/` | `python -m command_center.app` (저장소 루트에서) |
 | 예약판매 이탈 방지 (SaveDeal) | 5001 | `savedeal_seunghoon/` | `python -m app` (그 폴더에서) |
 | 통하길 스튜디오 | 5004 | `tonghagil_LEESEUNGHYUN/` | `python -m tonghagil_studio.app` (그 폴더에서) |
-| 더 줘 | 5173 | `thejo_project/` | `npm run dev` |
+| 더 줘 | 5000 (`/thejo/`) | `thejo_project/` | 홈과 같은 프로세스 (Flask Blueprint). 따로 띄우지 않는다. |
 | (최우용) | 미정 | `vicDDory_wooyong/` | 미정 |
 
 모든 서버는 **같은 컴퓨터의 localhost**에서 실행된다. 전체 실행은 `start_all.bat`으로 한다(README 참고).
+
+에이전트를 허브에 붙이는 방법은 두 가지다.
+- **Blueprint**: Flask 에이전트를 허브와 한 프로세스로 돌린다. `agents.json` 에 `"endpoint": "<blueprint>.<함수>"` 를 적고, 카드는 **같은 탭**으로 이동한다. 포트가 필요 없다. 단, `command_center/app.py` 에 `register_blueprint` 한 줄을 넣어야 하므로 **관리자 동의가 필요**하다.
+- **별도 서버**: 자기 포트로 따로 띄운다. `agents.json` 에 `"url"` 만 적으면 되고, 카드는 **새 탭**으로 열린다. 관리자 동의 없이 혼자 할 수 있다.
 
 ## 폴더 주인
 
@@ -48,7 +52,7 @@
 |---|---|---|
 | `command_center/`, `start_all.*` | 🟢 **팀 공용** (관리: 이승현) | Command Center 홈 허브, 전체 실행 스크립트. 위 "공용 허브" 규칙을 따른다. |
 | `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 |
-| `thejo_project/` | **정주희** (juhee) | 더 줘 (React + Vite) |
+| `thejo_project/` | **정주희** (juhee) | 더 줘 (Flask Blueprint, 허브에 내장) |
 | `vicDDory_wooyong/` | **최우용** (crwayon) | 준비 중 |
 
 새 폴더를 추가한 팀원은 이 표와 아래 폴더별 규칙에 자기 항목을 추가해 주세요. 이 파일은 공용 파일이라 항목 추가는 팀 공지로 갈음합니다.

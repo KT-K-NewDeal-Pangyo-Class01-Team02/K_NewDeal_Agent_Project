@@ -13,8 +13,9 @@
 
 <section class="agent-grid" aria-label="에이전트 목록">
   {% for agent in agents %}
+  {%- set link, new_tab = agent_link(agent) %}
   <a class="agent-card cc-card tone-{{ agent.color }}"
-     {% if agent.url %}href="{{ agent.url }}" target="_blank" rel="noopener"{% else %}href="#" data-no-url="{{ agent.name }}"{% endif %}>
+     {% if link %}href="{{ link }}"{% if new_tab %} target="_blank" rel="noopener"{% endif %}{% else %}href="#" data-no-url="{{ agent.name }}"{% endif %}>
     <span class="agent-icon">{{ icon(agent.icon, 38) }}</span>
     <span class="agent-body">
       <span class="cc-badge {% if agent.status == '운영 중' %}is-live{% endif %}">{{ agent.status }}</span>

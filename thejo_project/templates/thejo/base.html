@@ -1,0 +1,24 @@
+{#- 더 줘 공통 틀. Command Center 의 cc_layout.html 을 그대로 쓰고 CSS 한 장만 더한다. -#}
+{% extends "cc_layout.html" %}
+
+{% block title %}더 줘 · Command Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('thejo.static', filename='css/thejo.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('home') }}">Command Center</a>
+<span>/</span>
+{% if request.endpoint == 'thejo.dashboard' %}
+  <strong>더 줘</strong>
+{% else %}
+  <a href="{{ url_for('thejo.dashboard') }}">더 줘</a>
+  <span>/</span>
+  <strong>{% block crumb %}{% endblock %}</strong>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('thejo.static', filename='js/thejo.js') }}"></script>
+{% endblock %}

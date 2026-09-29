@@ -1,0 +1,31 @@
+{% extends "thejo/base.html" %}
+{% from "_icons.html" import icon %}
+{% from "thejo/_parts.html" import stat, warning_card, back_to_command_center %}
+
+{% block title %}위험 경고 · 더 줘{% endblock %}
+{% block crumb %}위험 경고{% endblock %}
+
+{% block content %}
+<div class="cc-page-head tj-head">
+  <div>
+    <h1 class="cc-page-title">지금 확인해야 할 위험</h1>
+    <p class="cc-page-sub">인센티브가 환수되거나 수익이 줄어들 수 있는 거래입니다.</p>
+  </div>
+  {{ back_to_command_center() }}
+</div>
+
+<section class="tj-stats tj-stats-2" aria-label="위험 요약">
+  {{ stat("조치 안 한 위험 노출액", summary.risk_exposure | manwon, " 원", "", "danger") }}
+  {{ stat("그중 인센티브 환수", summary.expected_clawback | manwon, " 원") }}
+</section>
+
+<section class="tj-list">
+  {% for w in warnings %}
+    {{ warning_card(w, detailed=True) }}
+  {% else %}
+    <p class="tj-empty cc-card">확인해야 할 위험이 없습니다.</p>
+  {% endfor %}
+</section>
+
+{% include "thejo/_sms_modal.html" %}
+{% endblock %}

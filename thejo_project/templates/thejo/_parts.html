@@ -1,0 +1,116 @@
+{#- 더 줘 화면 조각. 대시보드와 목록 화면이 같은 카드를 쓴다. -#}
+{% from "_icons.html" import icon %}
+
+{% macro back_to_command_center() -%}
+<a class="cc-btn tj-btn-back" href="{{ url_for('home') }}">
+  {{ icon("home", 18) }} Command Center로 돌아가기
+</a>
+{%- endmacro %}
+
+{% macro stat(label, value, unit="", hint="", tone="") -%}
+<div class="tj-stat cc-card {% if tone %}tj-stat-{{ tone }}{% endif %}">
+  <span class="tj-stat-label">{{ label }}</span>
+  <strong class="tj-stat-value">{{ value }}<small>{{ unit }}</small></strong>
+  {% if hint %}<span class="tj-stat-hint">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro back_to_dashboard() -%}
+<a class="cc-btn" href="{{ url_for('thejo.dashboard') }}">대시보드</a>
+{%- endmacro %}
+
+{#- 위험 경고 카드. detailed=True 면 상세 설명까지 펼쳐 보여 준다. -#}
+{% macro warning_card(w, detailed=False) -%}
+{% set tx = w.transaction %}
+<article class="tj-warning cc-card level-{{ w.level }} {% if w.acknowledged %}is-done{% endif %}"
+         id="{{ w.id }}" data-transaction-id="{{ tx.transaction_id }}">
+  <header class="tj-warning-head">
+    <span class="tj-level">{{ w.level_label }}</span>
+    <span class="tj-kind">{{ w.kind_label }}</span>
+    {% if w.acknowledged %}<span class="cc-badge tj-done-badge">{{ icon("check", 14) }} 조치 완료</span>{% endif %}
+    {#- 문자 발송 배지. 발송 전에는 숨어 있다가 전송 성공 시 JS 가 켠다. -#}
+    <span class="cc-badge tj-sms-badge" data-sms-badge {% if tx.sms_status != '발송 완료' %}hidden{% endif %}>
+      {{ icon("check", 14) }} 문자 안내 완료
+      <time data-sms-time>{% if tx.last_sms %}{{ tx.last_sms.sent_at[:16] | replace('T', ' ') }}{% endif %}</time>
+    </span>
+  </header>
+
+  <h3 class="tj-warning-title">{{ tx.customer_name }} 고객 · {{ w.reason }}</h3>
+  <p class="tj-warning-msg">
+    {% if w.days_left > 0 %}
+      확인 기한이 <b>{{ w.days_left }}일</b> 남았습니다.
+    {% elif w.days_left == 0 %}
+      오늘이 확인 기한입니다.
+    {% else %}
+      확인 기한이 <b>{{ -w.days_left }}일</b> 지났습니다.
+    {% endif %}
+    지금 조치하지 않으면 <b class="tj-loss">{{ w.expected_loss | manwon }} 원</b>을 잃을 수 있습니다.
+  </p>
+
+  <dl class="tj-warning-meta">
+    <div><dt>거래번호</dt><dd>{{ tx.transaction_id }}</dd></div>
+    <div><dt>요금제</dt><dd>{{ tx.plan_name }}</dd></div>
+    <div><dt>유지 잔여</dt><dd>{{ tx.remaining_days }}일</dd></div>
+    <div><dt>확인 날짜</dt><dd>{{ w.check_date.strftime('%Y-%m-%d') }}</dd></div>
+    <div><dt>예상 손실</dt><dd>{{ w.expected_loss | won }}</dd></div>
+  </dl>
+
+  <p class="tj-action">{{ icon("sparkles", 18) }}<span><b>권장 조치</b> {{ w.action }}</span></p>
+
+  {% if detailed %}
+  <p class="tj-detail">{{ w.detail }}</p>
+  {% endif %}
+
+  <footer class="tj-warning-foot">
+    <button type="button" class="cc-btn" data-open-sms="{{ tx.transaction_id }}">
+      {{ icon("user", 18) }} 거래 확인
+    </button>
+    <form method="post" action="{{ url_for('thejo.acknowledge_warning', warning_id=w.id) }}" data-ack>
+      <button type="submit" class="cc-btn cc-btn-primary" {% if w.acknowledged %}disabled{% endif %}>
+        {{ icon("check", 18) }} {% if w.acknowledged %}조치함{% else %}조치 완료{% endif %}
+      </button>
+    </form>
+    {% if not detailed %}
+      <a class="cc-btn tj-btn-quiet" href="{{ url_for('thejo.warnings') }}#{{ w.id }}">상세보기</a>
+    {% endif %}
+  </footer>
+</article>
+{%- endmacro %}
+
+{#- 수익 기회 카드. -#}
+{% macro opportunity_card(o) -%}
+<article class="tj-chance cc-card">
+  <header class="tj-chance-head">
+    <span class="tj-chance-tag">{{ icon("coins", 18) }} {{ o.title }}</span>
+    <span class="tj-chance-note">{{ o.note }}</span>
+  </header>
+
+  <p class="tj-chance-msg">
+    현재 월 판매량은 <b>{{ o.current_units }}건</b>입니다.
+    <b>{{ o.units_needed }}건</b>을 추가 판매하면 총인센티브가
+    <b class="tj-gain">{{ o.tier_gain | manwon }} 원</b> 증가할 수 있습니다.
+    최소 수익 {{ o.minimum_secured_profit | manwon }} 원을 제외하면
+    고객 혜택으로 최대 <b class="tj-gain">{{ o.benefit_budget | manwon }} 원</b>을 활용할 수 있습니다.
+  </p>
+
+  <div class="tj-tier">
+    <div class="tj-tier-now">
+      <span>지금 ({{ o.current_units }}건)</span>
+      <strong>{{ o.current_per_unit | manwon }} 원 / 건</strong>
+    </div>
+    {{ icon("chevron-right", 22, "tj-tier-arrow") }}
+    <div class="tj-tier-next">
+      <span>{{ o.next_tier_units }}건 달성 시</span>
+      <strong>{{ o.next_per_unit | manwon }} 원 / 건</strong>
+    </div>
+  </div>
+  <p class="tj-tier-note">구간을 달성하면 이미 판매한 건에도 상향된 단가가 소급 적용됩니다.</p>
+
+  <footer class="tj-chance-foot">
+    <a class="cc-btn" href="{{ url_for('thejo.opportunities') }}">상세보기</a>
+    <a class="cc-btn cc-btn-primary" href="{{ url_for('thejo.opportunities') }}#simulator">
+      {{ icon("sparkles", 18) }} 혜택 시뮬레이션
+    </a>
+  </footer>
+</article>
+{%- endmacro %}
