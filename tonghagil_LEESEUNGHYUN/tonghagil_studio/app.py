@@ -15,7 +15,7 @@ from flask import Flask, Response, abort, jsonify, render_template, request, sen
 
 from tonghagil_studio import config, drive, placeholder
 from tonghagil_studio.layout import init_layout
-from tonghagil_studio.drive_store import DriveClient, DriveError, DriveFolderPosterStore
+from tonghagil_studio.drive_store import DriveClient, DriveError, DriveFolderPosterStore, build_file_name
 from tonghagil_studio.n8n_client import N8nError, request_poster
 from tonghagil_studio.poster_store import JsonPosterStore
 
@@ -148,13 +148,21 @@ def create_poster():
 
     if config.N8N_WEBHOOK_URL:
         prompt = f"{message}\n\n[포스터 스타일] {style['label']} - {style['hint']}\n[행사 유형] {event_type}"
+        headers = {config.N8N_SECRET_HEADER: config.N8N_WEBHOOK_SECRET} if config.N8N_WEBHOOK_SECRET else None
         try:
             image = request_poster(
                 config.N8N_WEBHOOK_URL,
                 prompt,
                 session_id=data.get("session_id") or AGENT_ID,
                 timeout=config.N8N_TIMEOUT,
-                extra={"message": message, "style": style["label"], "eventType": event_type},
+                extra={
+                    "fileName": build_file_name(title, event_type, None, "image/png"),
+                    "title": title,
+                    "eventType": event_type,
+                    "style": style["label"],
+                    "message": message,
+                },
+                headers=headers,
             )
         except N8nError as exc:
             return jsonify(error=str(exc)), 502

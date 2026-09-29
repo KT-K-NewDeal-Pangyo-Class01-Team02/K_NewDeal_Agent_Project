@@ -58,13 +58,15 @@ VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `ap
 - 이 PC의 PowerShell에는 `python`과 `git`이 PATH에 없다. Python은 위 절대경로로 실행하고, git 작업은 사용자가 **GitHub Desktop**으로 한다.
 
 ## n8n 연동
-- 현재 워크플로: When chat message received → Generate an image(OpenAI) → Upload file(Drive) → Share file(공개) → Edit Fields.
-- Flask가 Chat URL로 `{action:"sendMessage", sessionId, chatInput, message, style, eventType}`를 POST한다.
-- n8n 설정 조건:
-  - Chat Trigger에서 **Make Chat Publicly Available**를 켠다.
-  - **Response Mode: When Last Node Finishes**로 둔다.
-  - 워크플로를 **Active**로 켠다.
-- 마지막 노드 출력에 드라이브 공유 링크나 파일 ID가 있으면 된다. 필드 이름은 상관없다.
+- n8n은 **n8n Cloud**를 쓴다. 2026-09-29에 **Webhook 방식으로 바꾸기로 결정**했다. 스튜디오 채팅창이 입력 화면이라 n8n Chat 화면은 필요 없다.
+  - 목표 워크플로: Webhook(POST, Header Auth `X-Tonghagil-Key`) → Generate an image(`$json.body.chatInput`) → Upload file(프로젝트이미지 폴더, 이름 `$json.body.fileName`) → Respond to Webhook(`{"fileId": …}`). 노드별 설정은 README에 있다.
+  - 이전 워크플로: Chat Trigger → Generate → Upload → Share → Edit Fields. 이 방식도 코드는 여전히 호환된다(`action`, `sessionId`를 계속 보냄).
+- Flask가 보내는 JSON 필드: `chatInput`, `fileName`(`build_file_name` 사용, `_ / \ : * ? " < > |` 제거, 오늘 날짜), `title`, `eventType`, `style`, `message`, `action`, `sessionId`.
+- `N8N_WEBHOOK_SECRET`이 있으면 `N8N_SECRET_HEADER`(기본 `X-Tonghagil-Key`) 헤더로 보낸다. 401이나 403이 오면 "인증 실패" 메시지를 보여 준다. `.env`에는 비밀 키를 넣어 두었다.
+- 응답에서 파일 ID(`fileId`, `id` 등)나 드라이브 링크를 찾는다. 필드 이름은 상관없다.
+- 2026-09-29: n8n Webhook(`https://effortlee1008.app.n8n.cloud/webhook/tonghagil-poster`)을 퍼블리시했고, **실제 연결에 성공**했다. 사용자가 스튜디오에서 생성하자 드라이브에 `축제_불꽃축제 이미지 하나만 만들어줘._20260929.png`가 저장됐고, 스튜디오 기록과 파일 ID로 연결됐다. 실제 드라이브에서 "정보 수정"(이름 변경)도 동작했다(`페스티벌1_20260923.png`).
+- 실제 n8n 호출은 OpenAI 이미지 1장 비용이 든다. 테스트 호출은 사용자에게 먼저 묻는다.
+- [ ] 카드 제목이 입력 문장의 앞부분(18자)이라 어색하다. "행사명(제목)" 입력칸을 추가하거나, n8n에서 제목을 생성하는 방안을 사용자에게 제안했다.
 
 ## 남은 일 / 주의
 - [ ] 외부 공개(VS Code 포트 전달, 배포) 전에 할 일:
