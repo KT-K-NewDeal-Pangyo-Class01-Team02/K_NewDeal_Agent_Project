@@ -27,16 +27,21 @@ def agent_link(agent):
     """에이전트 카드가 어디로 가야 하는지 돌려준다. → (주소, 새 탭으로 열지 여부)
 
     - `endpoint` 가 있으면 **같은 Flask 앱 안의 라우트**다. 같은 탭으로 이동한다. (예: 더 줘 → thejo.dashboard)
+    - `path` 는 같은 라우트의 허브 기준 주소(예: "/thejo/")다. 허브 밖의 에이전트 앱들이 사이드바에서
+      `허브 주소 + path` 로 찾아갈 때 쓰고, 여기서는 endpoint 를 못 찾았을 때의 대비로만 쓴다.
     - `url` 만 있으면 다른 포트에서 도는 별도 서버다. 지금까지처럼 새 탭으로 연다.
-    - 둘 다 없으면 빈 주소. 홈 화면이 "주소 미등록" 안내를 띄운다.
+    - 셋 다 없으면 빈 주소. 홈 화면이 "주소 미등록" 안내를 띄운다.
     """
     endpoint = (agent.get("endpoint") or "").strip()
     if endpoint:
         try:
             return url_for(endpoint), False
         except BuildError:
-            # 해당 에이전트 Blueprint 가 아직 등록되지 않았다. url 로 넘어간다.
+            # 해당 에이전트 Blueprint 가 아직 등록되지 않았다. path → url 순서로 넘어간다.
             pass
+    path = (agent.get("path") or "").strip()
+    if path:
+        return path, False
     url = (agent.get("url") or "").strip()
     return url, bool(url)
 

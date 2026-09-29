@@ -6,7 +6,8 @@
     "icon": "calendar-x",
     "color": "red",
     "status": "운영 중",
-    "url": "http://localhost:5001/savedeal"
+    "url": "http://localhost:5001/savedeal",
+    "server": { "dir": "savedeal_seunghoon", "port": 5001, "python": "app" }
   },
   {
     "id": "deo-jwo",
@@ -16,6 +17,7 @@
     "color": "blue",
     "status": "운영 중",
     "endpoint": "thejo.dashboard",
+    "path": "/thejo/",
     "url": ""
   },
   {
@@ -25,7 +27,8 @@
     "icon": "qr-code",
     "color": "orange",
     "status": "운영 중",
-    "url": "http://localhost:5500"
+    "url": "http://localhost:5500",
+    "server": { "dir": "vicDDory_wooyong", "port": 5500, "python": "vicddory_campaign.app" }
   },
   {
     "id": "tonghagil-studio",
@@ -34,6 +37,7 @@
     "icon": "image",
     "color": "purple",
     "status": "운영 중",
-    "url": "http://localhost:5004"
+    "url": "http://localhost:5004",
+    "server": { "dir": "tonghagil_LEESEUNGHYUN", "port": 5004, "python": "tonghagil_studio.app" }
   }
 ]
