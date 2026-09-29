@@ -173,8 +173,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# start_all: 각자 PC 의 Python 경로 설정 (개인 파일)
+# start_all: 각자 PC 의 Python 경로 설정 (개인 파일) · 서버 로그
 start_all.local.ps1
+/logs/
 
 # 통하길 스튜디오: 실행 중에 생성되는 포스터 기록 · 드라이브 썸네일 캐시
 **/tonghagil_studio/data/posters.json

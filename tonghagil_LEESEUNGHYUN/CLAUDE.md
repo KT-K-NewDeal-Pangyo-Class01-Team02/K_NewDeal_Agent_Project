@@ -74,7 +74,8 @@ VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `ap
   - `agents.json`의 `localhost` URL과 `COMMAND_CENTER_URL`을 공개 주소로 바꾼다.
 - [ ] 허브를 루트로 옮긴 것(2026-09-29)과 새 규칙을 팀에 공지한다. 공지 내용: 각자 `agents.json`과 `start_all.ps1`에서 자기 줄만 수정한다는 것, 포트 표, 정주희님은 더 줘 URL(`http://localhost:5173/agents/more`)과 Vite 포트 고정(`strictPort`)을 확인해 달라는 것.
 - [ ] 발표 전에 배포 방식을 정한다(Render 등). 무료 서버는 `posters.json`과 추가한 에이전트가 초기화될 수 있다.
-- [ ] QR 현장 서비스 에이전트는 나중에 만든다.
+- [ ] QR 현장 서비스 에이전트(통하길 QR)는 나중에 만든다. 포트 **5005**를 예약해 두었다. 이 폴더 안에 패키지(예: `tonghagil_qr/`)로 만들고, 허브 `agents.json`에 항목 하나를 추가하면 카드, 사이드바, `start_all`에 자동으로 들어간다. 추가할 항목은 `url` + `server: {dir: "tonghagil_LEESEUNGHYUN", port: 5005, python: "tonghagil_qr.app"}`이고, 예시는 `command_center/README.md`에 있다.
+- 2026-09-29: `start_all`을 **한 창 실행**으로 바꿨다. 창을 닫거나 Ctrl+C를 누르면 전부 종료되고, Job Object의 KILL_ON_JOB_CLOSE를 안전장치로 쓴다. 실행 목록은 `agents.json`의 `server`에서 읽는다. 스튜디오 사이드바는 `url`이 없고 `path`만 있는 에이전트(더 줘)에 `COMMAND_CENTER_URL + path`를 붙인다.
 - 실제 드라이브 연결은 확인했다(2026-09-29). 포스터 4장의 목록과 썸네일을 읽어 왔다. **수정·삭제는 실제 드라이브에서 아직 시험하지 않았다.** 사용자 파일을 바꾸는 작업이라 가짜 클라이언트로만 테스트했다.
 - [ ] n8n Upload file 노드가 모든 파일을 `festival_poster`라는 같은 이름으로 저장한다. `행사유형_제목_날짜` 규칙으로 저장하게 바꾸면 갤러리 제목이 자동으로 붙는다.
 - 스모크 테스트는 Flask test client로 27개 항목, 드라이브 테스트는 34개 항목을 확인했고 모두 통과했다. 브라우저에서 화면이 어떻게 보이는지는 아직 확인하지 않았다.

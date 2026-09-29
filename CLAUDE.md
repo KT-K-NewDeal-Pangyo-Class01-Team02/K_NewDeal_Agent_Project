@@ -22,8 +22,8 @@
 
 | 파일 | 누구나 해도 되는 것 | 관리자(이승현) 동의가 필요한 것 |
 |---|---|---|
-| `command_center/agents.json` | **자기 에이전트 항목 한 개**를 추가하거나 수정한다(이름·설명·아이콘·색·상태·url). | 다른 사람의 항목을 수정하거나 삭제하는 것, 순서를 바꾸는 것 |
-| `start_all.ps1` | `$Servers` 목록에서 **자기 서버 줄 한 개**를 추가하거나 수정한다. | 그 밖의 스크립트 로직 |
+| `command_center/agents.json` | **자기 에이전트 항목 한 개**를 추가하거나 수정한다(이름·설명·아이콘·색·상태·url·path·server). 이 항목이 카드, 사이드바, `start_all` 실행 목록을 모두 정한다. | 다른 사람의 항목을 수정하거나 삭제하는 것, 순서를 바꾸는 것 |
+| `start_all.ps1`, `start_all.bat` | (없음) 실행 목록은 `agents.json`의 `server`에서 읽으므로 고칠 필요가 없다. | 모든 수정 |
 | `README.md`, 이 문서의 포트 표 | **자기 줄**을 추가하거나 수정한다. | 다른 사람 줄 |
 | `command_center/`의 코드·템플릿·CSS | (없음) | 모든 수정 |
 
@@ -37,23 +37,25 @@
 | Command Center 홈 | 5000 | `command_center/` | `python -m command_center.app` (저장소 루트에서) |
 | 예약판매 이탈 방지 (SaveDeal) | 5001 | `savedeal_seunghoon/` | `python -m app` (그 폴더에서) |
 | 통하길 스튜디오 | 5004 | `tonghagil_LEESEUNGHYUN/` | `python -m tonghagil_studio.app` (그 폴더에서) |
+| 통하길 QR (예정) | 5005 (예약) | `tonghagil_LEESEUNGHYUN/` | 미정 |
 | 더 줘 | 5000 (`/thejo/`) | `thejo_project/` | 홈과 같은 프로세스 (Flask Blueprint). 따로 띄우지 않는다. |
-| (최우용) | 미정 | `vicDDory_wooyong/` | 미정 |
+| 빅또리출동! | 5500 | `vicDDory_wooyong/` | `python -m vicddory_campaign.app` (그 폴더에서) |
 
-모든 서버는 **같은 컴퓨터의 localhost**에서 실행된다. 전체 실행은 `start_all.bat`으로 한다(README 참고).
+모든 서버는 **같은 컴퓨터의 localhost**에서 실행된다. 전체 실행은 `start_all.bat`으로 한다. 창 하나에서 전부 뜨고, 그 창을 닫으면 전부 꺼진다(README 참고).
 
-에이전트를 허브에 붙이는 방법은 두 가지다.
-- **Blueprint**: Flask 에이전트를 허브와 한 프로세스로 돌린다. `agents.json` 에 `"endpoint": "<blueprint>.<함수>"` 를 적고, 카드는 **같은 탭**으로 이동한다. 포트가 필요 없다. 단, `command_center/app.py` 에 `register_blueprint` 한 줄을 넣어야 하므로 **관리자 동의가 필요**하다.
-- **별도 서버**: 자기 포트로 따로 띄운다. `agents.json` 에 `"url"` 만 적으면 되고, 카드는 **새 탭**으로 열린다. 관리자 동의 없이 혼자 할 수 있다.
+에이전트를 허브에 붙이는 방법은 두 가지다. 형식은 `command_center/README.md`에 있다.
+- **별도 서버**: 자기 포트로 따로 띄운다. `agents.json`의 자기 항목에 `"url"`과 `"server": {"dir", "port", "python" 또는 "npm"}`을 적으면 카드, 사이드바, `start_all`에 모두 들어간다. 카드는 **새 탭**으로 열린다. 관리자 동의 없이 혼자 할 수 있다.
+- **Blueprint**: Flask 에이전트를 허브와 한 프로세스로 돌린다. `"endpoint": "<blueprint>.<함수>"`와 `"path": "/허브 기준 주소/"`를 적는다. `path`는 허브 밖의 화면이 사이드바 링크를 만들 때 쓴다. 카드는 **같은 탭**으로 이동한다. `command_center/app.py`에 `register_blueprint` 한 줄을 넣어야 하므로 **관리자 동의가 필요**하다.
 
 ## 폴더 주인
 
 | 폴더 | 주인 (GitHub) | 내용 |
 |---|---|---|
 | `command_center/`, `start_all.*` | 🟢 **팀 공용** (관리: 이승현) | Command Center 홈 허브, 전체 실행 스크립트. 위 "공용 허브" 규칙을 따른다. |
-| `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 |
+| `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 (+ 예정: 통하길 QR) |
 | `thejo_project/` | **정주희** (juhee) | 더 줘 (Flask Blueprint, 허브에 내장) |
-| `vicDDory_wooyong/` | **최우용** (crwayon) | 준비 중 |
+| `vicDDory_wooyong/` | **최우용** (crwayon) | 빅또리출동! |
+| `savedeal_seunghoon/` | **장승훈** (stevenwkd-jang) | 예약판매 이탈 방지 (SaveDeal). 자체 UI(허브와 다른 사이드바)를 쓴다. |
 
 새 폴더를 추가한 팀원은 이 표와 아래 폴더별 규칙에 자기 항목을 추가해 주세요. 이 파일은 공용 파일이라 항목 추가는 팀 공지로 갈음합니다.
 표에 없는 폴더는 **주인이 확인될 때까지 다른 사람의 폴더로 간주**합니다.
@@ -74,6 +76,12 @@
 - 지금 사용자가 최우용 본인이 **아니라면**, 이 폴더 안의 파일을 **만들지도, 고치지도, 지우지도, 옮기지도 마세요.** 읽기만 허용됩니다.
 - 수정이 필요해 보이면 작업을 멈추고 "이 폴더는 **최우용**님의 폴더입니다. 최우용님의 동의를 먼저 받아 주세요."라고 알리세요. 바꿀 파일과 이유, 바꿀 내용을 함께 전달하세요.
 - 사용자가 최우용님의 동의를 받았다고 **명확히** 말한 경우에만, 동의받은 범위 안에서 한 번만 수정할 수 있습니다.
+
+### `savedeal_seunghoon/`: 주인 **장승훈** (GitHub: stevenwkd-jang)
+- 지금 사용자가 장승훈 본인이 **아니라면**, 이 폴더 안의 파일을 **만들지도, 고치지도, 지우지도, 옮기지도 마세요.** 읽기만 허용됩니다.
+- 수정이 필요해 보이면 작업을 멈추고 "이 폴더는 **장승훈**님의 폴더입니다. 장승훈님의 동의를 먼저 받아 주세요."라고 알리세요. 바꿀 파일과 이유, 바꿀 내용을 함께 전달하세요.
+- 사용자가 장승훈님의 동의를 받았다고 **명확히** 말한 경우에만, 동의받은 범위 안에서 한 번만 수정할 수 있습니다.
+- 세이브딜은 허브와 다른 자체 UI를 쓴다. 허브 디자인에 맞추려고 UI를 바꾸지 마세요.
 
 ### 지금 사용자가 누구인지 모를 때
 - 사용자가 자기 이름이나 폴더를 밝히지 않았으면, 어떤 폴더든 수정하기 **전에** "어느 폴더의 주인이신가요?"라고 먼저 물어보세요.
