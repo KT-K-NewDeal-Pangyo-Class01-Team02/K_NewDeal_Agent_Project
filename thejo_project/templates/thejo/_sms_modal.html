@@ -1,0 +1,67 @@
+{#- 고객 안내 문자 모달. 화면당 한 번만 넣고, '거래 확인'을 누른 카드의 거래로 JS 가 채운다.
+    거래 정보는 /thejo/api/transactions/<id> 에서 받아 온다. n8n 주소는 여기 오지 않는다. -#}
+{% from "_icons.html" import icon %}
+
+{#- 주소는 url_for 로만 넘긴다. JS 에 경로를 하드코딩하지 않는다. -#}
+<dialog class="cc-dialog tj-sms-dialog" id="sms-dialog" aria-labelledby="sms-dialog-title"
+        data-tx-url="{{ url_for('thejo.get_transaction', transaction_id='__ID__') | replace('__ID__', '') }}"
+        data-send-url="{{ url_for('thejo.send_sms') }}">
+  <form id="sms-form" novalidate>
+    <div class="cc-dialog-head">
+      <h2 id="sms-dialog-title">{{ icon("headset", 20) }} 고객 안내 문자</h2>
+      <button type="button" class="cc-icon-btn" data-sms-close aria-label="닫기">{{ icon("x") }}</button>
+    </div>
+
+    <div class="cc-dialog-body">
+      {#- 거래·고객 정보 (연한 회색 박스) -#}
+      <section class="tj-sms-info" aria-label="거래 정보">
+        <dl>
+          <div><dt>거래 ID</dt><dd data-tx="transaction_id"></dd></div>
+          <div><dt>고객명</dt><dd data-tx="customer_name"></dd></div>
+          <div><dt>전화번호</dt><dd data-tx="customer_phone"></dd></div>
+          <div><dt>단말 모델</dt><dd data-tx="device_model"></dd></div>
+          <div><dt>현재 요금제</dt><dd data-tx="plan_name"></dd></div>
+          <div><dt>개통일</dt><dd data-tx="activation_date"></dd></div>
+          <div><dt>필수 유지일</dt><dd data-tx="required_maintenance_days"></dd></div>
+          <div><dt>유지 종료 예정일</dt><dd data-tx="maintenance_end_date"></dd></div>
+          <div><dt>현재까지 유지</dt><dd data-tx="maintained_days"></dd></div>
+          <div><dt>남은 유지일수</dt><dd data-tx="remaining_days"></dd></div>
+          <div class="is-warn"><dt>예상 환수액</dt><dd data-tx="expected_clawback"></dd></div>
+        </dl>
+      </section>
+
+      {#- 템플릿 칩 -#}
+      <div class="tj-sms-templates">
+        <span class="cc-label">문자 템플릿</span>
+        <div class="tj-chips" role="group" aria-label="문자 템플릿 선택">
+          {% for t in sms_templates %}
+          <button type="button" class="tj-chip" data-template-id="{{ t.id }}">{{ t.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      {#- 문자 입력 -#}
+      <label class="cc-field tj-sms-field">
+        <span class="cc-label">문자 내용</span>
+        <textarea class="cc-textarea tj-sms-text" name="message" rows="7"
+                  placeholder="템플릿을 고르거나 직접 입력하세요."
+                  data-sms-text data-limit="{{ sms_byte_limit }}"></textarea>
+      </label>
+      <p class="tj-sms-count">
+        <span data-sms-kind class="tj-sms-kind">SMS</span>
+        <span data-sms-bytes>0</span>바이트 ·
+        <span data-sms-chars>0</span>자
+        <span class="tj-sms-limit">({{ sms_byte_limit }}바이트 이하 SMS)</span>
+      </p>
+
+      <p class="form-error" role="alert" data-sms-error></p>
+    </div>
+
+    <div class="cc-dialog-foot">
+      <button type="button" class="cc-btn" data-sms-close>취소</button>
+      <button type="submit" class="cc-btn cc-btn-primary" data-sms-send disabled>
+        {{ icon("check", 18) }} 문자 전송
+      </button>
+    </div>
+  </form>
+</dialog>

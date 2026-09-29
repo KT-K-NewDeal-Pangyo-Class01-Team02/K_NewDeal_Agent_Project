@@ -1,0 +1,53 @@
+{% extends "thejo/base.html" %}
+{% from "_icons.html" import icon %}
+{% from "thejo/_parts.html" import stat, warning_card, opportunity_card, back_to_command_center %}
+
+{% block content %}
+<div class="cc-page-head tj-head">
+  <div>
+    <h1 class="cc-page-title">더 줘</h1>
+    <p class="cc-page-sub">{{ snapshot.month }} · 놓치면 손해인 것만 모아 먼저 보여 드립니다.</p>
+  </div>
+  {{ back_to_command_center() }}
+</div>
+
+<section class="tj-stats" aria-label="이번 달 요약">
+  {{ stat("이번 달 누적 판매량", snapshot.units_sold, "건") }}
+  {{ stat("이번 달 예상 인센티브", summary.monthly_incentive | manwon, " 원") }}
+  {{ stat("예상 환수 금액", summary.expected_clawback | manwon, " 원", "조치 안 한 환수 위험", "danger") }}
+  {{ stat("현재 예상 마진", summary.estimated_margin | manwon, " 원", "인센티브 - 위험 노출액") }}
+  {{ stat("다음 구간까지", summary.units_to_next_tier, "건", "추가 판매하면 단가가 오릅니다") }}
+  {{ stat("고객 혜택 활용 가능", summary.benefit_budget | manwon, " 원", "최소 수익 " ~ (summary.minimum_secured_profit | manwon) ~ " 원 확보 후", "good") }}
+</section>
+
+<div class="tj-columns">
+  <section class="tj-col" aria-labelledby="tj-risk-title">
+    <div class="tj-col-head">
+      <h2 id="tj-risk-title">{{ icon("calendar-x", 22) }} 지금 확인해야 할 위험</h2>
+      <a class="tj-more" href="{{ url_for('thejo.warnings') }}">전체 보기 {{ icon("chevron-right", 16) }}</a>
+    </div>
+    {% for w in warnings %}
+      {{ warning_card(w) }}
+    {% else %}
+      <p class="tj-empty cc-card">
+        <img src="{{ url_for('thejo.static', filename='images/all-clear.svg') }}" alt="" width="56" height="56">
+        확인해야 할 위험이 없습니다. 이번 달은 깔끔하네요.
+      </p>
+    {% endfor %}
+  </section>
+
+  <section class="tj-col" aria-labelledby="tj-chance-title">
+    <div class="tj-col-head">
+      <h2 id="tj-chance-title">{{ icon("coins", 22) }} 지금 활용할 수 있는 추가 수익 기회</h2>
+      <a class="tj-more" href="{{ url_for('thejo.opportunities') }}">전체 보기 {{ icon("chevron-right", 16) }}</a>
+    </div>
+    {% for o in opportunities %}
+      {{ opportunity_card(o) }}
+    {% else %}
+      <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다. 추가로 올릴 구간이 없습니다.</p>
+    {% endfor %}
+  </section>
+</div>
+
+{% include "thejo/_sms_modal.html" %}
+{% endblock %}

@@ -1,4 +1,8 @@
-"""Command Center 홈(팀 공용 허브): 에이전트 카드를 보여 주고, 카드를 누르면 각 에이전트 앱을 새 탭으로 연다.
+"""Command Center 홈(팀 공용 허브): 에이전트 카드를 보여 주고, 카드를 누르면 에이전트 앱으로 보낸다.
+
+에이전트는 두 가지 방식으로 붙는다 (agents.json).
+  - `endpoint`: 이 Flask 앱 안에 Blueprint 로 등록된 에이전트. **같은 탭**으로 이동한다. (예: 더 줘 → /thejo/)
+  - `url`:      다른 포트에서 따로 도는 서버. 지금까지처럼 **새 탭**으로 연다. (예: 통하길 스튜디오 → :5004)
 
 실행: VS Code 실행(▶) 버튼, 또는 저장소 루트에서  python -m command_center.app   (http://localhost:5000)
 """
@@ -15,6 +19,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
 from command_center.layout import init_layout, load_agents, save_agents
+from thejo_project import thejo_bp  # 더 줘 (정주희) — /thejo/ 아래에서 같은 프로세스로 돈다
 
 # 선택: command_center/.env (COMMAND_CENTER_PORT, CC_USER_NAME 등). 없으면 기본값을 쓴다.
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -31,6 +36,11 @@ STATUS_CHOICES = ["운영 중", "준비 중"]
 
 app = Flask(__name__)
 init_layout(app)
+
+# ── 같은 프로세스에서 도는 에이전트 Blueprint ─────────────────────────────
+# 팀원이 자기 에이전트를 Blueprint 로 만들면 여기에 한 줄 추가하고,
+# agents.json 의 자기 항목에 "endpoint": "<blueprint>.<함수>" 를 적는다.
+app.register_blueprint(thejo_bp)
 
 
 @app.get("/")

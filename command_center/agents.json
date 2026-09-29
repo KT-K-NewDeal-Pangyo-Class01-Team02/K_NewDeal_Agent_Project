@@ -11,11 +11,12 @@
   {
     "id": "deo-jwo",
     "name": "더 줘",
-    "description": "고객 맞춤형 추가 혜택을 제안하고 인센티브 관리를 지원합니다.",
+    "description": "누적 판매와 마진을 분석해 환수 위험과 추가 수익 기회를 알려 줍니다.",
     "icon": "coins",
     "color": "blue",
     "status": "운영 중",
-    "url": "http://localhost:5173/agents/more"
+    "endpoint": "thejo.dashboard",
+    "url": ""
   },
   {
     "id": "aftercare",

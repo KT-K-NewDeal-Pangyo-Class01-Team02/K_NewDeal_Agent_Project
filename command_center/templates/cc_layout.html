@@ -29,10 +29,11 @@
     <p class="cc-nav-label">에이전트 바로가기</p>
     <nav class="cc-nav" aria-label="에이전트">
       {% for agent in agents %}
+        {%- set link, new_tab = agent_link(agent) %}
         {% if agent.id == active_agent_id %}
-          <a class="cc-nav-item is-active" href="/" aria-current="page" title="{{ agent.name }}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
-        {% elif agent.url %}
-          <a class="cc-nav-item" href="{{ agent.url }}" target="_blank" rel="noopener" title="{{ agent.name }} (새 탭)">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+          <a class="cc-nav-item is-active" href="{{ link or '/' }}" aria-current="page" title="{{ agent.name }}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+        {% elif link %}
+          <a class="cc-nav-item" href="{{ link }}" {% if new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ agent.name }}{% if new_tab %} (새 탭){% endif %}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></a>
         {% else %}
           <button type="button" class="cc-nav-item" data-no-url="{{ agent.name }}" title="{{ agent.name }}">{{ icon(agent.icon) }}<span>{{ agent.name }}</span></button>
         {% endif %}
