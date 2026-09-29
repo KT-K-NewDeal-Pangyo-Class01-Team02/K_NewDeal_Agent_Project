@@ -1,43 +1,26 @@
-# Command Center
+# 통하길 스튜디오 (이승현)
 
-통신유통 업무를 돕는 AI 에이전트 모음. 홈 화면(Command Center)이 에이전트 카드를 보여 주고,
-카드를 누르면 각 에이전트 앱이 **새 탭**으로 열립니다.
+행사 홍보 포스터를 채팅으로 요청하면 n8n이 이미지를 만들고, 구글 드라이브 폴더의 포스터를 갤러리로 보여 줍니다.
+Command Center 홈(저장소 루트의 `command_center/`)에서 카드를 누르면 새 탭으로 열립니다. → http://localhost:5004
 
 ```
-shared/              공통 틀 (사이드바·상단 바·버튼 스타일) + agents.json (에이전트 목록)
-command_center/      홈 화면            → http://localhost:5000
-tonghagil_studio/    통하길 스튜디오     → http://localhost:5004
+tonghagil_studio/
+  app.py          화면·API (포스터 생성/목록/수정/삭제, 드라이브 이미지 프록시)
+  layout.py       사이드바·상단 바 (디자인은 허브와 같은 모양의 사본, 에이전트 목록만 허브의 agents.json 을 읽음)
+  n8n_client.py   n8n 호출
+  drive_store.py  구글 드라이브 폴더 갤러리
+  poster_store.py 요청 기록(posters.json) / 샘플 포스터
 ```
 
 ## 실행
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-
-# 터미널 1
-python -m command_center.app
-# 터미널 2
-python -m tonghagil_studio.app
-```
-
-반드시 **프로젝트 루트**에서 실행하세요 (`shared` 폴더를 불러와야 합니다).
-
-## 에이전트 추가하기
-
-`shared/agents.json` 에 한 줄 추가하거나, 홈 화면의 **새 에이전트 추가** 카드를 누르세요.
-홈 카드와 사이드바 메뉴가 자동으로 늘어납니다. `url` 이 비어 있으면 누를 때 "주소 미등록" 안내가 뜹니다.
-
-| 필드 | 설명 |
-|---|---|
-| `icon` | image, qr-code, calendar-x, coins, headset, sparkles, bot |
-| `color` | red, blue, green, purple, orange, teal |
-| `url` | 에이전트 앱 주소 (새 탭으로 열림) |
-
-다른 팀원의 앱도 `shared.layout.init_layout(app, active_agent_id="내-id")` 를 부르고
-템플릿에서 `{% extends "cc_layout.html" %}` 하면 같은 사이드바·상단 바를 씁니다.
+- 전체를 켤 때: 저장소 루트의 **`start_all.bat`**을 쓰세요.
+- 스튜디오만 켤 때: `tonghagil_studio/app.py`를 열고 VS Code ▶를 누르거나, 이 폴더에서 아래를 실행하세요.
+  ```powershell
+  pip install -r requirements.txt     # 처음 한 번
+  copy .env.example .env              # 처음 한 번, 값 채우기
+  python -m tonghagil_studio.app
+  ```
 
 ## 통하길 스튜디오 ↔ n8n 연결
 

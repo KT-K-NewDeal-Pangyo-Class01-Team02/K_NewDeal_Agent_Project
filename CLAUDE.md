@@ -14,16 +14,41 @@
    - "이 폴더는 ○○님의 폴더입니다. ○○님의 동의를 먼저 받아 주세요."
 4. 사용자가 **폴더 주인에게 동의를 받았다고 명확히 말한 경우에만**, 동의받은 범위 안에서만 수정한다. 동의는 그 작업 한 번에만 유효하다. 다음 작업은 다시 동의를 받는다.
 5. 다른 폴더의 코드를 **읽는 것은 괜찮다.** 연동하려고 구조를 파악하거나 URL·포트를 확인하는 것은 허용된다.
-6. **공용 파일**은 수정하기 전에 팀 전체 동의가 필요하다는 점을 사용자에게 알린다. 공용 파일은 저장소 루트의 `.gitignore`, `.gitattributes`, `.vscode/`, 이 `CLAUDE.md`다.
-7. 다른 팀원의 에이전트와 **연동**할 때는 **내 폴더 안에서만** 한다. 예를 들어 Command Center 홈에서 링크할 때는 내 `agents.json`에 상대 에이전트의 URL만 적는다. 상대 폴더의 코드는 바꾸지 않는다.
+6. **공용 파일**은 수정하기 전에 팀 전체 동의가 필요하다는 점을 사용자에게 알린다. 공용 파일은 저장소 루트의 `.gitignore`, `.gitattributes`, `.vscode/`, `README.md`, 이 `CLAUDE.md`다. `command_center/`와 `start_all.*`은 아래 "공용 허브" 규칙을 따른다.
+7. 다른 팀원의 에이전트와 **연동**할 때는 상대 폴더의 코드를 바꾸지 않는다. 연동은 공용 허브의 `command_center/agents.json`에 **자기 에이전트의 URL을 등록**하는 방식으로 한다.
+
+## 🟢 공용 허브 (`command_center/`, `start_all.bat`, `start_all.ps1`)
+관리자는 **이승현**(EffortLEE1008)이다. 팀원 모두 쓰는 곳이라 **각자 고칠 수 있는 범위**가 정해져 있다.
+
+| 파일 | 누구나 해도 되는 것 | 관리자(이승현) 동의가 필요한 것 |
+|---|---|---|
+| `command_center/agents.json` | **자기 에이전트 항목 한 개**를 추가하거나 수정한다(이름·설명·아이콘·색·상태·url). | 다른 사람의 항목을 수정하거나 삭제하는 것, 순서를 바꾸는 것 |
+| `start_all.ps1` | `$Servers` 목록에서 **자기 서버 줄 한 개**를 추가하거나 수정한다. | 그 밖의 스크립트 로직 |
+| `README.md`, 이 문서의 포트 표 | **자기 줄**을 추가하거나 수정한다. | 다른 사람 줄 |
+| `command_center/`의 코드·템플릿·CSS | (없음) | 모든 수정 |
+
+- 사용자가 관리자가 아닌데 위 범위를 벗어나는 수정이 필요하면, 작업을 멈추고 "공용 허브는 이승현님이 관리합니다. 동의를 먼저 받아 주세요."라고 알린다.
+- 자기 서버는 **아래 포트 표의 포트로 고정**한다. 포트가 겹치면 링크가 엉뚱한 서버로 간다.
+
+## 포트 표
+
+| 서버 | 포트 | 폴더 | 실행 |
+|---|---|---|---|
+| Command Center 홈 | 5000 | `command_center/` | `python -m command_center.app` (저장소 루트에서) |
+| 통하길 스튜디오 | 5004 | `tonghagil_LEESEUNGHYUN/` | `python -m tonghagil_studio.app` (그 폴더에서) |
+| 더 줘 | 5173 | `thejo_project/` | `npm run dev` |
+| (최우용) | 미정 | `vicDDory_wooyong/` | 미정 |
+
+모든 서버는 **같은 컴퓨터의 localhost**에서 실행된다. 전체 실행은 `start_all.bat`으로 한다(README 참고).
 
 ## 폴더 주인
 
 | 폴더 | 주인 (GitHub) | 내용 |
 |---|---|---|
-| `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 + Command Center 홈(`command_center/`, `shared/`) |
-| `thejo_project/` | **정주희** (juhee) | |
-| `vicDDory_wooyong/` | **최우용** (crwayon) | |
+| `command_center/`, `start_all.*` | 🟢 **팀 공용** (관리: 이승현) | Command Center 홈 허브, 전체 실행 스크립트. 위 "공용 허브" 규칙을 따른다. |
+| `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 |
+| `thejo_project/` | **정주희** (juhee) | 더 줘 (React + Vite) |
+| `vicDDory_wooyong/` | **최우용** (crwayon) | 준비 중 |
 
 새 폴더를 추가한 팀원은 이 표와 아래 폴더별 규칙에 자기 항목을 추가해 주세요. 이 파일은 공용 파일이라 항목 추가는 팀 공지로 갈음합니다.
 표에 없는 폴더는 **주인이 확인될 때까지 다른 사람의 폴더로 간주**합니다.

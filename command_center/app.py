@@ -1,6 +1,6 @@
-"""Command Center 홈: 에이전트 카드를 보여 주고, 카드를 누르면 각 에이전트 앱을 새 탭으로 연다.
+"""Command Center 홈(팀 공용 허브): 에이전트 카드를 보여 주고, 카드를 누르면 각 에이전트 앱을 새 탭으로 연다.
 
-실행: VS Code 실행(▶) 버튼, 또는 tonghagil_LEESEUNGHYUN 폴더에서  python -m command_center.app
+실행: VS Code 실행(▶) 버튼, 또는 저장소 루트에서  python -m command_center.app   (http://localhost:5000)
 """
 import os
 import re
@@ -8,15 +8,16 @@ import sys
 from pathlib import Path
 
 if not __package__:
-    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 shared/ 를 찾을 수 있게 한다
+    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 command_center 패키지를 찾을 수 있게 한다
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
-from shared.layout import init_layout, load_agents, save_agents
+from command_center.layout import init_layout, load_agents, save_agents
 
-load_dotenv()
+# 선택: command_center/.env (COMMAND_CENTER_PORT, CC_USER_NAME 등). 없으면 기본값을 쓴다.
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 ICON_CHOICES = [
     ("image", "이미지"), ("qr-code", "QR 코드"), ("calendar-x", "캘린더"), ("coins", "코인"),
@@ -44,7 +45,7 @@ def home():
 
 @app.post("/api/agents")
 def add_agent():
-    """'새 에이전트 추가' 카드에서 입력한 에이전트를 shared/agents.json 에 추가한다."""
+    """'새 에이전트 추가' 카드에서 입력한 에이전트를 command_center/agents.json 에 추가한다."""
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
     url = (data.get("url") or "").strip()

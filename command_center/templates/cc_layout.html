@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Command Center{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="{{ url_for('shared.static', filename='common.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='common.css') }}">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -67,7 +67,7 @@
 </div>
 
 <div class="cc-toast" id="cc-toast" role="status" aria-live="polite"></div>
-<script src="{{ url_for('shared.static', filename='common.js') }}"></script>
+<script src="{{ url_for('static',filename='common.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -15,7 +15,7 @@
     "icon": "coins",
     "color": "blue",
     "status": "운영 중",
-    "url": ""
+    "url": "http://localhost:5173/agents/more"
   },
   {
     "id": "aftercare",

@@ -8,15 +8,17 @@
 
 ## 프로젝트 배경
 - 팀 프로젝트 **Command Center**: 통신유통 업무용 AI 에이전트 4개(예약판매 이탈 방지, 더 줘, 사후관리, 통하길 스튜디오)를 모은 허브.
-- 이 폴더 담당자는 **통하길 스튜디오**와 **Command Center 홈 화면**을 맡는다. 다른 팀원 에이전트는 각자 따로 만든다.
+- 이 폴더 담당자는 **통하길 스튜디오**를 만든다. 저장소 루트의 팀 공용 허브(`command_center/`, `start_all.*`)도 관리한다. 다른 팀원 에이전트는 각자 따로 만든다.
 - 통하길 스튜디오 = 행사 홍보 포스터 생성 Agent. **QR 현장 서비스(스탬프·챗봇·구역별 통신 안내)는 보류**했고, 나중에 별도 에이전트로 "새 에이전트 추가"를 통해 붙인다.
 - 저장소: 조직 리포 `KT-K-NewDeal-Pangyo-Class01-Team02/K_NewDeal_Agent_Project`. 루트 아래 팀원별 폴더를 두는 구조이고, `.git`, `.gitignore`, `.gitattributes`는 저장소 루트에 있다.
 
 ## 정해진 결정
 - **Flask + Jinja 템플릿**을 쓴다. 팀 합의로 프론트엔드까지 Python으로 통일했다.
 - 에이전트마다 별도 앱과 포트를 쓴다. 홈 카드와 사이드바는 각 에이전트 URL을 **새 탭**으로 연다.
-- 에이전트 목록은 `shared/agents.json` 하나로 관리한다. 여기서 홈 카드와 사이드바 메뉴가 자동으로 만들어진다.
-- 사이드바와 상단 바는 공통 틀(`shared/templates/cc_layout.html`)로 모든 앱이 함께 쓴다.
+- 2026-09-29: Command Center 허브를 이 폴더에서 **저장소 루트 `command_center/`(팀 공용)**로 옮겼다. `shared/` 폴더는 없앴다.
+  - 에이전트 목록은 루트의 `command_center/agents.json` 하나로 관리한다. 홈 카드와 사이드바 메뉴가 여기서 자동으로 만들어진다.
+  - 스튜디오는 허브와 **독립**이다. 디자인(`cc_layout.html`, `_icons.html`, `common.css`, `common.js`)은 `tonghagil_studio/` 안에 사본으로 둔다. `tonghagil_studio/layout.py`는 사이드바용으로 허브의 `agents.json`만 **읽는다**. 파일이 없으면 빈 목록을 쓰고, `CC_AGENTS_FILE`로 경로를 바꿀 수 있다.
+  - 전체 실행은 루트 `start_all.bat`/`start_all.ps1`로 한다. 포트는 홈 5000, 스튜디오 5004, 더 줘 5173이다.
 - 포스터 이미지는 n8n → 구글 드라이브에서 온다. 화면은 이미지 출처를 모르게 설계했다.
 - 갤러리는 **구글 드라이브 폴더를 서비스 계정 + Drive API(B 방법)로 직접 읽는다** (2026-09-29 결정). n8n으로 목록을 가져오는 A 방법은 채택하지 않았다.
   - `DRIVE_FOLDER_ID`와 키 파일이 둘 다 있으면 `DriveFolderPosterStore`, 아니면 `JsonPosterStore`(샘플)를 쓴다.
@@ -28,10 +30,12 @@
 
 ## 구조
 ```
-shared/            layout.py(init_layout), agents.json, templates/(cc_layout, _icons), static/(common.css/js)
-command_center/    홈 화면 (포트 5000) — 카드 목록, 새 에이전트 추가(POST /api/agents → agents.json)
+(루트) command_center/  팀 공용 허브 (포트 5000): app.py, layout.py, agents.json, templates/, static/
 tonghagil_studio/  스튜디오 (포트 5004)
-  app.py           GET / · GET/POST /api/posters(?refresh=1) · GET /drive-image/<id>(?download=1) · GET /placeholder.svg
+  app.py           GET / · GET/POST /api/posters(?refresh=1) · PATCH/DELETE /api/posters/<id> · GET /drive-image/<id>(?download=1) · GET /placeholder.svg
+  layout.py        사이드바·상단 바 값 주입 (허브 agents.json 읽기 전용)
+  templates/       studio.html + cc_layout.html·_icons.html (허브 디자인 사본)
+  static/          studio.css/js + common.css/js (허브 디자인 사본)
   config.py        .env 읽기 (N8N_*, DRIVE_FOLDER_ID, GOOGLE_SERVICE_ACCOUNT_FILE, DRIVE_CACHE_SECONDS)
   n8n_client.py    n8n Chat URL 호출 + 응답에서 드라이브 링크/파일ID 추출
   drive.py         드라이브 링크 ↔ 파일 ID 변환 도우미
@@ -41,12 +45,13 @@ tonghagil_studio/  스튜디오 (포트 5004)
 ```
 
 ## 실행
-VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `app.py` 맨 위에서 `__package__`가 없으면 `sys.path`에 이 폴더를 추가한다. 터미널에서는 이 폴더에서 `-m`으로 실행한다.
+VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `app.py` 맨 위에서 `__package__`가 없으면 `sys.path`에 상위 폴더를 추가한다. 여러 서버를 ▶로 켤 때는 "전용 터미널에서 실행"을 쓴다. 한 터미널에는 서버 하나만 돌릴 수 있다.
 ```powershell
-conda activate knewdeal          # Anaconda: C:\ProgramData\anaconda3\envs\knewdeal (Python 3.14)
-python -m tonghagil_studio.app   # http://localhost:5004
-python -m command_center.app     # http://localhost:5000 (별도 터미널)
+# Anaconda: C:\ProgramData\anaconda3\envs\knewdeal (Python 3.14). PowerShell 에는 conda init 이 안 되어 있어 절대경로로 실행
+& "C:\ProgramData\anaconda3\envs\knewdeal\python.exe" -m tonghagil_studio.app   # 이 폴더에서, http://localhost:5004
+& "C:\ProgramData\anaconda3\envs\knewdeal\python.exe" -m command_center.app     # 저장소 루트에서, http://localhost:5000
 ```
+- 이 PC에는 Node.js가 설치되어 있지 않다. 그래서 `start_all`이 더 줘(5173)를 건너뛴다.
 - 의존성: `requirements.txt` (flask, requests, python-dotenv, google-auth). knewdeal 환경에 모두 설치되어 있다.
 - 설정: `.env` (`.env.example` 참고). `N8N_WEBHOOK_URL`이 비어 있으면 **데모 모드**, `DRIVE_FOLDER_ID`가 비어 있으면 **샘플 갤러리**로 동작한다.
 - 서비스 계정 키는 `credentials/service-account.json`에 둔다. `.gitignore`의 `**/credentials/`, `*service-account*.json` 규칙으로 커밋되지 않는다. 구글 클라우드 설정 절차는 README에 있다.
@@ -65,7 +70,7 @@ python -m command_center.app     # http://localhost:5000 (별도 터미널)
 - [ ] 외부 공개(VS Code 포트 전달, 배포) 전에 할 일:
   - `debug=True`를 `.env`로 끌 수 있게 바꾼다. 디버그 모드 공개는 보안 위험이다.
   - `agents.json`의 `localhost` URL과 `COMMAND_CENTER_URL`을 공개 주소로 바꾼다.
-- [ ] `shared/`와 `command_center/`를 저장소 루트의 팀 공용으로 옮길지 팀과 논의한다.
+- [ ] 허브를 루트로 옮긴 것(2026-09-29)과 새 규칙을 팀에 공지한다. 공지 내용: 각자 `agents.json`과 `start_all.ps1`에서 자기 줄만 수정한다는 것, 포트 표, 정주희님은 더 줘 URL(`http://localhost:5173/agents/more`)과 Vite 포트 고정(`strictPort`)을 확인해 달라는 것.
 - [ ] 발표 전에 배포 방식을 정한다(Render 등). 무료 서버는 `posters.json`과 추가한 에이전트가 초기화될 수 있다.
 - [ ] QR 현장 서비스 에이전트는 나중에 만든다.
 - 실제 드라이브 연결은 확인했다(2026-09-29). 포스터 4장의 목록과 썸네일을 읽어 왔다. **수정·삭제는 실제 드라이브에서 아직 시험하지 않았다.** 사용자 파일을 바꾸는 작업이라 가짜 클라이언트로만 테스트했다.

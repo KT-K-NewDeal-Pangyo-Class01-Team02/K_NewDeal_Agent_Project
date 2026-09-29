@@ -8,13 +8,13 @@ from io import BytesIO
 from pathlib import Path
 
 if not __package__:
-    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 shared/ 와 tonghagil_studio 를 찾을 수 있게 한다
+    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 tonghagil_studio 패키지를 찾을 수 있게 한다
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, Response, abort, jsonify, render_template, request, send_file, url_for
 
-from shared.layout import init_layout
 from tonghagil_studio import config, drive, placeholder
+from tonghagil_studio.layout import init_layout
 from tonghagil_studio.drive_store import DriveClient, DriveError, DriveFolderPosterStore
 from tonghagil_studio.n8n_client import N8nError, request_poster
 from tonghagil_studio.poster_store import JsonPosterStore
