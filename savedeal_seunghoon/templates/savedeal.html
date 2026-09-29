@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}예약판매 이탈 방지 - SAVEDEAL{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="이동 경로">
+  <a href="{{ config.COMMAND_CENTER_URL }}">Command Center</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="page">예약판매 이탈 방지</span>
+</nav>
+
+<div class="page-header dashboard-header">
+  <div>
+    <h1>예약판매 이탈 방지</h1>
+    <p class="page-subtitle">미완료 예약을 처리 우선순위대로 감시하고, Agent가 제안한 해결책을 승인해 개통까지 이끕니다.</p>
+  </div>
+  <div class="header-actions">
+    <button type="button" class="btn-ghost" id="reset-demo">데모 데이터 초기화</button>
+    <a class="btn-primary" href="{{ url_for('pages.savedeal_new') }}">+ 신규 예약 등록</a>
+  </div>
+</div>
+
+<section class="summary-grid" aria-label="예약 요약">
+  <button type="button" class="summary-card" data-filter="all">
+    <span class="summary-label">미완료 예약</span>
+    <strong class="summary-value" id="summary-open">-</strong>
+  </button>
+  <button type="button" class="summary-card" data-filter="needs_action">
+    <span class="summary-label">처리 필요</span>
+    <strong class="summary-value tone-warning" id="summary-needs_action">-</strong>
+  </button>
+  <button type="button" class="summary-card" data-filter="high_risk">
+    <span class="summary-label">고위험</span>
+    <strong class="summary-value tone-danger" id="summary-high_risk">-</strong>
+  </button>
+  <button type="button" class="summary-card" data-filter="due_today">
+    <span class="summary-label">오늘 마감</span>
+    <strong class="summary-value tone-danger" id="summary-due_today">-</strong>
+  </button>
+  <button type="button" class="summary-card" data-filter="completed">
+    <span class="summary-label">오늘 개통 완료</span>
+    <strong class="summary-value tone-success" id="summary-completed_today">-</strong>
+  </button>
+</section>
+
+<div class="dashboard-layout" id="dashboard-layout">
+  <section class="list-panel" aria-labelledby="list-title">
+    <div class="list-toolbar">
+      <h2 id="list-title" class="panel-title">예약 목록</h2>
+      <div class="filter-tabs" role="tablist" aria-label="예약 필터">
+        {% for key, label in filters %}
+        <button type="button" class="filter-tab" role="tab" data-filter="{{ key }}" aria-selected="false">
+          {{ label }} <span class="filter-count" data-count-for="{{ key }}">-</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="reservation-table">
+        <thead>
+          <tr>
+            <th scope="col">우선순위</th>
+            <th scope="col">고객 · 예약</th>
+            <th scope="col">단말 · 매장</th>
+            <th scope="col">문제 원인</th>
+            <th scope="col">이탈위험</th>
+            <th scope="col">처리 마감</th>
+            <th scope="col">진행상태</th>
+          </tr>
+        </thead>
+        <tbody id="reservation-rows">
+          <tr><td colspan="7" class="table-empty">예약 목록을 불러오는 중입니다...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="list-note">미완료 예약은 우선순위 점수가 높은 순서로, 완료·취소 예약은 목록 아래에 표시됩니다.</p>
+  </section>
+
+  <aside class="detail-panel" id="detail-panel" aria-labelledby="detail-title" hidden>
+    <div class="detail-header">
+      <div>
+        <p class="detail-eyebrow" id="detail-id"></p>
+        <h2 id="detail-title" class="detail-title"></h2>
+      </div>
+      <button type="button" class="icon-button" id="detail-close" aria-label="상세 패널 닫기">✕</button>
+    </div>
+    <div id="detail-body" aria-live="polite"></div>
+  </aside>
+</div>
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+{% endblock %}

@@ -15,6 +15,7 @@ $Root = $PSScriptRoot
 $Servers = @(
     @{ Name = "Command Center 홈"; Port = 5000; Dir = "";                       Kind = "python"; Module = "command_center.app" }
     @{ Name = "통하길 스튜디오";   Port = 5004; Dir = "tonghagil_LEESEUNGHYUN"; Kind = "python"; Module = "tonghagil_studio.app" }
+    @{ Name = "예약판매 이탈 방지"; Port = 5001; Dir = "savedeal_seunghoon";    Kind = "python"; Module = "app" }
     # 더 줘 (thejo_project): 따로 띄우지 않는다. Command Center 홈과 같은 프로세스에서
     #                        Blueprint 로 돌며 http://localhost:5000/thejo/ 로 열린다.
     # 최우용 (vicDDory_wooyong): 실행 방법과 포트가 정해지면 여기에 한 줄 추가

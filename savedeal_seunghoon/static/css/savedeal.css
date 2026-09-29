@@ -1,0 +1,257 @@
+.precheck-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.input-panel,
+.result-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+
+.panel-title {
+  margin: 0 0 20px;
+  font-size: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.form-field select,
+.form-field input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #ffffff;
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.form-field select:disabled {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.form-note {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.form-error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+#precheck-form .btn-primary {
+  width: 100%;
+}
+
+/* Result panel */
+.empty-state {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.loading-state {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.result-error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.result-summary {
+  border-radius: var(--radius-card);
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+}
+
+.status-badge {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.result-summary.status-feasible {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+}
+.result-summary.status-feasible .status-badge {
+  color: var(--color-success);
+}
+
+.result-summary.status-conditional {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+}
+.result-summary.status-conditional .status-badge {
+  color: var(--color-warning);
+}
+
+.result-summary.status-high-risk {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+}
+.result-summary.status-high-risk .status-badge {
+  color: var(--color-danger);
+}
+
+.score-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.score-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.score-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.score-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.score-value.muted {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.result-section {
+  margin-bottom: 20px;
+}
+
+.result-section h3 {
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.issue-list,
+.alternative-list,
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-list li {
+  background: var(--color-bg);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.alternative-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-bg);
+  border-radius: var(--radius-control);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.alternative-type {
+  font-weight: 600;
+}
+
+.alternative-detail {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.checklist li {
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.checklist-ok {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.checklist-fail {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+@media (max-width: 1024px) {
+  .precheck-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .score-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* 신규 예약 등록 */
+.register-box {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.register-box .btn-primary {
+  width: 100%;
+  margin-top: 8px;
+}
