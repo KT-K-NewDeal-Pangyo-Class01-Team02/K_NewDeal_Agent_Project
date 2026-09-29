@@ -35,6 +35,7 @@
 | 서버 | 포트 | 폴더 | 실행 |
 |---|---|---|---|
 | Command Center 홈 | 5000 | `command_center/` | `python -m command_center.app` (저장소 루트에서) |
+| 예약판매 이탈 방지 (SaveDeal) | 5001 | `savedeal_seunghoon/` | `python -m app` (그 폴더에서) |
 | 통하길 스튜디오 | 5004 | `tonghagil_LEESEUNGHYUN/` | `python -m tonghagil_studio.app` (그 폴더에서) |
 | 더 줘 | 5173 | `thejo_project/` | `npm run dev` |
 | (최우용) | 미정 | `vicDDory_wooyong/` | 미정 |

@@ -6,7 +6,7 @@
     "icon": "calendar-x",
     "color": "red",
     "status": "운영 중",
-    "url": ""
+    "url": "http://localhost:5001/savedeal"
   },
   {
     "id": "deo-jwo",

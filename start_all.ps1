@@ -15,6 +15,7 @@ $Root = $PSScriptRoot
 $Servers = @(
     @{ Name = "Command Center 홈"; Port = 5000; Dir = "";                       Kind = "python"; Module = "command_center.app" }
     @{ Name = "통하길 스튜디오";   Port = 5004; Dir = "tonghagil_LEESEUNGHYUN"; Kind = "python"; Module = "tonghagil_studio.app" }
+    @{ Name = "예약판매 이탈 방지"; Port = 5001; Dir = "savedeal_seunghoon";    Kind = "python"; Module = "app" }
     @{ Name = "더 줘";             Port = 5173; Dir = "thejo_project";          Kind = "npm";    Script = "dev" }
     # 최우용 (vicDDory_wooyong): 실행 방법과 포트가 정해지면 여기에 한 줄 추가
 )
