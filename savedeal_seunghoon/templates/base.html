@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SAVEDEAL Command Center{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">Command Center</span>
+      </div>
+      <nav class="sidebar-nav" aria-label="주요 메뉴">
+        <a href="{{ config.COMMAND_CENTER_URL }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'home' else '' }}">
+          <span class="sidebar-nav-icon" aria-hidden="true">🏠</span>
+          <span>홈</span>
+        </a>
+        <a href="{{ url_for('pages.savedeal') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'agents' else '' }}">
+          <span class="sidebar-nav-icon" aria-hidden="true">🧭</span>
+          <span>예약 운영</span>
+        </a>
+        <a href="{{ url_for('pages.savedeal_new') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'new' else '' }}">
+          <span class="sidebar-nav-icon" aria-hidden="true">➕</span>
+          <span>신규 예약</span>
+        </a>
+        <span class="sidebar-nav-item is-disabled" aria-disabled="true">
+          <span class="sidebar-nav-icon" aria-hidden="true">🕘</span>
+          <span>활동 내역</span>
+        </span>
+        <span class="sidebar-nav-item is-disabled" aria-disabled="true">
+          <span class="sidebar-nav-icon" aria-hidden="true">⚙️</span>
+          <span>설정</span>
+        </span>
+      </nav>
+      <div class="sidebar-footer">
+        <p>AI와 함께<br>더 나은 유통의 내일을 만듭니다.</p>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <label class="topbar-search" for="global-search">
+          <span aria-hidden="true">🔍</span>
+          <span class="visually-hidden">검색</span>
+          <input id="global-search" type="search" placeholder="무엇을 도와드릴까요?">
+        </label>
+        <div class="topbar-actions">
+          <button type="button" class="icon-button" aria-label="알림">
+            <span aria-hidden="true">🔔</span>
+          </button>
+          <div class="user-info">
+            <span class="user-avatar" aria-hidden="true"></span>
+            <span class="user-name">김지현 매니저</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="content" id="main-content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

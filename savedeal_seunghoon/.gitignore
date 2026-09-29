@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.vscode/
+.idea/
+
+# SQLite 운영 DB (앱 첫 실행 시 mock 데이터로 자동 생성)
+*.db
+*.db-journal

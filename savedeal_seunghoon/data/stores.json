@@ -1,0 +1,14 @@
+[
+  {
+    "store_id": "S001",
+    "name": "강남점",
+    "region": "서울",
+    "nearby_store_ids": ["S002"]
+  },
+  {
+    "store_id": "S002",
+    "name": "서초점",
+    "region": "서울",
+    "nearby_store_ids": ["S001"]
+  }
+]
