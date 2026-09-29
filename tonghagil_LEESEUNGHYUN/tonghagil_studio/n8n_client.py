@@ -1,13 +1,15 @@
 """n8n 포스터 생성 워크플로 호출.
 
-현재 워크플로:
-    When chat message received → Generate an image → Upload file → Share file → Edit Fields
+워크플로 (Webhook 방식):
+    Webhook(POST) → Generate an image → Upload file(프로젝트이미지 폴더) → Respond to Webhook({"fileId": …})
 
-Chat Trigger 의 Chat URL 로 채팅 위젯과 똑같은 요청(action=sendMessage, chatInput)을 보낸다.
-나중에 트리거를 Webhook 노드로 바꿔도 같은 요청이 그대로 동작하도록 message/style 등도 함께 보낸다.
+보내는 JSON (n8n 에서는 $json.body.<이름> 으로 꺼낸다):
+    chatInput  이미지 프롬프트 (설명 + 스타일 + 행사 유형)
+    fileName   드라이브에 저장할 파일 이름  예) 축제_한강 불꽃축제_20261003.png
+    title, eventType, style, message   참고용 원본 값
+    action, sessionId                  Chat Trigger 호환용 (Chat URL 로 보내도 동작)
 
-응답에서 구글 드라이브 링크나 파일 ID를 찾아 이미지 주소를 만든다.
-마지막 노드(Edit Fields)가 어떤 필드 이름을 쓰든, 드라이브 링크가 들어 있기만 하면 찾아낸다.
+응답에서 구글 드라이브 파일 ID(또는 드라이브 링크)를 찾아 이미지 주소를 만든다. 필드 이름은 상관없다.
 """
 import re
 from dataclasses import dataclass
@@ -30,7 +32,7 @@ class GeneratedImage:
     file_id: Optional[str] = None
 
 
-def request_poster(webhook_url, prompt, session_id, timeout, extra=None):
+def request_poster(webhook_url, prompt, session_id, timeout, extra=None, headers=None):
     payload = {
         "action": "sendMessage",
         "sessionId": session_id,
@@ -38,14 +40,17 @@ def request_poster(webhook_url, prompt, session_id, timeout, extra=None):
         **(extra or {}),
     }
     try:
-        resp = requests.post(webhook_url, json=payload, timeout=timeout)
+        resp = requests.post(webhook_url, json=payload, headers=headers or {}, timeout=timeout)
     except requests.Timeout as exc:
         raise N8nError("n8n 응답 시간이 초과됐어요. 잠시 후 다시 시도해 주세요.") from exc
     except requests.RequestException as exc:
         raise N8nError("n8n에 연결하지 못했어요. 주소와 워크플로 활성화 상태를 확인해 주세요.") from exc
 
+    if resp.status_code in (401, 403):
+        raise N8nError("n8n 인증에 실패했어요. .env 의 N8N_WEBHOOK_SECRET 과 n8n Webhook 의 Header Auth 값이 같은지 확인해 주세요.")
     if resp.status_code == 404:
-        raise N8nError("n8n 주소를 찾을 수 없어요. 워크플로가 활성화(Active)되어 있는지 확인해 주세요.")
+        raise N8nError("n8n 주소를 찾을 수 없어요. 워크플로가 활성화(Active)되어 있는지, "
+                       "테스트 주소(/webhook-test/)가 아니라 운영 주소(/webhook/)인지 확인해 주세요.")
     if resp.status_code >= 400:
         raise N8nError(f"n8n이 오류를 반환했어요 (HTTP {resp.status_code}).")
 

@@ -17,6 +17,10 @@ N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "").strip()
 # 이미지 생성 + 드라이브 업로드까지 기다릴 최대 시간(초)
 N8N_TIMEOUT = float(os.getenv("N8N_TIMEOUT", "180"))
 
+# n8n Webhook 의 Header Auth 비밀 키. 설정하면 요청 헤더(N8N_SECRET_HEADER)에 담아 보낸다.
+N8N_WEBHOOK_SECRET = os.getenv("N8N_WEBHOOK_SECRET", "").strip()
+N8N_SECRET_HEADER = os.getenv("N8N_SECRET_HEADER", "X-Tonghagil-Key").strip()
+
 STUDIO_PORT = int(os.getenv("STUDIO_PORT", "5004"))
 
 

@@ -265,10 +265,13 @@ def parse_file_name(name, event_types):
 
 
 def build_file_name(title, event_type, created_time, mimetype, old_name=""):
-    """parse_file_name 의 반대. ('한강 불꽃축제', '축제', …) → '축제_한강 불꽃축제_20261003.png'."""
-    title = re.sub(r"[_/\\]+", " ", title).strip()
+    """parse_file_name 의 반대. ('한강 불꽃축제', '축제', …) → '축제_한강 불꽃축제_20261003.png'.
+
+    created_time 이 없으면(아직 만들기 전) 오늘 날짜를 쓴다.
+    """
+    title = re.sub(r'[_/\\:*?"<>|]+', " ", title).strip()
     ext = Path(old_name).suffix if "." in old_name else _EXTENSIONS.get(mimetype or "", "")
-    date = _local_iso(created_time)[:10].replace("-", "")
+    date = _local_iso(created_time)[:10].replace("-", "") if created_time else datetime.now().strftime("%Y%m%d")
     parts = [event_type, title, date] if event_type else [title, date]
     return "_".join(p for p in parts if p) + ext
 

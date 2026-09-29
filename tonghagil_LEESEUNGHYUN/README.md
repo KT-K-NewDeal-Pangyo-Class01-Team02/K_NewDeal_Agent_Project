@@ -26,14 +26,32 @@ tonghagil_studio/
 
 `.env` 의 `N8N_WEBHOOK_URL` 이 비어 있으면 **데모 모드**(샘플 포스터 생성)로 동작합니다.
 
-1. n8n의 **When chat message received** 노드에서 `Make Chat Publicly Available` 을 켜고,
-   `Authentication: None`, `Response Mode: When Last Node Finishes` 로 둡니다.
-2. 노드에 표시된 **Chat URL** 을 `.env` 의 `N8N_WEBHOOK_URL` 에 넣습니다.
-3. 워크플로를 **Active** 로 바꿉니다. (테스트 URL `/webhook-test/...` 는 에디터에서 실행 대기 중일 때만 동작)
-4. 마지막 노드(Edit Fields)가 드라이브 공유 링크 또는 파일 ID를 내보내면 됩니다. 필드 이름은 상관없습니다.
+워크플로 (n8n Cloud, **Webhook 방식**):
 
-스튜디오는 `chatInput`(설명 + 스타일 + 행사 유형)을 보내고, 응답에서 드라이브 링크를 찾아
-갤러리에 보여 줍니다. 요청 기록(제목·행사 유형·요청 문구)은 `tonghagil_studio/data/posters.json` 에 쌓입니다.
+```
+Webhook (POST) → Generate an image → Upload file → Respond to Webhook
+```
+
+| 노드 | 설정 |
+|---|---|
+| **Webhook** | HTTP Method `POST` · Path `tonghagil-poster` · Authentication `Header Auth`(Name `X-Tonghagil-Key`, Value = `.env` 의 `N8N_WEBHOOK_SECRET`) · Respond `Using 'Respond to Webhook' Node` |
+| **Generate an image** | Prompt: `{{ $json.body.chatInput }}` |
+| **Upload file** | Parent Folder: **프로젝트이미지** (갤러리 폴더와 같아야 함) · File Name: `{{ $('Webhook').item.json.body.fileName }}` |
+| **Respond to Webhook** | Respond With `JSON` · `{ "fileId": "{{ $('Upload file').item.json.id }}" }` |
+
+- 워크플로를 **Active(Publish)** 로 켜고, Webhook 노드의 **Production URL**(`…/webhook/tonghagil-poster`)을 `.env` 의 `N8N_WEBHOOK_URL` 에 넣습니다.
+  Test URL(`/webhook-test/…`)은 에디터에서 "Listen for test event" 를 누른 동안만 동작합니다.
+- 공유(Share file) 노드는 필요 없습니다. 스튜디오가 서비스 계정으로 이미지를 가져오므로 비공개 파일도 보입니다.
+
+스튜디오가 보내는 JSON (`$json.body.<이름>`):
+
+| 이름 | 예 |
+|---|---|
+| `chatInput` | 이미지 프롬프트 = 설명 + `[포스터 스타일] …` + `[행사 유형] …` |
+| `fileName` | `축제_10월 한강 불꽃축제_20260929.png` |
+| `title`, `eventType`, `style`, `message` | 원본 값 (참고용) |
+
+요청 기록(제목·행사 유형·요청 문구)은 `tonghagil_studio/data/posters.json` 에 쌓이고, 드라이브 파일 ID로 갤러리와 합쳐집니다.
 
 ## 갤러리 ↔ 구글 드라이브 폴더 연결 (서비스 계정)
 
