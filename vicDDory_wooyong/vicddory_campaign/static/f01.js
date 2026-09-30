@@ -7,7 +7,6 @@
   const meta = document.getElementById('opp-meta');
   const grid = document.getElementById('opp-grid');
   const notice = document.getElementById('opp-notice');
-  const briefStore = document.querySelector('#brief-form [name="store_name"]');
   const DAY = { weekday: '평일', friday: '금요일', weekend: '주말', holiday: '공휴일' };
   const SOURCE = { kma: '기상청', tour: 'TourAPI', roster: '근무표', dummy: '더미 데이터', llm: 'LLM 문구', db: '카드 저장' };
   // Flask 가 JSON 키를 알파벳순으로 정렬하므로 지표 순서는 여기서 고정한다
@@ -123,8 +122,9 @@
       const data = await post('/api/f01/select', { card_id: card.card_id, target_date: card.target_date, store_id: storeSelect.value });
       const c = data.campaign;
       card.selected = true;
-      const storeName = storeSelect.selectedOptions[0].dataset.name;
-      if (briefStore) briefStore.value = storeName;
+      document.dispatchEvent(new CustomEvent('vicddory:campaign-selected', { detail: {
+        campaign_id: c.campaign_id, store_id: storeSelect.value, target_date: c.target_date, title: card.title,
+      } }));
       setNotice(`${c.target_date} 캠페인을 시작했습니다. 캠페인 번호 ${c.campaign_id} · 기획 마감 ${fmtTime(c.plan_due_at)} (3시간). 아래 캠페인 발의에서 조건을 입력하세요.`);
       if (data.source === 'demo') window.ccToast('데모 모드라 캠페인이 저장되지 않았어요.');
     } catch (err) {

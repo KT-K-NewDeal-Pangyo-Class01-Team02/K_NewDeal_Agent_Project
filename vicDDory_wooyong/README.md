@@ -28,7 +28,7 @@ python -m vicddory_campaign.app
 | `vicddory_campaign/layout.py` | Command Center 공통 사이드바·상단 바를 붙임 |
 | `vicddory_campaign/n8n_client.py` | n8n 웹훅 호출 및 응답 파싱 |
 | `vicddory_campaign/templates/campaign.html` | 화면 |
-| `vicddory_campaign/static/campaign.js` | 캠페인 발의 → 기획안 |
+| `vicddory_campaign/static/campaign.js` | 캠페인 발의(8개 파라미터) → F-02 검증 → 기획안 |
 | `vicddory_campaign/static/f01.js` | F-01 이번 주 옥외 기회 스캔 · 카드 선택 |
 | `Outdoor-Public-Relations-Campaign-Agent-main/index.html` | Flask 이전의 초기 프로토타입 (참고용 보관, 더 이상 수정하지 않음) |
 
@@ -40,7 +40,9 @@ python -m vicddory_campaign.app
 |---|---|---|---|
 | 기회 스캔 | `POST /api/f01/scan` | `F01_scan` (`/webhook/f01-scan`) | `N8N_BASE_URL` |
 | 이 카드로 캠페인 시작 | `POST /api/f01/select` | `F01_select` (`/webhook/f01-select`) | `N8N_BASE_URL` |
-| BTL 기획서 생성 | `POST /api/plan` | `BTL 기획안 생성 (Webhook)` (`/webhook/plan-gen`) | `N8N_WEBHOOK_URL` |
+| 캠페인 발의 폼 채우기 (근무자 · 장소 · 재고) | `POST /api/f02/options` | `F02_validate` (`/webhook/f02-validate`, action=options) | `N8N_BASE_URL` |
+| 캠페인 발의 제출 ① 제약 검증 | `POST /api/f02/validate` | `F02_validate` (action=validate) | `N8N_BASE_URL` |
+| 캠페인 발의 제출 ② 기획서 생성 (검증 통과 시) | `POST /api/plan` | `BTL 기획안 생성 (Webhook)` (`/webhook/plan-gen`) | `N8N_WEBHOOK_URL` |
 
 n8n 쪽 공용 부품: `00_dummy_data`(프로모션·유동인구·과거 성과 더미), Supabase `roster`·`opportunity_cards`·`campaigns` 테이블.
 

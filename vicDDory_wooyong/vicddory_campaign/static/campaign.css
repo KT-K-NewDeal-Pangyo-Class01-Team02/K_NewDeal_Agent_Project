@@ -85,6 +85,24 @@
 .insight .icon { margin-top: 2px; flex-shrink: 0; }
 .insight strong { display: block; margin-bottom: 2px; color: #6f1a21; }
 
+/* ---------- F-02 캠페인 발의 폼 ---------- */
+.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.staff-stack { display: grid; gap: 8px; }
+.field-row-tight { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; }
+.field-row > .cc-field { margin: 0; }
+.field-hint { justify-content: flex-start; color: var(--cc-muted); }
+.field-hint.is-warn { color: #d46b12; }
+.brief-linked { margin: 0; padding: 10px 14px; border-radius: 10px; background: #fff1e3; color: #8a4a0c; font-size: 13px; }
+.checks { list-style: none; margin: 0; padding: 12px 14px; border: 1px solid var(--cc-border); border-radius: 12px; display: grid; gap: 8px; }
+.checks li { display: grid; grid-template-columns: 22px 44px 1fr; gap: 6px; align-items: start; font-size: 13px; line-height: 1.5; }
+.checks li::before { content: "✓"; font-weight: 800; color: #1d7a4b; }
+.checks li.is-warn::before { content: "!"; color: #d46b12; }
+.checks li.is-block::before { content: "✕"; color: var(--cc-accent); }
+.checks li b { color: var(--cc-text-sub); font-weight: 700; }
+.checks li.is-block span { color: #8d2129; }
+.checks .checks-head { display: block; font-weight: 700; font-size: 13px; }
+.checks .checks-head::before { content: none; }
+
 /* ---------- 맨 위: F-01 이번 주 옥외 기회 ---------- */
 .opp + .campaign { margin-top: 20px; }
 .opp-toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }

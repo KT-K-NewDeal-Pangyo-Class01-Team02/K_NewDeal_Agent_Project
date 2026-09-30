@@ -36,3 +36,4 @@ N8N_BASE_URL = (os.getenv("N8N_BASE_URL") or _webhook_base(N8N_WEBHOOK_URL)).str
 
 F01_SCAN_URL = f"{N8N_BASE_URL}/f01-scan" if N8N_BASE_URL else ""
 F01_SELECT_URL = f"{N8N_BASE_URL}/f01-select" if N8N_BASE_URL else ""
+F02_VALIDATE_URL = f"{N8N_BASE_URL}/f02-validate" if N8N_BASE_URL else ""

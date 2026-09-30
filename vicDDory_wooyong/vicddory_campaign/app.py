@@ -26,6 +26,14 @@ STORES = [
     {"id": "ST-GANGNAM", "name": "강남직영점"},
 ]
 
+# F-02 운영 시간대 (n8n F02_validate 의 WINDOWS 와 같아야 한다)
+OPERATING_HOURS = [
+    {"id": "14:00-18:00", "label": "피크 14:00 ~ 18:00 (기본)"},
+    {"id": "11:00-15:00", "label": "점심 11:00 ~ 15:00"},
+    {"id": "17:00-21:00", "label": "퇴근 17:00 ~ 21:00"},
+]
+BUDGET_MAX = 1_500_000
+
 TARGET_GROUPS = [
     {"id": "2030_5G", "label": "2030 청년층 (5G 무제한 요금제)"},
     {"id": "SENIOR_PHONE", "label": "시니어 실속형 스마트폰"},
@@ -60,7 +68,70 @@ def home():
         n8n_connected=bool(config.N8N_WEBHOOK_URL),
         stores=STORES,
         f01_connected=bool(config.F01_SCAN_URL),
+        operating_hours=OPERATING_HOURS,
+        budget_max=BUDGET_MAX,
+        default_date=(_today_kst() + timedelta(days=1)).isoformat(),
+        f02_connected=bool(config.F02_VALIDATE_URL),
     )
+
+
+def _today_kst():
+    return datetime.now(timezone(timedelta(hours=9))).date()
+
+
+def _store(store_id):
+    return next((s for s in STORES if s["id"] == store_id), None)
+
+
+@app.post("/api/f02/options")
+def f02_options():
+    """F-02 폼 채우기: 그날 근무자 · 운영 장소 · 사은품 재고."""
+    data = request.get_json(silent=True) or {}
+    store, target_date = _store(data.get("store_id")), str(data.get("target_date") or "")
+    if not store or len(target_date) != 10:
+        return jsonify(error="매장과 운영 일자를 먼저 골라 주세요."), 400
+    if not config.F02_VALIDATE_URL:
+        return jsonify(_demo_options(store, target_date))
+    try:
+        result = request_json(config.F02_VALIDATE_URL,
+                              {"action": "options", "store_id": store["id"], "target_date": target_date},
+                              timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    return jsonify({**result, "source": "n8n"})
+
+
+@app.post("/api/f02/validate")
+def f02_validate():
+    """F-02: 8개 파라미터를 규칙(R-01 2인 1조 · R-02 잔류 인력 · 예산 · 재고)으로 판정한다."""
+    data = request.get_json(silent=True) or {}
+    store = _store(data.get("store_id"))
+    if not store:
+        return jsonify(error="운영 매장을 골라 주세요."), 400
+    constraints = str(data.get("constraints") or "").strip()
+    if len(constraints) > MAX_CONSTRAINTS:
+        return jsonify(error=f"제약조건은 {MAX_CONSTRAINTS}자까지 입력할 수 있어요."), 400
+    staff_ids = [str(x) for x in (data.get("staff_ids") or []) if x][:4]
+    payload = {
+        "action": "validate", "store_id": store["id"],
+        "target_date": str(data.get("target_date") or ""),
+        "operating_hours": str(data.get("operating_hours") or ""),
+        "target_group": str(data.get("target_group") or ""),
+        "site_id": str(data.get("site_id") or ""),
+        "staff_ids": staff_ids,
+        "budget": data.get("budget"), "reward_item": str(data.get("reward_item") or ""),
+        "reward_qty": data.get("reward_qty"), "constraints": constraints,
+        "campaign_id": data.get("campaign_id"),
+    }
+    if not config.F02_VALIDATE_URL:
+        return jsonify(_demo_validate(payload))
+    try:
+        result = request_json(config.F02_VALIDATE_URL, payload, timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    if result.get("status") != "success":
+        return jsonify(error=result.get("message") or "제약 검증 결과를 받지 못했어요."), 502
+    return jsonify({**result, "source": "n8n"})
 
 
 @app.post("/api/f01/scan")
@@ -129,6 +200,11 @@ def create_plan():
         "constraints": constraints,
         "operation": "2인 1조 (20/10분 사이클)",
     }
+    f02 = data.get("f02")
+    if isinstance(f02, dict):
+        # F-02 검증을 통과한 파라미터 (날짜 · 시간대 · 장소 · 출동 인력 · 예산 · 사은품)
+        payload["f02"] = f02
+        payload["campaignId"] = data.get("campaign_id")
 
     if not config.N8N_WEBHOOK_URL:
         time.sleep(1.0)
@@ -139,6 +215,49 @@ def create_plan():
     except N8nError as exc:
         return jsonify(error=str(exc)), 502
     return jsonify(plan=plan, source="n8n")
+
+
+_DEMO_STAFF = [
+    ("E01", "김도윤", "정규직", "10:00", "19:00"), ("E02", "이서연", "정규직", "11:00", "20:00"),
+    ("E03", "박준호", "정규직", "10:00", "19:00"), ("E04", "최하은", "정규직", "11:00", "20:00"),
+    ("P01", "윤채원", "아르바이트", "10:00", "16:00"), ("P02", "임시우", "아르바이트", "14:00", "20:00"),
+    ("P03", "한예린", "아르바이트", "14:00", "20:00"),
+]
+
+
+def _demo_options(store, target_date):
+    return {"status": "success", "action": "options", "source": "demo", "store_id": store["id"],
+            "target_date": target_date, "roster_found": True,
+            "staff": [{"employee_id": f"DEMO-{i}", "employee_name": n, "employment_type": t,
+                       "start_time": a, "end_time": b} for i, n, t, a, b in _DEMO_STAFF],
+            "sites": [{"site_id": "DEMO-S1", "site_name": "석촌호수 동호 산책로", "distance_to_store_m": 1650},
+                      {"site_id": "DEMO-S2", "site_name": "잠실새내역 4번 출구 앞", "distance_to_store_m": 72}],
+            "rewards": [{"item_name": "또리 키링", "quantity": 200}]}
+
+
+def _demo_validate(p):
+    """데모: 핵심 규칙(2인 1조 · 알바 단독 배제 · 예산)만 흉내 낸다. 실제 판정은 n8n F02_validate."""
+    staff = {f"DEMO-{i}": (n, t) for i, n, t, _, _ in _DEMO_STAFF}
+    picked = [staff[x] for x in dict.fromkeys(p["staff_ids"]) if x in staff]
+    checks = []
+    if len(picked) != 2:
+        checks.append(("R-01", "2인 1조 편성", False, "출동 인력은 서로 다른 2명이어야 합니다 (2인 1조)."))
+    elif all(t == "아르바이트" for _, t in picked):
+        checks.append(("R-01", "2인 1조 편성", False, "아르바이트끼리는 출동할 수 없습니다. 정규직을 1명 이상 넣어 주세요 (알바 단독 배제)."))
+    else:
+        checks.append(("R-01", "2인 1조 편성", True, " + ".join(f"{n}({t})" for n, t in picked)))
+    try:
+        budget = int(p["budget"])
+    except (TypeError, ValueError):
+        budget = 0
+    checks.append(("B-01", "집행 예산", 0 < budget <= BUDGET_MAX,
+                   f"{budget:,}원" if 0 < budget <= BUDGET_MAX else f"예산은 1원 ~ {BUDGET_MAX:,}원이어야 합니다."))
+    rows = [{"code": c, "label": l, "ok": ok, "level": "pass" if ok else "block", "message": m} for c, l, ok, m in checks]
+    valid = all(r["ok"] for r in rows)
+    return {"status": "success", "action": "validate", "source": "demo", "isValid": valid, "checks": rows,
+            "saved": False, "message": "데모 판정" if valid else "\n".join(r["message"] for r in rows if not r["ok"]),
+            "f02": {"target_date": p["target_date"], "operating_hours": p["operating_hours"], "budget": budget,
+                    "staff": [{"employee_name": n, "employment_type": t} for n, t in picked]}}
 
 
 def _demo_scan(store):

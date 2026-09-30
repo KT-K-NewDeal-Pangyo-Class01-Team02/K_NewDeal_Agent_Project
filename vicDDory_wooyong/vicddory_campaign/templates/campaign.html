@@ -54,7 +54,7 @@
     <header class="panel-head">
       <div>
         <h2 id="brief-title">캠페인 발의</h2>
-        <p>현장 조건을 입력하면 AI가 기획안을 편성합니다.</p>
+        <p>8개 조건을 규칙으로 먼저 검증하고(F-02), 통과하면 AI가 기획안을 편성합니다.</p>
       </div>
       {% if n8n_connected %}
         <span class="conn is-live" title="n8n 워크플로가 기획안을 생성합니다">n8n 연결됨</span>
@@ -63,33 +63,79 @@
       {% endif %}
     </header>
 
-    <form class="brief-form" id="brief-form">
-      <label class="cc-field">
-        <span class="cc-label">운영 매장</span>
-        <input class="cc-input" name="store_name" maxlength="40" value="강남직영점" required>
-      </label>
+    <form class="brief-form" id="brief-form" novalidate>
+      <input type="hidden" name="campaign_id" id="f-campaign-id">
+      <p class="brief-linked" id="f-linked" hidden></p>
+
+      <div class="field-row">
+        <label class="cc-field">
+          <span class="cc-label">① 운영 매장</span>
+          <select class="cc-select" name="store_id" id="f-store">
+            {% for s in stores %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="cc-field">
+          <span class="cc-label">② 운영 일자</span>
+          <input class="cc-input" type="date" name="target_date" id="f-date" value="{{ default_date }}" min="{{ default_date }}" required>
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="cc-field">
+          <span class="cc-label">③ 운영 시간대</span>
+          <select class="cc-select" name="operating_hours" id="f-hours">
+            {% for h in operating_hours %}<option value="{{ h.id }}">{{ h.label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="cc-field">
+          <span class="cc-label">④ 타깃층 &amp; 제품</span>
+          <select class="cc-select" name="target_group">
+            {% for t in target_groups %}<option value="{{ t.id }}">{{ t.label }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
 
       <label class="cc-field">
-        <span class="cc-label">타깃층 &amp; 제품</span>
-        <select class="cc-select" name="target_group">
-          {% for t in target_groups %}<option value="{{ t.id }}">{{ t.label }}</option>{% endfor %}
-        </select>
-      </label>
-
-      <label class="cc-field">
-        <span class="cc-label">운영 형태</span>
-        <input class="cc-input" value="2인 1조 (20/10분 사이클)" readonly>
+        <span class="cc-label">⑤ 운영 장소</span>
+        <select class="cc-select" name="site_id" id="f-site"><option value="">매장·일자를 고르면 불러옵니다</option></select>
       </label>
 
       <div class="cc-field">
-        <span class="cc-label">주요 제약조건 (예산 · 입지 규제)</span>
-        <textarea class="cc-textarea" id="constraints" name="constraints" rows="3"
-                  maxlength="{{ max_constraints }}">부스 지원금 150만원 이내 / 보행자 안전통로 2m 확보</textarea>
+        <span class="cc-label">⑥ 출동 인력 (2인 1조 · 정규직 1명 이상)</span>
+        <div class="staff-stack">
+          <select class="cc-select staff-select" name="staff_1" aria-label="출동 인력 1"><option value="">근무표 불러오는 중…</option></select>
+          <select class="cc-select staff-select" name="staff_2" aria-label="출동 인력 2"><option value="">근무표 불러오는 중…</option></select>
+        </div>
+        <div class="field-foot field-hint" id="f-staff-hint"></div>
+      </div>
+
+      <div class="field-row">
+        <label class="cc-field">
+          <span class="cc-label">⑦ 집행 예산 (원)</span>
+          <input class="cc-input" type="number" name="budget" value="1200000" min="1" max="{{ budget_max }}" step="10000" required>
+          <div class="field-foot field-hint">부스 지원금 한도 {{ "{:,}".format(budget_max) }}원</div>
+        </label>
+        <div class="cc-field">
+          <span class="cc-label">⑧ 사은품 · 수량</span>
+          <div class="field-row field-row-tight">
+            <select class="cc-select" name="reward_item" id="f-reward"><option value="">없음</option></select>
+            <input class="cc-input" type="number" name="reward_qty" value="0" min="0" step="10" aria-label="사은품 수량">
+          </div>
+          <div class="field-foot field-hint" id="f-reward-hint"></div>
+        </div>
+      </div>
+
+      <div class="cc-field">
+        <span class="cc-label">추가 제약조건 (입지 규제 등, 선택)</span>
+        <textarea class="cc-textarea" id="constraints" name="constraints" rows="2"
+                  maxlength="{{ max_constraints }}">보행자 안전통로 2m 확보</textarea>
         <div class="field-foot"><span id="counter">0/{{ max_constraints }}</span></div>
       </div>
 
+      <ul class="checks" id="checks" hidden aria-live="polite"></ul>
+
       <button type="submit" class="cc-btn cc-btn-primary brief-submit" id="submit-btn">
-        {{ icon("sparkles", 18) }}<span>BTL 기획서 생성</span>
+        {{ icon("sparkles", 18) }}<span>캠페인 발의 제출</span>
       </button>
       <p class="form-error" id="form-error" role="alert"></p>
     </form>
