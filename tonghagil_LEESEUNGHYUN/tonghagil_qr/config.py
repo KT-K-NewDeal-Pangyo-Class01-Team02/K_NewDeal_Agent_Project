@@ -35,6 +35,10 @@ DB_FILE = _path("QR_DB_FILE", DATA_DIR / "qr.db")
 # ngrok 을 연결하면 https://<내 도메인>.ngrok-free.app 처럼 넣는다 (휴대폰은 localhost 를 못 연다).
 PUBLIC_BASE_URL = _get("QR_PUBLIC_BASE_URL").strip().rstrip("/")
 
+# 카카오맵 JavaScript 키 (developers.kakao.com → 내 애플리케이션 → 앱 키). 비워 두면 그림 약도를 쓴다.
+# 브라우저로 나가는 공개용 키라 화면 소스에 보인다. 대신 카카오 콘솔에 등록한 도메인에서만 동작한다.
+KAKAO_MAP_KEY = _get("QR_KAKAO_MAP_KEY").strip()
+
 # 부스 담당자 화면(/qr/staff/) 비밀번호. 비워 두면 1234 (시연용).
 STAFF_PIN = _get("QR_STAFF_PIN").strip() or "1234"
 STAFF_PIN_IS_DEFAULT = not _get("QR_STAFF_PIN").strip()

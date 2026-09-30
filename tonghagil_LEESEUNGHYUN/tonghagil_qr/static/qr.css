@@ -8,6 +8,8 @@
   padding-bottom: calc(var(--q-tab-h) + env(safe-area-inset-bottom));
   background: var(--cc-bg);
 }
+/* hidden 속성이 .q-card 등의 display 에 덮이지 않게 (카카오맵 ↔ 그림 약도 전환에 쓴다) */
+.q-body [hidden] { display: none !important; }
 
 /* ---------- 상단 · 하단 탭 ---------- */
 .q-top {
@@ -272,3 +274,98 @@
   border: 0; border-radius: 12px; background: var(--cc-accent); color: #fff; cursor: pointer;
 }
 .q-send:disabled { opacity: .5; }
+
+/* ---------- 카카오맵 (qr_map.js) ---------- */
+.q-kmap-card { padding: 10px; }
+.q-kmap {
+  position: relative; height: 380px; overflow: hidden;
+  border-radius: 12px; background: #eef0f3;
+}
+.q-kmap-loading { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-size: 14px; color: var(--cc-muted); }
+.q-kmap-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.q-kmap-tools button {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 42px; padding: 0 8px;
+  border: 1px solid var(--cc-border); border-radius: 10px;
+  background: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.q-kmap-tools button:active { background: #f5f6f8; }
+.q-kt-mini { padding: 1px 4px; border-radius: 4px; background: var(--cc-accent); color: #fff; font-size: 10px; font-weight: 800; }
+.q-kmap-msg { min-height: 20px; margin: 8px 4px 0; font-size: 13px; line-height: 1.5; color: var(--cc-text-sub); }
+.q-svg-note { margin: 0 0 8px; }
+
+/* 지도 위 마커 · 라벨 (카카오맵 CustomOverlay) */
+.km-stamp, .km-booth {
+  display: grid; place-items: center;
+  border: 0; cursor: pointer; font-family: var(--cc-font); font-weight: 800;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, .3);
+}
+.km-stamp {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #fff; color: #151a23; font-size: 14px;
+  outline: 2px dashed #151a23; outline-offset: -4px;
+}
+.km-stamp.is-done { background: #151a23; color: #fff; outline: 0; }
+.km-booth {
+  height: 30px; padding: 0 10px; border-radius: 8px;
+  background: var(--cc-accent); color: #fff; font-size: 14px;
+  animation: km-bounce 1.8s ease-in-out infinite;
+}
+@keyframes km-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.km-zone {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 3px 8px; border-radius: 8px;
+  background: rgba(255, 255, 255, .85); font-family: var(--cc-font);
+  pointer-events: none; white-space: nowrap;
+}
+.km-zone b { font-size: 12px; color: #151a23; }
+.km-zone span { font-size: 11px; font-weight: 700; }
+.km-zone[data-level="good"] span { color: var(--q-good); }
+.km-zone[data-level="busy"] span { color: var(--q-busy); }
+.km-zone[data-level="jam"] span  { color: var(--q-jam); }
+
+.km-info {
+  position: relative; width: 230px; padding: 12px 14px;
+  border-radius: 12px; background: #fff; font-family: var(--cc-font);
+  box-shadow: 0 6px 20px rgba(16, 24, 40, .25);
+}
+.km-info::after {
+  content: ""; position: absolute; left: 50%; bottom: -7px;
+  width: 14px; height: 14px; background: #fff; transform: translateX(-50%) rotate(45deg);
+}
+.km-info-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.km-info-head strong { flex: 1; min-width: 0; font-size: 14px; }
+.km-info-badge { padding: 1px 7px; border-radius: 999px; background: #eef0f3; color: var(--cc-text-sub); font-size: 11px; font-style: normal; font-weight: 700; }
+.km-info-badge.is-done { background: #151a23; color: #fff; }
+.km-info-badge.is-kt { background: var(--cc-accent); color: #fff; }
+.km-info-close { width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; font-size: 18px; line-height: 1; color: var(--cc-muted); cursor: pointer; }
+.km-info p { margin: 2px 0 0; font-size: 13px; line-height: 1.5; color: var(--cc-text-sub); white-space: normal; }
+
+.km-me {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #2f6fe4; border: 3px solid #fff;
+  box-shadow: 0 0 0 0 rgba(47, 111, 228, .5);
+  animation: km-pulse 1.6s ease-out infinite;
+}
+@keyframes km-pulse { to { box-shadow: 0 0 0 16px rgba(47, 111, 228, 0); } }
+
+/* 스탬프 QR 위치 목록 (지도 화면) */
+.q-count { margin-left: 4px; font-size: 13px; font-weight: 600; color: var(--cc-muted); }
+.q-spots { margin: 0; padding: 0; list-style: none; }
+.q-spot {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 0; border: 0; border-top: 1px solid #eef0f3; background: none;
+  text-align: left; font: inherit; color: inherit;
+}
+.q-spots li:first-child .q-spot { border-top: 0; }
+button.q-spot { cursor: pointer; }
+.q-spot-no {
+  width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center;
+  border: 2px dashed #b6bcc7; border-radius: 50%; font-weight: 800; color: var(--cc-text-sub);
+}
+.q-spot.is-done .q-spot-no { border: 0; background: #151a23; color: #fff; }
+.q-spot-text { flex: 1; min-width: 0; }
+.q-spot-text strong { display: block; font-size: 15px; }
+.q-spot-text small { display: block; margin-top: 2px; font-size: 12px; color: var(--cc-muted); line-height: 1.4; }
+.q-spot-pin { color: var(--cc-accent); }
+.q-zone-row.is-clickable { cursor: pointer; }

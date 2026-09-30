@@ -19,6 +19,8 @@
       setText('queue', net.booth.queue);
       setText('wait', net.booth.wait_min);
       setText('updated', net.updated_at);
+      // 카카오맵(qr_map.js)도 같은 값으로 구역 색을 바꾸게 알린다
+      document.dispatchEvent(new CustomEvent('qr:network', { detail: net }));
       net.zones.forEach((zone) => {
         document.querySelectorAll(`[data-zone="${zone.id}"]`).forEach((el) => {
           el.dataset.level = zone.level;

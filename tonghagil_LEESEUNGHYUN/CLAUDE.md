@@ -83,6 +83,11 @@ tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
 - 담당자 PIN: `QR_STAFF_PIN`이고 없으면 `1234`다. 쿠키 `tq_staff` = HMAC(`data/.secret`, PIN)이고 path는 `/qr/staff/`, 12시간이다. 5번 틀리면 30초 동안 막는다(전역). 담당자 화면에서 쿠폰 지급, QR 이미지·인쇄 페이지, **시연 기록 초기화**를 한다. 방문객 쿠폰 화면은 5초마다 `/qr/api/me`로 지급 여부를 확인한다.
 - QR 주소 = `QR_PUBLIC_BASE_URL` 또는 `request.host_url`. localhost면 담당자 화면에 경고를 띄운다. 휴대폰 시연은 ngrok 공개 주소가 필요하다.
 - 챗봇: `QR_CHAT_WEBHOOK_URL`이 비어 있으면 고정 답변 **"테스트 단계입니다"**를 준다(사용자 요청). n8n 연결을 대비해 `chatInput`, `sessionId`, `eventId`, `context`(토큰 제외 행사 요약), `network`, `stamps`를 보내고, 응답은 `reply`/`output`/`text`/`message`/`answer` 또는 문자열을 받도록 만들어 두었다. 형식은 README에 있다.
+- **지도 = 카카오맵** (2026-09-30 사용자 결정). 네이버는 2025-07부터 옛 무료 이용량이 끝났고 결제 수단 등록이 필요할 수 있어서 제외했다. 카카오는 비즈월렛을 연결하지 않으면 과금되지 않는다. 키는 `QR_KAKAO_MAP_KEY`이고, 카카오 콘솔에서 "카카오맵 활성화 ON"과 사이트 도메인(localhost:5000, ngrok) 등록이 필요하다.
+  - `static/qr_map.js`가 SDK를 `autoload=false`로 동적으로 불러온다. 8초 안에 안 뜨거나 오류가 나면 `#svg-map`(그림 약도)으로 바꾼다. 키가 없으면 서버가 처음부터 약도를 그린다.
+  - 지도 데이터는 `event.map_data()` → `<script type="application/json" id="map-data">`로 넘긴다. **스탬프 토큰은 넣지 않는다.** `map`, `booth.geo`, `stamps[].geo`, `zones[].geo` 중 하나라도 없으면 None이 되고 약도를 쓴다. 위경도는 여의도 한강공원 기준 대략적인 초안이다.
+  - `qr.js`가 통신 상태를 갱신하면 `qr:network` 이벤트를 쏘고, `qr_map.js`가 받아서 구역 다각형 색을 바꾼다.
+  - **실제 카카오맵 표시는 키가 없어서 아직 확인하지 않았다.** 서버 쪽 70개 항목은 통과했고, JS는 esprima로 문법 검사만 했다(이 PC에는 Node가 없다).
 - `data/.gitignore`(이 폴더 안)가 `qr.db`와 `.secret`을 막는다. 루트 `.gitignore`는 공용 파일이라 건드리지 않았다.
 - 검증(2026-09-30): 임시 DB로 방문객·스탬프·쿠폰·챗봇(가짜 n8n 응답 포함)·담당자 PIN·지급·초기화 57개 항목을 확인했고 모두 통과했다. 실제 서버에서도 `/qr/` 전 화면이 200이었다. **브라우저·휴대폰 화면은 아직 눈으로 확인하지 않았다.**
 

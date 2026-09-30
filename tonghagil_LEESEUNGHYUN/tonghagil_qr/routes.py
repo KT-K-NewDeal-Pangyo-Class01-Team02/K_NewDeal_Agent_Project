@@ -101,8 +101,14 @@ def home():
 
 @qr_bp.get("/map")
 def map_view():
+    """카카오맵 키와 위경도가 있으면 실제 지도, 아니면(또는 지도가 못 뜨면) 그림 약도."""
     net = network.snapshot(event.data)
-    return _visitor_page("map.html", "map", net=net, net_by_id={z["id"]: z for z in net["zones"]})
+    net_by_id = {z["id"]: z for z in net["zones"]}
+    done = _progress(_visitor_id())[0]
+    map_data = event.map_data(done, net_by_id) if config.KAKAO_MAP_KEY else None
+    return _visitor_page("map.html", "map", net=net, net_by_id=net_by_id,
+                         kakao_key=config.KAKAO_MAP_KEY if map_data else "", map_data=map_data,
+                         zone_names={z["id"]: z["name"] for z in event.data["zones"]})
 
 
 @qr_bp.get("/stamps")
@@ -233,6 +239,7 @@ def staff():
         public_base=base,
         base_is_local=_is_local(base),
         chat_connected=bool(config.CHAT_WEBHOOK_URL),
+        kakao_connected=bool(config.KAKAO_MAP_KEY),
         pin_is_default=config.STAFF_PIN_IS_DEFAULT,
         required=event.required_stamps,
     )
