@@ -209,6 +209,24 @@ def create_plan():
         payload["f02"] = f02
         payload["campaignId"] = data.get("campaign_id")
 
+    # F-02 를 통과한 요청은 오케스트레이터(WF_plan)로: 입지 · 카피 · 콜시트를 단계별로 만든다
+    if isinstance(f02, dict) and config.WF_PLAN_URL:
+        store = _store(data.get("store_id"))
+        try:
+            result = request_json(config.WF_PLAN_URL, {
+                "campaign_id": data.get("campaign_id"),
+                "store_id": store["id"] if store else data.get("store_id"),
+                "store_name": store["name"] if store else store_name,
+                "target_group": target["id"], "target_group_label": target["label"],
+                "constraints": constraints, "f02": f02,
+            }, timeout=config.N8N_TIMEOUT)
+        except N8nError as exc:
+            return jsonify(error=str(exc)), 502
+        if result.get("status") != "success" or not result.get("markdown"):
+            return jsonify(error=result.get("message") or "기획안을 만들지 못했어요."), 502
+        return jsonify(plan=result["markdown"], source="n8n", orchestrated=True,
+                       review_status=result.get("review_status"), saved=result.get("saved"))
+
     if not config.N8N_WEBHOOK_URL:
         time.sleep(1.0)
         return jsonify(plan=_demo_plan(store_name, target["label"], constraints), source="demo")

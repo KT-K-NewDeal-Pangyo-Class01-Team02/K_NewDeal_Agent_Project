@@ -255,7 +255,7 @@
     showWaiting('n8n 에이전트가 입지 분석과 카피, 콜시트를 편성하고 있습니다…');
     try {
       const body = await post('/api/plan', {
-        store_name: storeSel.selectedOptions[0].textContent, target_group: data.target_group,
+        store_id: storeSel.value, store_name: storeSel.selectedOptions[0].textContent, target_group: data.target_group,
         constraints: data.constraints, f02: result.f02, campaign_id: params.campaign_id,
       });
       showPlan(body.plan);
