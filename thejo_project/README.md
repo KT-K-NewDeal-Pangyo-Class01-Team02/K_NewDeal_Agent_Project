@@ -63,12 +63,21 @@ Warning 카드의 **거래 확인**을 누르면 그 거래의 고객 정보가 
 
 ## n8n 연결
 
-지금은 **데모 모드**입니다. 실제로 문자를 보내려면 `thejo_project/.env` 에 한 줄을 넣으세요.
+실제로 문자를 보내려면 `.env` 에 한 줄을 넣습니다. 비워 두면 데모 모드로 돕니다.
 
 ```
-N8N_SMS_WEBHOOK_URL=https://<내 n8n>/webhook/sms
+N8N_SMS_WEBHOOK_URL=https://<내 n8n>/webhook/thejo-sms
 N8N_SMS_TIMEOUT=10
 ```
+
+`.env` 는 두 군데를 봅니다. **먼저 읽은 쪽이 이깁니다.**
+
+| 순서 | 위치 | 용도 |
+|---|---|---|
+| 1 | `thejo_project/.env` | 더 줘 전용. 잠깐 다른 값으로 바꿔 볼 때 |
+| 2 | 저장소 루트 `.env` | 팀 공용. 보통 여기에 둡니다 |
+
+> `command_center/app.py` 는 `command_center/.env` 만 읽습니다. 그래서 `config.py` 가 위 두 파일을 따로 읽습니다.
 
 - Webhook URL 은 **서버에서만** 읽습니다. 템플릿·JS·API 응답 어디에도 나가지 않습니다.
 - 응답 제한시간은 10초입니다. 실패하면 모달이 닫히지 않고 오류가 뜹니다.

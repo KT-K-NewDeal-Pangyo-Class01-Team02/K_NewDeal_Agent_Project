@@ -178,6 +178,13 @@ class SmsSendTest(unittest.TestCase):
         app.config["TESTING"] = True
         self.client = app.test_client()
 
+        # 테스트는 **절대 실제 n8n 을 호출하지 않는다.**
+        # .env 에 N8N_SMS_WEBHOOK_URL 이 있어도 기본은 데모 모드로 고정한다.
+        # n8n 경로를 보는 테스트는 각자 이 값을 다시 patch 한다.
+        patcher = mock.patch.object(config, "N8N_SMS_WEBHOOK_URL", "")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def tearDown(self):
         sms_store.clear()
 
@@ -193,6 +200,12 @@ class SmsSendTest(unittest.TestCase):
         self.assertTrue(data["success"])
         self.assertTrue(data["demo"])
         self.assertEqual(data["message"], "데모 모드로 문자 발송 요청이 처리되었습니다.")
+
+    def test_demo_mode_never_calls_network(self):
+        """데모 모드에서는 네트워크를 건드리지 않는다."""
+        with mock.patch.object(sms_service, "_post_json") as post:
+            self._send()
+        post.assert_not_called()
 
     def test_record_is_persisted(self):
         self._send()
