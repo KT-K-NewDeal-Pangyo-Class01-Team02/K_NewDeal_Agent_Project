@@ -9,34 +9,41 @@
 ## 프로젝트 배경
 - 팀 프로젝트 **Command Center**: 통신유통 업무용 AI 에이전트 4개(예약판매 이탈 방지, 더 줘, 사후관리, 통하길 스튜디오)를 모은 허브.
 - 이 폴더 담당자는 **통하길 스튜디오**를 만든다. 저장소 루트의 팀 공용 허브(`command_center/`, `start_all.*`)도 관리한다. 다른 팀원 에이전트는 각자 따로 만든다.
-- 통하길 스튜디오 = 행사 홍보 포스터 생성 Agent. **QR 현장 서비스(스탬프·챗봇·구역별 통신 안내)는 보류**했고, 나중에 별도 에이전트로 "새 에이전트 추가"를 통해 붙인다.
+- 통하길 스튜디오 = 행사 홍보 포스터 생성 Agent (`tonghagil_studio/`, `/studio/`).
+- 통하길 QR = QR 현장 안내·KT 부스 위치·구역별 통신 상태(모의)·스탬프 이벤트·안내 챗봇 Agent (`tonghagil_qr/`, `/qr/`). 2026-09-30에 만들었다. 기획서는 PDF "수도권_01반_02조_통하길스튜디오…"(과제 정의서)다. 시연 범위: 가상 행사 1곳, KT 부스 1곳, 스탬프 지점 5곳.
 - 저장소: 조직 리포 `KT-K-NewDeal-Pangyo-Class01-Team02/K_NewDeal_Agent_Project`. 루트 아래 팀원별 폴더를 두는 구조이고, `.git`, `.gitignore`, `.gitattributes`는 저장소 루트에 있다.
 
 ## 정해진 결정
 - **Flask + Jinja 템플릿**을 쓴다. 팀 합의로 프론트엔드까지 Python으로 통일했다.
-- 에이전트마다 별도 앱과 포트를 쓴다. 홈 카드와 사이드바는 각 에이전트 URL을 **새 탭**으로 연다.
 - 2026-09-29: Command Center 허브를 이 폴더에서 **저장소 루트 `command_center/`(팀 공용)**로 옮겼다. `shared/` 폴더는 없앴다.
   - 에이전트 목록은 루트의 `command_center/agents.json` 하나로 관리한다. 홈 카드와 사이드바 메뉴가 여기서 자동으로 만들어진다.
-  - 스튜디오는 허브와 **독립**이다. 디자인(`cc_layout.html`, `_icons.html`, `common.css`, `common.js`)은 `tonghagil_studio/` 안에 사본으로 둔다. `tonghagil_studio/layout.py`는 사이드바용으로 허브의 `agents.json`만 **읽는다**. 파일이 없으면 빈 목록을 쓰고, `CC_AGENTS_FILE`로 경로를 바꿀 수 있다.
-  - 전체 실행은 루트 `start_all.bat`/`start_all.ps1`로 한다. 포트는 홈 5000, 스튜디오 5004, 더 줘 5173이다.
+  - 전체 실행은 루트 `start_all.bat`/`start_all.ps1`로 한다.
+- **2026-09-30: 스튜디오를 허브의 Blueprint로 옮겼다** (더 줘와 같은 방식). 이유: ngrok으로 **대표 URL 하나**를 열 계획이다. ngrok은 포트 단위로 세므로, 허브(5000) 하나만 열면 홈·더 줘·스튜디오가 모두 따라 나간다.
+  - 코드는 이 폴더(`tonghagil_studio/`)에 그대로 있다. 허브 `command_center/app.py`가 `from tonghagil_LEESEUNGHYUN.tonghagil_studio import studio_bp`로 불러 `register_blueprint`한다. `tonghagil_LEESEUNGHYUN`은 `__init__.py` 없는 네임스페이스 패키지이고, 스튜디오 내부 import는 **상대 import**(`from . import drive`)다.
+  - 주소: `http://localhost:5000/studio/`. 포트 5004와 단독 실행(`app.py`, `layout.py`)은 없앴다. `agents.json` 항목은 `"endpoint": "tonghagil_studio.studio"`, `"path": "/studio/"`, `"url": ""`이고 `server`는 없다(그래서 `start_all`이 따로 띄우지 않는다).
+  - 디자인 사본(`cc_layout.html`, `_icons.html`, `common.css/js`)은 허브 원본과 **완전히 같아서** 지웠다. 허브의 것을 쓴다. 템플릿은 이름 충돌을 피하려고 `templates/tonghagil_studio/studio.html`에 둔다.
+  - 스튜디오용 패키지(requests, google-auth)가 없으면 허브는 경고만 찍고 스튜디오를 건너뛴다(`ModuleNotFoundError`만 잡는다).
+  - `config.py`는 이 폴더의 `.env`를 `dotenv_values`로 읽는다. `os.environ`에 풀지 않는다. 같은 이름이 있으면 **`.env` 값이 우선**한다. 같은 프로세스의 다른 에이전트가 `N8N_WEBHOOK_URL` 같은 흔한 이름을 써도 섞이지 않게 하려는 것이다. 허브 관련 키(`COMMAND_CENTER_*`, `CC_USER_NAME`, `STUDIO_PORT`)는 더 이상 쓰지 않는다.
+  - **ngrok 대비 주소 규칙:** 화면과 API는 모두 `url_for` 또는 `/studio/` 기준 상대 주소다. `studio.js`는 `#studio`의 `data-base`로 API 주소를 만든다. 저장소(`posters.json`, 드라이브 갤러리)에는 `/drive-image/…`, `/placeholder.svg?…`처럼 접두사 없이 저장하고, 응답할 때 `routes._localized()`가 `/studio/`를 붙인다.
+  - 같은 날 허브 `layout.py`의 `command_center_url`을 `url_for("home")`(상대 주소)으로 바꿨다. 허브 안 화면의 "홈" 링크가 ngrok에서도 동작하게 하려는 것이다.
 - 포스터 이미지는 n8n → 구글 드라이브에서 온다. 화면은 이미지 출처를 모르게 설계했다.
 - 갤러리는 **구글 드라이브 폴더를 서비스 계정 + Drive API(B 방법)로 직접 읽는다** (2026-09-29 결정). n8n으로 목록을 가져오는 A 방법은 채택하지 않았다.
   - `DRIVE_FOLDER_ID`와 키 파일이 둘 다 있으면 `DriveFolderPosterStore`, 아니면 `JsonPosterStore`(샘플)를 쓴다.
   - 드라이브 폴더가 기준 목록이다. `posters.json`은 스튜디오 요청의 부가 정보(제목·행사 유형·요청 문구)를 파일 ID로 합치는 용도로만 쓴다.
   - 이미지는 `/drive-image/<id>` 프록시로 보여 준다. 비공개 파일도 보이고, 썸네일은 `data/drive_cache/`에 캐시한다. 폴더 목록이나 스튜디오 기록에 없는 ID는 404로 막는다.
   - 연결된 폴더는 `프로젝트이미지`(`1iQiLggZv0QpnRMAs_KjgSSz_CjKVK9l7`)다. 서비스 계정 `tonghagil-gallery@tonghagil-studio.iam.gserviceaccount.com`이 **편집자**로 공유되어 있다. OAuth 범위는 `auth/drive`다.
-  - **수정** = 드라이브 파일 이름을 `행사유형_제목_YYYYMMDD.확장자`로 바꾸고, `posters.json` 기록도 함께 고친다(`PATCH /api/posters/<id>`).
-  - **삭제** = 폴더 안 `_보관함` 하위 폴더로 옮긴다(`DELETE /api/posters/<id>`). 이유: 파일 소유자가 사용자 본인(shlee6630)이라 서비스 계정은 `canTrash/canDelete=False`이고, `canRename`과 `canRemoveChildren`만 `True`다(2026-09-29 실측).
+  - **수정** = 드라이브 파일 이름을 `행사유형_제목_YYYYMMDD.확장자`로 바꾸고, `posters.json` 기록도 함께 고친다(`PATCH /studio/api/posters/<id>`).
+  - **삭제** = 폴더 안 `_보관함` 하위 폴더로 옮긴다(`DELETE /studio/api/posters/<id>`). 이유: 파일 소유자가 사용자 본인(shlee6630)이라 서비스 계정은 `canTrash/canDelete=False`이고, `canRename`과 `canRemoveChildren`만 `True`다(2026-09-29 실측).
 
 ## 구조
 ```
 (루트) command_center/  팀 공용 허브 (포트 5000): app.py, layout.py, agents.json, templates/, static/
-tonghagil_studio/  스튜디오 (포트 5004)
-  app.py           GET / · GET/POST /api/posters(?refresh=1) · PATCH/DELETE /api/posters/<id> · GET /drive-image/<id>(?download=1) · GET /placeholder.svg
-  layout.py        사이드바·상단 바 값 주입 (허브 agents.json 읽기 전용)
-  templates/       studio.html + cc_layout.html·_icons.html (허브 디자인 사본)
-  static/          studio.css/js + common.css/js (허브 디자인 사본)
-  config.py        .env 읽기 (N8N_*, DRIVE_FOLDER_ID, GOOGLE_SERVICE_ACCOUNT_FILE, DRIVE_CACHE_SECONDS)
+tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
+  __init__.py      studio_bp 내보내기
+  routes.py        /studio/ 아래: GET / · GET/POST api/posters(?refresh=1) · PATCH/DELETE api/posters/<id> · GET drive-image/<id>(?download=1) · GET placeholder.svg
+  templates/tonghagil_studio/studio.html   허브의 cc_layout.html 확장
+  static/          studio.css, studio.js (→ /studio/static/…)
+  config.py        이 폴더 .env 읽기 (N8N_*, DRIVE_FOLDER_ID, GOOGLE_SERVICE_ACCOUNT_FILE, DRIVE_CACHE_SECONDS)
   n8n_client.py    n8n Chat URL 호출 + 응답에서 드라이브 링크/파일ID 추출
   drive.py         드라이브 링크 ↔ 파일 ID 변환 도우미
   drive_store.py   DriveClient(서비스 계정, Drive API REST) + DriveFolderPosterStore(폴더 갤러리)
@@ -45,14 +52,13 @@ tonghagil_studio/  스튜디오 (포트 5004)
 ```
 
 ## 실행
-VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `app.py` 맨 위에서 `__package__`가 없으면 `sys.path`에 상위 폴더를 추가한다. 여러 서버를 ▶로 켤 때는 "전용 터미널에서 실행"을 쓴다. 한 터미널에는 서버 하나만 돌릴 수 있다.
+스튜디오는 허브와 함께 뜬다. `command_center/app.py`에서 VS Code ▶를 누르거나 저장소 루트에서 실행한다.
 ```powershell
 # Anaconda: C:\ProgramData\anaconda3\envs\knewdeal (Python 3.14). PowerShell 에는 conda init 이 안 되어 있어 절대경로로 실행
-& "C:\ProgramData\anaconda3\envs\knewdeal\python.exe" -m tonghagil_studio.app   # 이 폴더에서, http://localhost:5004
-& "C:\ProgramData\anaconda3\envs\knewdeal\python.exe" -m command_center.app     # 저장소 루트에서, http://localhost:5000
+& "C:\ProgramData\anaconda3\envs\knewdeal\python.exe" -m command_center.app     # 저장소 루트에서, http://localhost:5000/studio/
 ```
-- 이 PC에는 Node.js가 설치되어 있지 않다. 그래서 `start_all`이 더 줘(5173)를 건너뛴다.
-- 의존성: `requirements.txt` (flask, requests, python-dotenv, google-auth). knewdeal 환경에 모두 설치되어 있다.
+- 더 줘는 지금 허브 Blueprint(`/thejo/`)다. 예전 React/Vite(5173) 메모는 더 이상 맞지 않는다.
+- 의존성: `requirements.txt` (flask, requests, python-dotenv, google-auth, segno). knewdeal 환경에 모두 설치되어 있다(segno는 2026-09-30 설치).
 - 설정: `.env` (`.env.example` 참고). `N8N_WEBHOOK_URL`이 비어 있으면 **데모 모드**, `DRIVE_FOLDER_ID`가 비어 있으면 **샘플 갤러리**로 동작한다.
 - 서비스 계정 키는 `credentials/service-account.json`에 둔다. `.gitignore`의 `**/credentials/`, `*service-account*.json` 규칙으로 커밋되지 않는다. 구글 클라우드 설정 절차는 README에 있다.
 - 이 PC의 PowerShell에는 `python`과 `git`이 PATH에 없다. Python은 위 절대경로로 실행하고, git 작업은 사용자가 **GitHub Desktop**으로 한다.
@@ -68,17 +74,30 @@ VS Code 실행(▶) 버튼으로 `app.py`를 직접 실행해도 된다. 각 `ap
 - 실제 n8n 호출은 OpenAI 이미지 1장 비용이 든다. 테스트 호출은 사용자에게 먼저 묻는다.
 - [ ] 카드 제목이 입력 문장의 앞부분(18자)이라 어색하다. "행사명(제목)" 입력칸을 추가하거나, n8n에서 제목을 생성하는 방안을 사용자에게 제안했다.
 
+## 통하길 QR (`tonghagil_qr/`, 2026-09-30)
+- 허브 Blueprint `tonghagil_qr`이고 `url_prefix="/qr"`이다. 허브 `app.py`가 `from tonghagil_LEESEUNGHYUN.tonghagil_qr import qr_bp`로 등록한다(`ModuleNotFoundError`만 잡는 것은 스튜디오와 같다). `agents.json` 항목은 `id: tonghagil-qr`, `endpoint: tonghagil_qr.staff`, `path: /qr/staff/`다. 허브 카드는 **부스 담당자 화면**으로 간다.
+- 구조: `routes.py`(화면·API), `event.py`(`data/event.json`, 수정 시각을 보고 다시 읽음), `network.py`(모의 통신, 30초 틱 시드 고정), `store.py`(SQLite `data/qr.db`), `chat_client.py`, `qr_image.py`(segno는 지연 import라 없으면 503), `config.py`(스튜디오와 같은 `.env`, 키는 `QR_` 접두사, `.env` 값 우선).
+- 방문객 화면은 휴대폰용 자체 틀(`templates/tonghagil_qr/base.html`, 하단 탭 4개)을 쓴다. 허브 `common.css` 변수는 재사용한다. 담당자 화면은 허브 `cc_layout.html`을 쓴다.
+- 방문객은 쿠키 `tq_vid`(무작위, HttpOnly, path `/qr/`, 7일)로 구분한다. 개인정보는 받지 않는다(사용자 결정). 포스터 QR은 `/qr/?src=poster`이고, 처음 들어온 경로가 `visitors.source`에 남는다.
+- 스탬프: 지점 QR = `/qr/s/<token>`이다. 토큰은 `event.json`에 있다(무작위 12자). 같은 스탬프는 한 번만 인정한다. 필요한 개수(`benefit.required_stamps`, 5)를 채우면 쿠폰을 **자동 발급**한다(6자리, 헷갈리는 글자 제외).
+- 담당자 PIN: `QR_STAFF_PIN`이고 없으면 `1234`다. 쿠키 `tq_staff` = HMAC(`data/.secret`, PIN)이고 path는 `/qr/staff/`, 12시간이다. 5번 틀리면 30초 동안 막는다(전역). 담당자 화면에서 쿠폰 지급, QR 이미지·인쇄 페이지, **시연 기록 초기화**를 한다. 방문객 쿠폰 화면은 5초마다 `/qr/api/me`로 지급 여부를 확인한다.
+- QR 주소 = `QR_PUBLIC_BASE_URL` 또는 `request.host_url`. localhost면 담당자 화면에 경고를 띄운다. 휴대폰 시연은 ngrok 공개 주소가 필요하다.
+- 챗봇: `QR_CHAT_WEBHOOK_URL`이 비어 있으면 고정 답변 **"테스트 단계입니다"**를 준다(사용자 요청). n8n 연결을 대비해 `chatInput`, `sessionId`, `eventId`, `context`(토큰 제외 행사 요약), `network`, `stamps`를 보내고, 응답은 `reply`/`output`/`text`/`message`/`answer` 또는 문자열을 받도록 만들어 두었다. 형식은 README에 있다.
+- `data/.gitignore`(이 폴더 안)가 `qr.db`와 `.secret`을 막는다. 루트 `.gitignore`는 공용 파일이라 건드리지 않았다.
+- 검증(2026-09-30): 임시 DB로 방문객·스탬프·쿠폰·챗봇(가짜 n8n 응답 포함)·담당자 PIN·지급·초기화 57개 항목을 확인했고 모두 통과했다. 실제 서버에서도 `/qr/` 전 화면이 200이었다. **브라우저·휴대폰 화면은 아직 눈으로 확인하지 않았다.**
+
 ## 남은 일 / 주의
-- [ ] 외부 공개(VS Code 포트 전달, 배포) 전에 할 일:
-  - `debug=True`를 `.env`로 끌 수 있게 바꾼다. 디버그 모드 공개는 보안 위험이다.
-  - `agents.json`의 `localhost` URL과 `COMMAND_CENTER_URL`을 공개 주소로 바꾼다.
+- [ ] 외부 공개(ngrok) 전에 할 일: 세이브딜·빅또리 카드의 `localhost` URL(`agents.json`)과 각 팀원의 `COMMAND_CENTER_URL`을 공개 주소로 바꾼다(팀원 동의 필요). 통하길 QR은 `.env`의 `QR_PUBLIC_BASE_URL`을 넣고 QR을 다시 인쇄한다.
 - [ ] 허브를 루트로 옮긴 것(2026-09-29)과 새 규칙을 팀에 공지한다. 공지 내용: 각자 `agents.json`과 `start_all.ps1`에서 자기 줄만 수정한다는 것, 포트 표, 정주희님은 더 줘 URL(`http://localhost:5173/agents/more`)과 Vite 포트 고정(`strictPort`)을 확인해 달라는 것.
 - [ ] 발표 전에 배포 방식을 정한다(Render 등). 무료 서버는 `posters.json`과 추가한 에이전트가 초기화될 수 있다.
-- [ ] QR 현장 서비스 에이전트(통하길 QR)는 나중에 만든다. 포트 **5005**를 예약해 두었다. 이 폴더 안에 패키지(예: `tonghagil_qr/`)로 만들고, 허브 `agents.json`에 항목 하나를 추가하면 카드, 사이드바, `start_all`에 자동으로 들어간다. 추가할 항목은 `url` + `server: {dir: "tonghagil_LEESEUNGHYUN", port: 5005, python: "tonghagil_qr.app"}`이고, 예시는 `command_center/README.md`에 있다.
-- 2026-09-29: `start_all`을 **한 창 실행**으로 바꿨다. 창을 닫거나 Ctrl+C를 누르면 전부 종료되고, Job Object의 KILL_ON_JOB_CLOSE를 안전장치로 쓴다. 실행 목록은 `agents.json`의 `server`에서 읽는다. 스튜디오 사이드바는 `url`이 없고 `path`만 있는 에이전트(더 줘)에 `COMMAND_CENTER_URL + path`를 붙인다.
+- 2026-09-29: `start_all`을 **한 창 실행**으로 바꿨다. 창을 닫거나 Ctrl+C를 누르면 전부 종료되고, Job Object의 KILL_ON_JOB_CLOSE를 안전장치로 쓴다. 실행 목록은 `agents.json`의 `server`에서 읽는다. (스튜디오는 2026-09-30부터 허브 안이라 사이드바도 허브의 `agent_link`를 그대로 쓴다.)
+- 통하길 QR은 허브 Blueprint(`/qr/`)로 붙였다(2026-09-30 사용자 결정). 포트 5005 예약은 없앴다.
 - 실제 드라이브 연결은 확인했다(2026-09-29). 포스터 4장의 목록과 썸네일을 읽어 왔다. **수정·삭제는 실제 드라이브에서 아직 시험하지 않았다.** 사용자 파일을 바꾸는 작업이라 가짜 클라이언트로만 테스트했다.
 - [ ] n8n Upload file 노드가 모든 파일을 `festival_poster`라는 같은 이름으로 저장한다. `행사유형_제목_날짜` 규칙으로 저장하게 바꾸면 갤러리 제목이 자동으로 붙는다.
 - 스모크 테스트는 Flask test client로 27개 항목, 드라이브 테스트는 34개 항목을 확인했고 모두 통과했다. 브라우저에서 화면이 어떻게 보이는지는 아직 확인하지 않았다.
+- 2026-09-30 Blueprint 이전 후 허브 test client로 31개 항목을 다시 확인했다(홈·더 줘·스튜디오 화면, 정적 파일, 실제 드라이브 목록·썸네일 읽기, 데모 생성은 임시 저장소로). 모두 통과했다. 실제 n8n 생성과 브라우저 화면은 아직 확인하지 않았다.
+- 2026-09-30 결정: 허브 `debug=True`는 **그대로 켜 둔다** (사용자 결정). ngrok은 시연할 때만 잠깐 연다. 위험(오류 화면 노출, PIN으로 잠긴 디버그 콘솔)은 설명했다. 권장: 시연이 끝나면 ngrok을 바로 끈다.
+- [ ] ngrok 공개 전에: 직원 화면 비밀번호 잠금 여부를 정한다.
 
 ## 작업 방식
 - 사용자는 한국어로 소통한다. UI 문구와 코드 주석도 한국어로 쓴다.

@@ -44,8 +44,8 @@
 |---|---|---|---|
 | Command Center 홈 | 5000 | `command_center/` | `python -m command_center.app` (저장소 루트에서) |
 | 예약판매 이탈 방지 (SaveDeal) | 5001 | `savedeal_seunghoon/` | `python -m app` (그 폴더에서) |
-| 통하길 스튜디오 | 5004 | `tonghagil_LEESEUNGHYUN/` | `python -m tonghagil_studio.app` (그 폴더에서) |
-| 통하길 QR (예정) | 5005 (예약) | `tonghagil_LEESEUNGHYUN/` | 미정 |
+| 통하길 스튜디오 | 5000 (`/studio/`) | `tonghagil_LEESEUNGHYUN/` | 홈과 같은 프로세스 (Flask Blueprint). 따로 띄우지 않는다. |
+| 통하길 QR | 5000 (`/qr/`) | `tonghagil_LEESEUNGHYUN/` | 홈과 같은 프로세스 (Flask Blueprint). 따로 띄우지 않는다. |
 | 더 줘 | 5000 (`/thejo/`) | `thejo_project/` | 홈과 같은 프로세스 (Flask Blueprint). 따로 띄우지 않는다. |
 | 빅또리출동! | 5500 | `vicDDory_wooyong/` | `python -m vicddory_campaign.app` (그 폴더에서) |
 

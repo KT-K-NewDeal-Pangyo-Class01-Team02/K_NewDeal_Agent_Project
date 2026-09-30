@@ -19,7 +19,7 @@ from google.auth.exceptions import GoogleAuthError
 from google.auth.transport.requests import AuthorizedSession
 from google.oauth2 import service_account
 
-from tonghagil_studio import drive
+from . import drive
 
 API = "https://www.googleapis.com/drive/v3/files"
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -247,6 +247,7 @@ class DriveFolderPosterStore:
         return poster
 
 
+# 스튜디오 기준 주소. 화면에 내보낼 때 routes._localized() 가 /studio/ 를 붙인다.
 def image_url(file_id):
     return f"/drive-image/{file_id}"
 

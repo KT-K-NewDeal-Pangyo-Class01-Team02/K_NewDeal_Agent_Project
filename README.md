@@ -10,17 +10,17 @@ K_NewDeal_Agent_Project/
 ├─ savedeal_seunghoon/      예약판매 이탈 방지 (SaveDeal, 장승훈)           → http://localhost:5001/savedeal
 ├─ thejo_project/           더 줘 (정주희) — 허브에 Blueprint 로 내장      → http://localhost:5000/thejo/
 ├─ vicDDory_wooyong/        빅또리출동! (최우용)                           → http://localhost:5500
-└─ tonghagil_LEESEUNGHYUN/  통하길 스튜디오 (이승현)                       → http://localhost:5004
+└─ tonghagil_LEESEUNGHYUN/  통하길 스튜디오·QR (이승현) — 허브에 Blueprint 로 내장 → http://localhost:5000/studio/, /qr/
 ```
 
 ## 포트 표
 
 | 서버 | 포트 | 폴더 | 실행 방식 |
 |---|---|---|---|
-| Command Center 홈 (+ 더 줘) | **5000** | `command_center/` | Python (Flask). 더 줘는 `/thejo/`로 같은 프로세스에서 돌아요 |
+| Command Center 홈 (+ 더 줘, 통하길 스튜디오·QR) | **5000** | `command_center/` | Python (Flask). 더 줘는 `/thejo/`, 통하길 스튜디오는 `/studio/`, 통하길 QR은 `/qr/`로 같은 프로세스에서 돌아요 |
 | 예약판매 이탈 방지 (SaveDeal) | **5001** | `savedeal_seunghoon/` | Python (Flask) |
-| 통하길 스튜디오 | **5004** | `tonghagil_LEESEUNGHYUN/` | Python (Flask) |
-| 통하길 QR (예정) | **5005** (예약) | `tonghagil_LEESEUNGHYUN/` | 미정 |
+| 통하길 스튜디오 | **5000** (`/studio/`) | `tonghagil_LEESEUNGHYUN/` | Python (Flask Blueprint). 홈과 같은 프로세스라 따로 띄우지 않아요 |
+| 통하길 QR | **5000** (`/qr/`) | `tonghagil_LEESEUNGHYUN/` | Python (Flask Blueprint). 홈과 같은 프로세스라 따로 띄우지 않아요 |
 | 빅또리출동! | **5500** | `vicDDory_wooyong/` | Python (Flask) |
 
 ## 에이전트 붙이기: `command_center/agents.json`에 항목 하나
@@ -64,7 +64,7 @@ pip install -r command_center/requirements.txt -r tonghagil_LEESEUNGHYUN/require
 - `.\start_all.ps1 -DryRun`은 실행하지 않고 계획만 보여 줍니다. `-NoBrowser`를 붙이면 브라우저를 열지 않습니다.
 
 **하나씩 실행할 때**
-- 홈: 저장소 루트에서 `python -m command_center.app`을 실행하거나 `command_center/app.py`에서 VS Code ▶를 누릅니다. 더 줘도 같이 뜹니다.
+- 홈: 저장소 루트에서 `python -m command_center.app`을 실행하거나 `command_center/app.py`에서 VS Code ▶를 누릅니다. 더 줘, 통하길 스튜디오, 통하길 QR도 같이 뜹니다.
 - 여러 서버를 ▶로 켤 때는 ▶ 옆 화살표 → **"전용 터미널에서 Python 파일 실행"**을 고르세요.
 
 ## 접속 주소
@@ -75,7 +75,8 @@ pip install -r command_center/requirements.txt -r tonghagil_LEESEUNGHYUN/require
 | 예약판매 이탈 방지 | http://localhost:5001/savedeal |
 | 더 줘 대시보드 | http://localhost:5000/thejo/ (위험 경고 `/thejo/warnings`, 수익 기회 `/thejo/opportunities`) |
 | 빅또리출동! | http://localhost:5500/ |
-| 통하길 스튜디오 | http://localhost:5004/ |
+| 통하길 스튜디오 | http://localhost:5000/studio/ |
+| 통하길 QR | 방문객 http://localhost:5000/qr/ · 부스 담당자 http://localhost:5000/qr/staff/ |
 
 ## 테스트
 

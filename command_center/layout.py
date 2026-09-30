@@ -55,6 +55,7 @@ def init_layout(app):
         return {
             "agents": load_agents(),
             "active_agent_id": None,
-            "command_center_url": os.getenv("COMMAND_CENTER_URL", "http://localhost:5000"),
+            # 허브 안 화면은 상대 주소로 홈에 간다. ngrok 등 공개 주소로 들어와도 localhost 로 새지 않는다.
+            "command_center_url": url_for("home"),
             "user_name": os.getenv("CC_USER_NAME", "김지현 매니저"),
         }

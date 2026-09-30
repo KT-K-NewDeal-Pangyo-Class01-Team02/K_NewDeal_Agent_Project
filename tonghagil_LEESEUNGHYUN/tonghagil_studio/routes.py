@@ -1,24 +1,34 @@
-"""통하길 스튜디오: 채팅으로 행사 포스터를 요청하면 n8n이 이미지를 만들고, 갤러리에 보여 준다.
+"""통하길 스튜디오 Blueprint: 채팅으로 행사 포스터를 요청하면 n8n이 이미지를 만들고, 갤러리에 보여 준다.
 
-실행: VS Code 실행(▶) 버튼, 또는 tonghagil_LEESEUNGHYUN 폴더에서  python -m tonghagil_studio.app
+Command Center(command_center/app.py)에 Blueprint 로 등록되어 /studio/ 아래에서 허브와 같은 프로세스로 돈다.
+따로 서버를 띄우지 않는다. 실행: 저장소 루트에서  python -m command_center.app  → http://localhost:5000/studio/
+
+화면·API 주소는 모두 url_for 나 /studio/ 기준 상대 주소로 만든다.
+그래서 ngrok 같은 공개 주소(https://…/studio/)로 들어와도 localhost 로 새지 않는다.
 """
-import sys
+import logging
 import time
 from io import BytesIO
-from pathlib import Path
+from urllib.parse import urlencode
 
-if not __package__:
-    # 'python app.py'(VS Code 실행 버튼)로 직접 실행해도 tonghagil_studio 패키지를 찾을 수 있게 한다
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from flask import Blueprint, Response, abort, jsonify, render_template, request, send_file, url_for
 
-from flask import Flask, Response, abort, jsonify, render_template, request, send_file, url_for
+from . import config, drive, placeholder
+from .drive_store import DriveClient, DriveError, DriveFolderPosterStore, build_file_name
+from .n8n_client import N8nError, request_poster
+from .poster_store import JsonPosterStore
 
-from tonghagil_studio import config, drive, placeholder
-from tonghagil_studio.layout import init_layout
-from tonghagil_studio.drive_store import DriveClient, DriveError, DriveFolderPosterStore, build_file_name
-from tonghagil_studio.n8n_client import N8nError, request_poster
-from tonghagil_studio.poster_store import JsonPosterStore
+# static_url_path 는 url_prefix 뒤에 붙는다 → 실제 주소 /studio/static/...
+studio_bp = Blueprint(
+    "tonghagil_studio",
+    __name__,
+    url_prefix="/studio",
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/static",
+)
 
+# 사이드바에서 "통하길 스튜디오" 항목이 켜져 보이게 한다. command_center/agents.json 의 id 와 같아야 한다.
 AGENT_ID = "tonghagil-studio"
 MAX_MESSAGE = 500
 
@@ -30,8 +40,12 @@ STYLES = [
 ]
 EVENT_TYPES = ["축제", "공연", "야시장", "가족 행사", "고객 감사제", "기타"]
 
-app = Flask(__name__)
-init_layout(app, active_agent_id=AGENT_ID)
+# 저장소(posters.json, 드라이브 갤러리)에는 '/drive-image/…', '/placeholder.svg?…' 처럼 스튜디오 기준 주소로 저장한다.
+# 화면에 내보낼 때 _localized() 가 /studio/ 를 붙인다. 붙는 위치가 바뀌어도 예전 기록이 그대로 보이게 하려는 것이다.
+_LOCAL_PATHS = ("/drive-image/", "/placeholder.svg")
+_URL_FIELDS = ("image_url", "share_url", "download_url")
+
+log = logging.getLogger(__name__)
 
 
 def _create_store():
@@ -40,8 +54,8 @@ def _create_store():
     if not config.DRIVE_FOLDER_ID:
         return records
     if not config.GOOGLE_SERVICE_ACCOUNT_FILE.exists():
-        app.logger.warning("DRIVE_FOLDER_ID 는 있지만 서비스 계정 키 파일이 없어 샘플 갤러리를 씁니다: %s",
-                           config.GOOGLE_SERVICE_ACCOUNT_FILE)
+        log.warning("DRIVE_FOLDER_ID 는 있지만 서비스 계정 키 파일이 없어 샘플 갤러리를 씁니다: %s",
+                    config.GOOGLE_SERVICE_ACCOUNT_FILE)
         return records
     return DriveFolderPosterStore(
         DriveClient(config.GOOGLE_SERVICE_ACCOUNT_FILE),
@@ -55,10 +69,11 @@ def _create_store():
 store = _create_store()
 
 
-@app.get("/")
+@studio_bp.get("/")
 def studio():
     return render_template(
-        "studio.html",
+        "tonghagil_studio/studio.html",
+        active_agent_id=AGENT_ID,
         styles=STYLES,
         event_types=EVENT_TYPES,
         max_message=MAX_MESSAGE,
@@ -67,17 +82,17 @@ def studio():
     )
 
 
-@app.get("/api/posters")
+@studio_bp.get("/api/posters")
 def list_posters():
     if request.args.get("refresh") == "1" and isinstance(store, DriveFolderPosterStore):
         store.invalidate()
     try:
-        return jsonify(store.list())
+        return jsonify([_localized(p) for p in store.list()])
     except DriveError as exc:
         return jsonify(error=str(exc)), 502
 
 
-@app.patch("/api/posters/<file_id>")
+@studio_bp.patch("/api/posters/<file_id>")
 def update_poster(file_id):
     """제목·행사 유형 수정 → 드라이브 파일 이름도 '행사유형_제목_날짜.png' 로 바뀐다."""
     if not isinstance(store, DriveFolderPosterStore):
@@ -99,10 +114,10 @@ def update_poster(file_id):
         return jsonify(error=str(exc)), 502
     if poster is None:
         return jsonify(error="수정했지만 목록에서 포스터를 찾지 못했어요. 새로고침해 주세요."), 404
-    return jsonify(poster)
+    return jsonify(_localized(poster))
 
 
-@app.delete("/api/posters/<file_id>")
+@studio_bp.delete("/api/posters/<file_id>")
 def delete_poster(file_id):
     """갤러리에서 빼고 드라이브의 '_보관함' 폴더로 옮긴다 (드라이브에서 되돌릴 수 있음)."""
     if not isinstance(store, DriveFolderPosterStore):
@@ -116,7 +131,7 @@ def delete_poster(file_id):
     return "", 204
 
 
-@app.get("/drive-image/<file_id>")
+@studio_bp.get("/drive-image/<file_id>")
 def drive_image(file_id):
     """드라이브 이미지를 서비스 계정으로 받아 대신 전달한다. ?download=1 이면 원본 파일을 내려받는다."""
     if not isinstance(store, DriveFolderPosterStore) or not drive.looks_like_file_id(file_id):
@@ -133,7 +148,7 @@ def drive_image(file_id):
     return Response(data, mimetype=mimetype, headers={"Cache-Control": "public, max-age=604800"})
 
 
-@app.post("/api/posters")
+@studio_bp.post("/api/posters")
 def create_poster():
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
@@ -176,14 +191,15 @@ def create_poster():
     else:
         # 데모 모드: n8n 없이 화면 흐름만 확인할 수 있게 샘플 포스터를 만든다.
         time.sleep(1.2)
-        url = url_for("placeholder_svg", theme=placeholder.theme_for_style(style["id"]), title=title, sub=event_type)
+        query = urlencode({"theme": placeholder.theme_for_style(style["id"]), "title": title, "sub": event_type})
+        url = f"/placeholder.svg?{query}"
         fields = {"image_url": url, "share_url": url, "download_url": url, "source": "demo"}
 
     poster = store.add(title=title, event_type=event_type, style=style["label"], prompt=message, **fields)
-    return jsonify(poster), 201
+    return jsonify(_localized(poster)), 201
 
 
-@app.get("/placeholder.svg")
+@studio_bp.get("/placeholder.svg")
 def placeholder_svg():
     args = request.args
     svg = placeholder.render(
@@ -195,10 +211,17 @@ def placeholder_svg():
     return Response(svg, mimetype="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"})
 
 
+def _localized(poster):
+    """'/drive-image/…', '/placeholder.svg?…' 를 이 Blueprint 아래 주소(/studio/…)로 바꾼 사본."""
+    base = url_for(".studio")  # "/studio/"
+    fixed = dict(poster)
+    for key in _URL_FIELDS:
+        value = fixed.get(key) or ""
+        if value.startswith(_LOCAL_PATHS):
+            fixed[key] = base + value.lstrip("/")
+    return fixed
+
+
 def _title_from(message, limit=18):
     first_line = message.splitlines()[0].strip()
     return first_line if len(first_line) <= limit else first_line[:limit].rstrip() + "…"
-
-
-if __name__ == "__main__":
-    app.run(port=config.STUDIO_PORT, debug=True)

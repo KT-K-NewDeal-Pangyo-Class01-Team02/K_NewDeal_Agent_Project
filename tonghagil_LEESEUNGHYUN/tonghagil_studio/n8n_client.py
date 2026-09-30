@@ -17,7 +17,7 @@ from typing import Optional
 
 import requests
 
-from tonghagil_studio import drive
+from . import drive
 
 
 class N8nError(Exception):

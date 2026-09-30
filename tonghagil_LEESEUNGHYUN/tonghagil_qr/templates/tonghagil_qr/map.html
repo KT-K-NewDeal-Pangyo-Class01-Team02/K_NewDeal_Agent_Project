@@ -1,0 +1,86 @@
+{% extends "tonghagil_qr/base.html" %}
+
+{% block title %}지도·통신{% endblock %}
+
+{% block content %}
+{% from "tonghagil_qr/_icons.html" import qicon %}
+<div class="q-head">
+  <h1>지도 · 통신 상태</h1>
+  <p>색이 초록일수록 통신이 원활해요. <span class="q-updated">{{ qicon("clock", 13) }}<span data-net="updated">{{ net.updated_at }}</span> 기준</span></p>
+</div>
+
+<section class="q-card q-map-card">
+  {#- 약도 좌표는 event.json 의 zones(x, y, w, h), booth(x, y), stamps(x, y). viewBox 360×400 기준 -#}
+  <svg class="q-map" viewBox="0 0 360 400" role="img" aria-label="{{ ev.name }} 행사장 약도">
+    <rect class="q-river" x="0" y="0" width="360" height="58"/>
+    <path class="q-river-wave" d="M0 40 q 30 -10 60 0 t 60 0 t 60 0 t 60 0 t 60 0 t 60 0"/>
+    <text class="q-river-label" x="16" y="30">한강</text>
+    {% for z in ev.zones %}
+    {%- set live = net_by_id[z.id] %}
+    <g class="q-zone" data-zone="{{ z.id }}" data-level="{{ live.level }}">
+      <rect x="{{ z.x }}" y="{{ z.y }}" width="{{ z.w }}" height="{{ z.h }}" rx="12"/>
+      <text class="q-zone-name" x="{{ z.x + 12 }}" y="{{ z.y + 22 }}">{{ z.name }}</text>
+      <text class="q-zone-status" x="{{ z.x + 12 }}" y="{{ z.y + 40 }}" data-field="label">{{ live.label }}</text>
+    </g>
+    {% endfor %}
+    {% for s in ev.stamps %}
+    <g class="q-map-stamp {% if s.id in done %}is-done{% endif %}">
+      <circle cx="{{ s.x }}" cy="{{ s.y }}" r="11"/>
+      <text x="{{ s.x }}" y="{{ s.y + 4 }}">{{ loop.index }}</text>
+    </g>
+    {% endfor %}
+    <g class="q-map-booth">
+      <rect x="{{ ev.booth.x - 20 }}" y="{{ ev.booth.y - 11 }}" width="40" height="22" rx="6"/>
+      <text x="{{ ev.booth.x }}" y="{{ ev.booth.y + 5 }}">KT</text>
+    </g>
+    <text class="q-map-gate" x="266" y="394">▲ 입구</text>
+  </svg>
+  <ul class="q-legend">
+    <li><i class="lv-good"></i>원활</li>
+    <li><i class="lv-busy"></i>보통</li>
+    <li><i class="lv-jam"></i>혼잡</li>
+    <li><i class="lv-booth"></i>KT 부스</li>
+    <li><i class="lv-stamp"></i>스탬프</li>
+  </ul>
+</section>
+
+<section class="q-best">
+  {{ qicon("signal", 20) }}
+  <p>지금 가장 원활한 곳은 <strong data-net="best">{{ net.best.name }}</strong>이에요.</p>
+</section>
+
+<section class="q-card" id="booth">
+  <header class="q-card-head">
+    <span class="q-kt">KT</span>
+    <div>
+      <h2>{{ ev.booth.name }}</h2>
+      <p>{{ qicon("pin", 14) }}{{ ev.booth.location }}</p>
+    </div>
+  </header>
+  <dl class="q-facts">
+    <div><dt>운영 시간</dt><dd>{{ ev.booth.hours }}</dd></div>
+    <div><dt>지금 대기</dt><dd><span data-net="queue">{{ net.booth.queue }}</span>명 · 약 <span data-net="wait">{{ net.booth.wait_min }}</span>분</dd></div>
+  </dl>
+  <ul class="q-chips">{% for s in ev.booth.services %}<li>{{ s }}</li>{% endfor %}</ul>
+</section>
+
+<section class="q-card">
+  <h2 class="q-card-title">구역별 통신 상태</h2>
+  <ul class="q-zones">
+    {% for z in ev.zones %}
+    {%- set live = net_by_id[z.id] %}
+    <li class="q-zone-row" data-zone="{{ z.id }}" data-level="{{ live.level }}">
+      <div class="q-zone-main">
+        <strong>{{ z.name }}{% if z.id == ev.booth.zone %} <em class="q-tag">KT 부스</em>{% endif %}</strong>
+        <small>{{ z.desc }}</small>
+      </div>
+      <div class="q-zone-live">
+        <span class="q-pill" data-field="label">{{ live.label }}</span>
+        <small><span data-field="users">{{ live.users }}</span>명 접속 · 약 <span data-field="speed">{{ live.speed_mbps }}</span>Mbps</small>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="q-foot-note">{{ qicon("info", 13) }}시연용 모의 데이터예요. 30초마다 갱신돼요.</p>
+</section>
+{% endblock %}

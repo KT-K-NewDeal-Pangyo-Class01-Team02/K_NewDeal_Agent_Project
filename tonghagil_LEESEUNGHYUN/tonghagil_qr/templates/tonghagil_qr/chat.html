@@ -1,0 +1,34 @@
+{% extends "tonghagil_qr/base.html" %}
+
+{% block title %}안내 챗봇{% endblock %}
+
+{% block content %}
+{% from "tonghagil_qr/_icons.html" import qicon %}
+<div class="q-head">
+  <h1>안내 챗봇</h1>
+  <p>
+    부스 위치, 스탬프, 통신 잘 되는 곳을 물어보세요.
+    {% if not chat_connected %}<span class="q-test-tag">테스트 중</span>{% endif %}
+  </p>
+</div>
+
+<section class="q-chat">
+  <div class="q-chat-log" id="chat-log" aria-live="polite">
+    <div class="q-msg q-msg-bot">
+      <p>안녕하세요! {{ ev.name }} 안내 챗봇이에요. 무엇이든 물어보세요.</p>
+      {% if not chat_connected %}<p class="q-msg-note">지금은 테스트 단계라 같은 답변만 드려요.</p>{% endif %}
+      <div class="q-suggest">
+        <button type="button" data-ask="KT 부스는 어디에 있어요?">KT 부스 어디예요?</button>
+        <button type="button" data-ask="스탬프는 어떻게 모아요?">스탬프 모으는 법</button>
+        <button type="button" data-ask="지금 통신이 잘 되는 곳이 어디예요?">통신 잘 되는 곳</button>
+      </div>
+    </div>
+  </div>
+
+  <form class="q-chat-form" id="chat-form">
+    <label class="sr-only" for="chat-input">질문</label>
+    <textarea id="chat-input" rows="1" maxlength="{{ max_chat }}" placeholder="궁금한 내용을 입력하세요" enterkeyhint="send"></textarea>
+    <button type="submit" class="q-send" id="chat-send" aria-label="보내기">{{ qicon("send", 20) }}</button>
+  </form>
+</section>
+{% endblock %}

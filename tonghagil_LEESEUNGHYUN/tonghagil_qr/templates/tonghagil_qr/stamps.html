@@ -1,0 +1,72 @@
+{% extends "tonghagil_qr/base.html" %}
+
+{% block title %}스탬프{% endblock %}
+
+{% block content %}
+{% from "tonghagil_qr/_icons.html" import qicon %}
+{% set count = done|length %}
+
+{% if got and not again %}
+  <div class="q-banner is-good" role="status">
+    {{ qicon("stamp", 22) }}
+    <p><strong>'{{ got.name }}' 스탬프를 찍었어요!</strong>
+      {% if count >= required %}{{ required }}개를 모두 모았어요. 아래 쿠폰을 KT 부스에 보여 주세요.{% else %}{{ required - count }}개 남았어요.{% endif %}</p>
+  </div>
+{% elif got and again %}
+  <div class="q-banner" role="status">{{ qicon("check", 22) }}<p>'{{ got.name }}' 스탬프는 이미 찍었어요.</p></div>
+{% elif bad %}
+  <div class="q-banner is-bad" role="alert">{{ qicon("info", 22) }}<p>알 수 없는 스탬프 QR이에요. 행사장에 붙은 QR을 다시 찍어 주세요.</p></div>
+{% endif %}
+
+<div class="q-head">
+  <h1>스탬프 투어</h1>
+  <p>행사장 {{ ev.stamps|length }}곳의 QR을 휴대폰 카메라로 찍으면 스탬프가 찍혀요.</p>
+</div>
+
+<section class="q-card">
+  <div class="q-progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ required }}" aria-valuenow="{{ count }}">
+    <div class="q-progress-bar" style="width: {{ (count / required * 100) if required else 0 }}%"></div>
+  </div>
+  <p class="q-progress-text"><strong>{{ count }}</strong> / {{ required }}개</p>
+
+  <ol class="q-stamps">
+    {% for s in ev.stamps %}
+    <li class="q-stamp {% if s.id in done %}is-done{% endif %} {% if got and got.id == s.id %}is-new{% endif %}">
+      <span class="q-stamp-no">{% if s.id in done %}{{ qicon("check", 18) }}{% else %}{{ loop.index }}{% endif %}</span>
+      <div>
+        <strong>{{ s.name }}</strong>
+        <small>{{ zone_names[s.zone] }} · {{ s.hint }}</small>
+      </div>
+      <span class="q-stamp-state">{% if s.id in done %}완료{% else %}미완료{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  <a class="q-btn" href="{{ url_for('tonghagil_qr.map_view') }}">{{ qicon("map", 18) }}지도에서 스탬프 위치 보기</a>
+</section>
+
+{% if coupon %}
+{#- data-coupon-pending: 지급 전이면 qr.js 가 5초마다 확인해서, 부스에서 지급하면 '지급 완료'로 바꾼다 -#}
+<section class="q-coupon {% if coupon.redeemed_at %}is-used{% endif %}" {% if not coupon.redeemed_at %}data-coupon-pending{% endif %}>
+  <p class="q-coupon-label">{{ qicon("gift", 18) }}KT 부스 혜택 쿠폰</p>
+  <h2>{{ ev.benefit.title }}</h2>
+  <p class="q-coupon-code" aria-label="쿠폰 코드">{{ coupon.code }}</p>
+  {% if coupon.redeemed_at %}
+    <p class="q-coupon-state">{{ qicon("check", 16) }}지급 완료 · {{ coupon.redeemed_at[11:16] }}</p>
+  {% else %}
+    <p class="q-coupon-state">KT 부스 직원에게 이 화면을 보여 주세요.</p>
+  {% endif %}
+  <p class="q-coupon-where">{{ qicon("pin", 14) }}{{ ev.booth.location }}</p>
+</section>
+{% else %}
+<section class="q-card q-benefit">
+  <header class="q-card-head">
+    <span class="q-card-ico">{{ qicon("gift", 22) }}</span>
+    <div>
+      <h2>{{ ev.benefit.title }}</h2>
+      <p>{{ ev.benefit.description }}</p>
+    </div>
+  </header>
+  <p class="q-sub">{{ ev.benefit.notice }}</p>
+</section>
+{% endif %}
+{% endblock %}

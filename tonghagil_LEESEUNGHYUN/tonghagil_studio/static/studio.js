@@ -1,6 +1,10 @@
-// 통하길 스튜디오: 채팅으로 포스터 요청 → /api/posters (n8n) → 갤러리에 추가
+// 통하길 스튜디오: 채팅으로 포스터 요청 → /studio/api/posters (n8n) → 갤러리에 추가
 (function () {
   const $ = (id) => document.getElementById(id);
+
+  // 스튜디오 기준 주소(예: /studio/). 허브·ngrok 어디서 열어도 같은 서버의 API 를 부르도록 여기서만 주소를 만든다.
+  const base = $('studio').dataset.base;
+  const api = (path) => base + path;
 
   const log = $('chat-log');
   const form = $('composer-form');
@@ -29,7 +33,7 @@
     refreshBtn.classList.add('is-loading');
     refreshBtn.disabled = true;
     try {
-      const res = await fetch(refresh ? '/api/posters?refresh=1' : '/api/posters');
+      const res = await fetch(api(refresh ? 'api/posters?refresh=1' : 'api/posters'));
       const body = await res.json().catch(() => null);
       if (!res.ok || !Array.isArray(body)) throw new Error((body && body.error) || '포스터 목록을 불러오지 못했어요. 새로고침해 주세요.');
       posters = body;
@@ -169,7 +173,7 @@
     submit.disabled = true;
     editError.textContent = '';
     try {
-      const updated = await requestJson(`/api/posters/${encodeURIComponent(editing.id)}`, 'PATCH', {
+      const updated = await requestJson(api(`api/posters/${encodeURIComponent(editing.id)}`), 'PATCH', {
         title: editForm.elements.title.value.trim(),
         event_type: editForm.elements.event_type.value,
       });
@@ -195,7 +199,7 @@
     deleteConfirm.disabled = true;
     deleteError.textContent = '';
     try {
-      await requestJson(`/api/posters/${encodeURIComponent(editing.id)}`, 'DELETE');
+      await requestJson(api(`api/posters/${encodeURIComponent(editing.id)}`), 'DELETE');
       posters = posters.filter((p) => p.id !== editing.id);
       renderGallery();
       deleteDialog.close();
@@ -282,7 +286,7 @@
     setBusy(true);
 
     try {
-      const res = await fetch('/api/posters', {
+      const res = await fetch(api('api/posters'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -366,8 +370,8 @@
 
   function setLink(anchor, url, poster) {
     anchor.href = url;
-    // 데모/샘플 SVG 는 바로 저장되게 한다. 드라이브 이미지는 서버(/drive-image/…?download=1)가 파일 이름을 붙여 준다.
-    if (poster && url.startsWith('/placeholder')) anchor.download = `${poster.title}.svg`;
+    // 데모/샘플 SVG 는 바로 저장되게 한다. 드라이브 이미지는 서버(/studio/drive-image/…?download=1)가 파일 이름을 붙여 준다.
+    if (poster && url.startsWith(api('placeholder.svg'))) anchor.download = `${poster.title}.svg`;
     else if (poster && url.startsWith('/')) anchor.download = '';
     else anchor.removeAttribute('download');
   }

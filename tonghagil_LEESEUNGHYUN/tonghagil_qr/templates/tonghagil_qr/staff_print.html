@@ -1,0 +1,34 @@
+{#- 통하길 QR 인쇄용 페이지: 포스터용 입장 QR + 스탬프 지점 QR. 브라우저에서 Ctrl+P 로 인쇄한다. -#}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR 인쇄 · {{ ev.name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="{{ url_for('tonghagil_qr.static', filename='staff.css') }}">
+</head>
+<body class="p-body">
+  <header class="p-toolbar">
+    <div>
+      <strong>{{ ev.name }} · QR 인쇄</strong>
+      <small>QR 주소: {{ public_base }}</small>
+    </div>
+    <button type="button" onclick="window.print()">인쇄하기</button>
+  </header>
+  {% if base_is_local %}
+  <p class="p-warn">이 QR에는 <b>{{ public_base }}</b> 주소가 들어가서 휴대폰에서는 열리지 않아요. 공개 주소(ngrok)를 설정한 뒤 인쇄하세요.</p>
+  {% endif %}
+  <main class="p-sheet">
+    {% for t in targets %}
+    <article class="p-card">
+      <p class="p-event">{{ ev.name }}</p>
+      <h1>{{ t.label }}</h1>
+      <img src="{{ url_for('tonghagil_qr.staff_qr', kind=t.kind) }}" alt="{{ t.label }} QR 코드">
+      <p class="p-guide">{% if t.kind == "entry" %}휴대폰 카메라로 찍으면 행사 안내·KT 부스 위치·스탬프 이벤트를 볼 수 있어요.{% else %}휴대폰 카메라로 찍으면 스탬프가 찍혀요. {{ ev.stamps|length }}개를 모으면 KT 부스에서 선물을 드려요!{% endif %}</p>
+      <p class="p-sub">{{ t.sub }}</p>
+    </article>
+    {% endfor %}
+  </main>
+</body>
+</html>

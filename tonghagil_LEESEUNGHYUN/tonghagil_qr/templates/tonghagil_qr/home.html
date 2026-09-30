@@ -1,0 +1,81 @@
+{% extends "tonghagil_qr/base.html" %}
+
+{% block content %}
+{% from "tonghagil_qr/_icons.html" import qicon %}
+<section class="q-hero">
+  <p class="q-hero-tag">{{ ev.tagline }}</p>
+  <h1>{{ ev.name }}</h1>
+  <ul class="q-hero-meta">
+    <li>{{ qicon("calendar", 16) }}{{ ev.date_label }}</li>
+    <li>{{ qicon("clock", 16) }}{{ ev.time_label }}</li>
+    <li>{{ qicon("pin", 16) }}{{ ev.venue }}</li>
+  </ul>
+</section>
+
+{#- 실시간(모의) 현황: qr.js 가 30초마다 갱신한다 -#}
+<section class="q-live" data-net-live>
+  <a class="q-live-item" href="{{ url_for('tonghagil_qr.map_view') }}">
+    <span class="q-live-ico is-good">{{ qicon("signal", 20) }}</span>
+    <span>
+      <small>지금 통신이 가장 원활한 곳</small>
+      <strong data-net="best">{{ net.best.name }}</strong>
+    </span>
+  </a>
+  <a class="q-live-item" href="{{ url_for('tonghagil_qr.map_view') }}#booth">
+    <span class="q-live-ico is-kt">{{ qicon("users", 20) }}</span>
+    <span>
+      <small>KT 부스 대기</small>
+      <strong><span data-net="queue">{{ net.booth.queue }}</span>명 · 약 <span data-net="wait">{{ net.booth.wait_min }}</span>분</strong>
+    </span>
+  </a>
+</section>
+
+<section class="q-card q-booth">
+  <header class="q-card-head">
+    <span class="q-kt">KT</span>
+    <div>
+      <h2>{{ ev.booth.name }}</h2>
+      <p>{{ qicon("pin", 14) }}{{ ev.booth.location }}</p>
+    </div>
+  </header>
+  <ul class="q-chips">
+    {% for s in ev.booth.services %}<li>{{ s }}</li>{% endfor %}
+  </ul>
+  <p class="q-sub">{{ qicon("clock", 14) }}운영 {{ ev.booth.hours }}</p>
+  <a class="q-btn" href="{{ url_for('tonghagil_qr.map_view') }}#booth">{{ qicon("map", 18) }}지도에서 위치 보기</a>
+</section>
+
+<section class="q-card q-stamp-card">
+  <header class="q-card-head">
+    <span class="q-card-ico">{{ qicon("gift", 22) }}</span>
+    <div>
+      <h2>스탬프 {{ required }}개 모으면 선물!</h2>
+      <p>{{ ev.benefit.title }}</p>
+    </div>
+  </header>
+  <div class="q-dots" aria-label="스탬프 {{ done|length }}개 / {{ required }}개">
+    {% for s in ev.stamps %}<span class="q-dot {% if s.id in done %}is-done{% endif %}">{% if s.id in done %}{{ qicon("check", 14) }}{% else %}{{ loop.index }}{% endif %}</span>{% endfor %}
+  </div>
+  {% if coupon %}
+    <a class="q-btn q-btn-primary" href="{{ url_for('tonghagil_qr.stamps') }}">{{ qicon("gift", 18) }}{% if coupon.redeemed_at %}혜택 지급 완료{% else %}쿠폰 보기{% endif %}</a>
+  {% else %}
+    <a class="q-btn q-btn-primary" href="{{ url_for('tonghagil_qr.stamps') }}">{{ qicon("stamp", 18) }}스탬프 모으러 가기 ({{ done|length }}/{{ required }})</a>
+  {% endif %}
+</section>
+
+<a class="q-card q-chat-card" href="{{ url_for('tonghagil_qr.chat') }}">
+  <span class="q-card-ico">{{ qicon("chat", 22) }}</span>
+  <span>
+    <strong>궁금한 건 안내 챗봇에게</strong>
+    <small>부스 위치, 스탬프, 통신 잘 되는 곳을 물어보세요.</small>
+  </span>
+  {{ qicon("arrow", 18, "q-arrow") }}
+</a>
+
+{% if ev.notices %}
+<section class="q-notice">
+  <h2>{{ qicon("info", 16) }}안내</h2>
+  <ul>{% for n in ev.notices %}<li>{{ n }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

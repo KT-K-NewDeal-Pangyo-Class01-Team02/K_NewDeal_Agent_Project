@@ -37,7 +37,19 @@
     "icon": "image",
     "color": "purple",
     "status": "운영 중",
-    "url": "http://localhost:5004",
-    "server": { "dir": "tonghagil_LEESEUNGHYUN", "port": 5004, "python": "tonghagil_studio.app" }
+    "endpoint": "tonghagil_studio.studio",
+    "path": "/studio/",
+    "url": ""
+  },
+  {
+    "id": "tonghagil-qr",
+    "name": "통하길 QR",
+    "description": "QR로 행사 안내·KT 부스 위치·스탬프 이벤트를 제공합니다.",
+    "icon": "qr-code",
+    "color": "teal",
+    "status": "운영 중",
+    "endpoint": "tonghagil_qr.staff",
+    "path": "/qr/staff/",
+    "url": ""
   }
 ]

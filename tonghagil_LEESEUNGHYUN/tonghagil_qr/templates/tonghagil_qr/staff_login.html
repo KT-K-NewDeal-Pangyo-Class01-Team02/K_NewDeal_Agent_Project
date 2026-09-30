@@ -1,0 +1,37 @@
+{#- 통하길 QR 부스 담당자 화면 잠금. Command Center 의 cc_layout.html 을 쓴다. -#}
+{% extends "cc_layout.html" %}
+
+{% block title %}통하길 QR · Command Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('tonghagil_qr.static', filename='staff.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('home') }}">Command Center</a><span>/</span><strong>통하길 QR</strong>
+{% endblock %}
+
+{% block content %}
+<div class="cc-page-head">
+  <h1 class="cc-page-title">통하길 QR</h1>
+  <p class="cc-page-sub">{{ ev.name }} · 부스 담당자 화면</p>
+</div>
+
+<section class="cc-card s-login">
+  <h2>담당자 PIN</h2>
+  <p>쿠폰 지급과 스탬프 QR 인쇄는 부스 담당자만 할 수 있어요.</p>
+  <form method="post" action="{{ url_for('tonghagil_qr.staff_login') }}">
+    <label class="cc-field">
+      <span class="cc-label">PIN</span>
+      <input class="cc-input" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required autofocus>
+    </label>
+    {% if error == "pin" %}<p class="s-error" role="alert">PIN이 맞지 않아요.</p>{% endif %}
+    {% if error == "wait" %}<p class="s-error" role="alert">여러 번 틀려서 잠시 막았어요. 30초 뒤에 다시 시도해 주세요.</p>{% endif %}
+    <button type="submit" class="cc-btn cc-btn-primary">들어가기</button>
+  </form>
+  {% if pin_is_default %}
+  <p class="s-hint">시연용 기본 PIN은 <code>1234</code>예요. 바꾸려면 <code>tonghagil_LEESEUNGHYUN/.env</code>에 <code>QR_STAFF_PIN</code>을 넣으세요.</p>
+  {% endif %}
+  <a class="s-link" href="{{ url_for('tonghagil_qr.home') }}" target="_blank" rel="noopener">방문객 화면 열어 보기 →</a>
+</section>
+{% endblock %}

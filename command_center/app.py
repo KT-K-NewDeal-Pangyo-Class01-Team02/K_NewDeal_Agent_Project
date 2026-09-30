@@ -1,8 +1,8 @@
 """Command Center 홈(팀 공용 허브): 에이전트 카드를 보여 주고, 카드를 누르면 에이전트 앱으로 보낸다.
 
 에이전트는 두 가지 방식으로 붙는다 (agents.json).
-  - `endpoint`: 이 Flask 앱 안에 Blueprint 로 등록된 에이전트. **같은 탭**으로 이동한다. (예: 더 줘 → /thejo/)
-  - `url`:      다른 포트에서 따로 도는 서버. 지금까지처럼 **새 탭**으로 연다. (예: 통하길 스튜디오 → :5004)
+  - `endpoint`: 이 Flask 앱 안에 Blueprint 로 등록된 에이전트. **같은 탭**으로 이동한다. (예: 더 줘 → /thejo/, 통하길 스튜디오 → /studio/, 통하길 QR → /qr/)
+  - `url`:      다른 포트에서 따로 도는 서버. 지금까지처럼 **새 탭**으로 연다. (예: 빅또리출동! → :5500)
 
 실행: VS Code 실행(▶) 버튼, 또는 저장소 루트에서  python -m command_center.app   (http://localhost:5000)
 """
@@ -20,6 +20,22 @@ from flask import Flask, jsonify, render_template, request
 
 from command_center.layout import init_layout, load_agents, save_agents
 from thejo_project import thejo_bp  # 더 줘 (정주희) — /thejo/ 아래에서 같은 프로세스로 돈다
+
+try:
+    # 통하길 스튜디오 (이승현) — /studio/ 아래에서 같은 프로세스로 돈다
+    from tonghagil_LEESEUNGHYUN.tonghagil_studio import studio_bp
+except ModuleNotFoundError as exc:
+    # 스튜디오용 패키지(requests, google-auth)가 없는 환경에서도 허브와 다른 에이전트는 뜨게 한다
+    studio_bp = None
+    print(f"[경고] 통하길 스튜디오를 건너뜁니다 ({exc}). "
+          "pip install -r tonghagil_LEESEUNGHYUN/requirements.txt 로 설치해 주세요.", file=sys.stderr)
+try:
+    # 통하길 QR (이승현) — /qr/ 아래에서 같은 프로세스로 돈다
+    from tonghagil_LEESEUNGHYUN.tonghagil_qr import qr_bp
+except ModuleNotFoundError as exc:
+    qr_bp = None
+    print(f"[경고] 통하길 QR을 건너뜁니다 ({exc}). "
+          "pip install -r tonghagil_LEESEUNGHYUN/requirements.txt 로 설치해 주세요.", file=sys.stderr)
 
 # 선택: command_center/.env (COMMAND_CENTER_PORT, CC_USER_NAME 등). 없으면 기본값을 쓴다.
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -41,6 +57,10 @@ init_layout(app)
 # 팀원이 자기 에이전트를 Blueprint 로 만들면 여기에 한 줄 추가하고,
 # agents.json 의 자기 항목에 "endpoint": "<blueprint>.<함수>" 를 적는다.
 app.register_blueprint(thejo_bp)
+if studio_bp is not None:
+    app.register_blueprint(studio_bp)
+if qr_bp is not None:
+    app.register_blueprint(qr_bp)
 
 
 @app.get("/")

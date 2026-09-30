@@ -1,13 +1,14 @@
+{#- 통하길 스튜디오. Command Center 의 cc_layout.html 을 그대로 쓰고 CSS·JS 한 장씩만 더한다. -#}
 {% extends "cc_layout.html" %}
 
 {% block title %}통하길 스튜디오 · Command Center{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='studio.css') }}">
+<link rel="stylesheet" href="{{ url_for('tonghagil_studio.static', filename='studio.css') }}">
 {% endblock %}
 
 {% block breadcrumb %}
-<a href="{{ command_center_url }}">Command Center</a><span>/</span><strong>통하길 스튜디오</strong>
+<a href="{{ url_for('home') }}">Command Center</a><span>/</span><strong>통하길 스튜디오</strong>
 {% endblock %}
 
 {% block content %}
@@ -17,7 +18,8 @@
   <p class="cc-page-sub">특별한 순간을 만드는 행사 포스터, AI가 함께합니다.</p>
 </div>
 
-<div class="studio">
+{#- data-base: studio.js 가 API 주소를 만들 때 쓰는 스튜디오 기준 주소 (예: /studio/) -#}
+<div class="studio" id="studio" data-base="{{ url_for('tonghagil_studio.studio') }}">
   {# ---------- 왼쪽: 채팅으로 포스터 요청 ---------- #}
   <section class="cc-card composer" aria-labelledby="composer-title">
     <header class="panel-head">
@@ -197,5 +199,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='studio.js') }}"></script>
+<script src="{{ url_for('tonghagil_studio.static', filename='studio.js') }}"></script>
 {% endblock %}

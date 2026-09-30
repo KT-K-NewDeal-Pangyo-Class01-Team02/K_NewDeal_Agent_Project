@@ -8,6 +8,7 @@
 - 저장소 루트에서 `python -m command_center.app`을 실행하거나, `command_center/app.py`를 열고 VS Code ▶를 누릅니다.
 - 전체 실행은 루트의 `start_all.bat`으로 합니다.
 - 필요한 패키지: `pip install -r command_center/requirements.txt` (flask, python-dotenv)
+  - 통하길 스튜디오(`/studio/`)·QR(`/qr/`)까지 쓰려면 `tonghagil_LEESEUNGHYUN/requirements.txt`도 설치합니다(requests, google-auth, segno). 없으면 그 에이전트만 건너뛰고 허브는 뜹니다.
 - 선택: `command_center/.env`에 `COMMAND_CENTER_PORT=5000`, `CC_USER_NAME=김지현 매니저` 등을 넣을 수 있습니다. git에는 올라가지 않습니다.
 
 ## 내 에이전트 등록하기 (`agents.json`)
@@ -51,7 +52,9 @@
 }
 ```
 - `endpoint`: 허브 안에서 쓰는 Flask 엔드포인트 이름(`<blueprint>.<함수>`)입니다.
-- `path`: 같은 화면의 허브 기준 주소입니다. **허브 밖의 에이전트 화면**(통하길 등)이 사이드바에서 `http://localhost:5000` + `path`로 찾아갈 때 씁니다. 반드시 같이 적으세요.
+- `path`: 같은 화면의 허브 기준 주소입니다. **허브 밖의 에이전트 화면**(빅또리 등)이 사이드바에서 `http://localhost:5000` + `path`로 찾아갈 때 씁니다. 반드시 같이 적으세요.
+- 지금 Blueprint 로 붙은 에이전트: 더 줘(`/thejo/`), 통하길 스튜디오(`/studio/`), 통하길 QR(`/qr/`, 카드는 부스 담당자 화면 `/qr/staff/`).
+- 화면·JS 의 주소는 `url_for` 나 Blueprint 기준 상대 주소로 만드세요. `/api/...` 처럼 루트 기준으로 적으면 다른 에이전트와 겹치고, `http://localhost:...` 로 적으면 ngrok 등 공개 주소에서 깨집니다.
 - `url`은 비워 둡니다. `url`이 있으면 새 탭 링크로 취급됩니다.
 - `app.py`에 `register_blueprint` 한 줄을 넣어야 해서 **관리자(이승현) 동의가 필요**합니다. `start_all`에는 따로 넣지 않습니다. 허브와 함께 뜹니다.
 
@@ -65,4 +68,9 @@
 ## 다른 에이전트 화면의 사이드바
 각 에이전트는 허브의 `agents.json`을 **읽어서** 자기 사이드바를 그립니다. 허브 디자인 사본(`cc_layout.html`)을 쓰는 방식이에요.
 Blueprint 에이전트는 `url`이 비어 있으니, 사이드바 코드에서 `url`이 없고 `path`가 있으면 `허브 주소 + path`를 링크로 쓰세요.
-참고 구현: `tonghagil_LEESEUNGHYUN/tonghagil_studio/layout.py`의 `load_agents()`
+```python
+hub = os.getenv("COMMAND_CENTER_URL", "http://localhost:5000").rstrip("/")
+for agent in agents:
+    if not (agent.get("url") or "").strip() and (agent.get("path") or "").strip():
+        agent["url"] = hub + "/" + agent["path"].strip().lstrip("/")
+```

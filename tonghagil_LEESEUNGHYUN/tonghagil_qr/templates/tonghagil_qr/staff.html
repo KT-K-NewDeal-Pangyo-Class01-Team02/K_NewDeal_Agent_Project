@@ -1,0 +1,105 @@
+{#- 통하길 QR 부스 담당자 화면: 현황 · 쿠폰 지급 · QR 인쇄 · 시연 초기화. Command Center 의 cc_layout.html 을 쓴다. -#}
+{% extends "cc_layout.html" %}
+
+{% block title %}통하길 QR · Command Center{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('tonghagil_qr.static', filename='staff.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('home') }}">Command Center</a><span>/</span><strong>통하길 QR</strong>
+{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+<div class="cc-page-head s-page-head">
+  <div>
+    <h1 class="cc-page-title">통하길 QR</h1>
+    <p class="cc-page-sub">{{ ev.name }} · {{ ev.date_label }} · 부스 담당자 화면</p>
+  </div>
+  <div class="s-head-actions">
+    <a class="cc-btn" href="{{ url_for('tonghagil_qr.home') }}" target="_blank" rel="noopener">{{ icon("external", 16) }}방문객 화면</a>
+    <form method="post" action="{{ url_for('tonghagil_qr.staff_logout') }}"><button type="submit" class="cc-btn">잠그기</button></form>
+  </div>
+</div>
+
+{% if result == "reset" %}<p class="s-flash is-ok" role="status">시연 기록을 모두 지웠어요.</p>{% endif %}
+
+<section class="s-kpis" aria-label="현황">
+  <div class="cc-card s-kpi"><small>QR 접속 방문객</small><strong>{{ stats.visitors }}</strong><span>포스터 QR로 {{ stats.from_poster }}명</span></div>
+  <div class="cc-card s-kpi"><small>지도·부스 안내 이용</small><strong>{{ rate(stats.map_viewers, stats.visitors) }}</strong><span>{{ stats.map_viewers }}명</span></div>
+  <div class="cc-card s-kpi"><small>스탬프 참여</small><strong>{{ stats.stamp_joiners }}</strong><span>스탬프 {{ stats.stamps_total }}개 · 완주 {{ stats.coupons }}명</span></div>
+  <div class="cc-card s-kpi is-accent"><small>혜택 지급 (부스 방문)</small><strong>{{ stats.redeemed }}</strong><span>쿠폰 {{ stats.coupons }}장 중</span></div>
+</section>
+
+<div class="s-grid">
+  <section class="cc-card s-panel" id="redeem">
+    <h2>쿠폰 지급</h2>
+    <p class="s-desc">방문객 휴대폰의 쿠폰 코드 6자리를 입력하세요. 지급하면 방문객 화면도 '지급 완료'로 바뀌어요.</p>
+    <form class="s-redeem" method="post" action="{{ url_for('tonghagil_qr.staff_redeem') }}">
+      <input class="cc-input s-code" name="code" maxlength="12" placeholder="예) K7M2QX" autocomplete="off" autocapitalize="characters" required autofocus>
+      <button type="submit" class="cc-btn cc-btn-primary">지급 처리</button>
+    </form>
+    {% if result == "ok" %}<p class="s-flash is-ok" role="status">{{ icon("check", 16) }}<strong>{{ code }}</strong> 쿠폰 지급 완료. {{ ev.benefit.title }}을(를) 드려 주세요.</p>
+    {% elif result == "already" %}<p class="s-flash is-warn" role="alert"><strong>{{ code }}</strong> 쿠폰은 이미 지급했어요. 중복 지급하지 마세요.</p>
+    {% elif result == "not_found" %}<p class="s-flash is-bad" role="alert"><strong>{{ code or "(빈 코드)" }}</strong> 쿠폰을 찾을 수 없어요. 코드를 다시 확인해 주세요.</p>{% endif %}
+
+    <h3>최근 지급</h3>
+    {% if recent %}
+    <ul class="s-list">{% for r in recent %}<li><code>{{ r.code }}</code><span>{{ r.redeemed_at[5:16]|replace("T", " ") }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="s-empty">아직 지급 내역이 없어요.</p>{% endif %}
+  </section>
+
+  <section class="cc-card s-panel">
+    <h2>스탬프 지점별 인증</h2>
+    <ul class="s-bars">
+      {% for s in ev.stamps %}
+      {%- set n = stats.per_stamp[s.id] %}
+      <li>
+        <span class="s-bar-label">{{ loop.index }}. {{ s.name }}</span>
+        <span class="s-bar"><i style="width: {{ (n / stats.visitors * 100) if stats.visitors else 0 }}%"></i></span>
+        <span class="s-bar-n">{{ n }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="s-desc">스탬프 {{ required }}개를 모두 모으면 쿠폰이 자동 발급돼요. 챗봇 질문 {{ stats.chat_messages }}건.</p>
+
+    <h3>설정</h3>
+    <dl class="s-settings">
+      <div><dt>안내 챗봇</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
+      <div><dt>담당자 PIN</dt><dd>{% if pin_is_default %}<span class="cc-badge">기본값 1234</span>{% else %}<span class="cc-badge is-live">설정됨</span>{% endif %}</dd></div>
+      <div><dt>QR 주소</dt><dd><code>{{ public_base }}</code></dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="cc-card s-panel">
+  <div class="s-panel-head">
+    <h2>QR 코드</h2>
+    <a class="cc-btn cc-btn-primary" href="{{ url_for('tonghagil_qr.staff_print') }}" target="_blank" rel="noopener">{{ icon("download", 16) }}인쇄용 페이지</a>
+  </div>
+  {% if base_is_local %}
+  <p class="s-flash is-warn">지금 QR에는 <code>{{ public_base }}</code> 주소가 들어가요. 휴대폰에서는 열리지 않아요.
+    ngrok을 연결한 뒤 <code>.env</code>의 <code>QR_PUBLIC_BASE_URL</code>에 공개 주소를 넣거나, 공개 주소로 이 화면에 들어와서 인쇄하세요.</p>
+  {% endif %}
+  <div class="s-qrs">
+    {% for t in targets %}
+    <figure class="s-qr">
+      <img src="{{ url_for('tonghagil_qr.staff_qr', kind=t.kind) }}" alt="{{ t.label }} QR 코드" width="132" height="132" loading="lazy">
+      <figcaption><strong>{{ t.label }}</strong><small>{{ t.sub }}</small></figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="cc-card s-panel s-danger">
+  <div>
+    <h2>시연 기록 초기화</h2>
+    <p class="s-desc">리허설이 끝나면 방문객·스탬프·쿠폰 기록을 모두 지우세요. 행사 정보(event.json)는 그대로예요.</p>
+  </div>
+  <form method="post" action="{{ url_for('tonghagil_qr.staff_reset') }}" onsubmit="return confirm('방문객·스탬프·쿠폰 기록을 모두 지울까요? 되돌릴 수 없어요.');">
+    <button type="submit" class="cc-btn s-btn-danger">{{ icon("trash", 16) }}기록 모두 지우기</button>
+  </form>
+</section>
+{% endblock %}

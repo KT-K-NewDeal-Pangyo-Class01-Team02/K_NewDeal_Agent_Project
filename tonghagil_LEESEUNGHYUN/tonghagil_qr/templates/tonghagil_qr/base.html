@@ -1,0 +1,42 @@
+{#- 통하길 QR 방문객 화면 공통 틀 (휴대폰 기준). 허브 사이드바 없이 상단 행사명 + 하단 탭 메뉴. -#}
+{% from "tonghagil_qr/_icons.html" import qicon %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151a23">
+  <title>{% block title %}{{ ev.name }}{% endblock %} · 통하길</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='common.css') }}">
+  <link rel="stylesheet" href="{{ url_for('tonghagil_qr.static', filename='qr.css') }}">
+</head>
+{#- data-base: qr.js 가 API 주소를 만들 때 쓰는 기준 주소 (예: /qr/) -#}
+<body class="q-body" data-page="{{ page }}" data-base="{{ url_for('tonghagil_qr.home') }}">
+<header class="q-top">
+  <a class="q-brand" href="{{ url_for('tonghagil_qr.home') }}">
+    <span class="q-logo">통하길</span>
+    <span class="q-event">{{ ev.name }}</span>
+  </a>
+  {% if ev.demo %}<span class="q-demo" title="시연용 가상 행사예요">시연용</span>{% endif %}
+</header>
+
+<main class="q-main">
+  {% block content %}{% endblock %}
+</main>
+
+<nav class="q-tabs" aria-label="메뉴">
+  {% set tabs = [("home", "tonghagil_qr.home", "home", "홈"), ("map", "tonghagil_qr.map_view", "map", "지도·통신"),
+                 ("stamps", "tonghagil_qr.stamps", "stamp", "스탬프"), ("chat", "tonghagil_qr.chat", "chat", "챗봇")] %}
+  {% for key, endpoint, ico, label in tabs %}
+  <a class="q-tab {% if page == key %}is-active{% endif %}" href="{{ url_for(endpoint) }}" {% if page == key %}aria-current="page"{% endif %}>
+    {{ qicon(ico, 22) }}
+    <span>{{ label }}</span>
+    {% if key == "stamps" %}<em class="q-tab-badge {% if done|length >= required %}is-done{% endif %}">{{ done|length }}/{{ required }}</em>{% endif %}
+  </a>
+  {% endfor %}
+</nav>
+
+<script src="{{ url_for('tonghagil_qr.static', filename='qr.js') }}"></script>
+</body>
+</html>
