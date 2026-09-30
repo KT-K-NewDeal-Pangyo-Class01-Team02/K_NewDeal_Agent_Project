@@ -93,6 +93,15 @@
   width: 100%;
 }
 
+.form-field[hidden] {
+  display: none;
+}
+
+.field-hint {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+
 /* 선택한 단말 미리보기 */
 .device-preview {
   display: flex;

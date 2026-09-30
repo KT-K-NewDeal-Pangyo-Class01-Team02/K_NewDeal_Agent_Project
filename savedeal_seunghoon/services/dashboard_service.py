@@ -34,6 +34,7 @@ from services.codes import (
     STATUS_LABELS,
     STATUS_READY,
 )
+from services.carriers import carrier_change
 from services.device_images import image_for
 from services.risk_scoring_service import (
     RISK_HIGH,
@@ -168,6 +169,7 @@ class DashboardService:
             "device_option": f"{device['color']} · {device['storage']}",
             "device_image": _device_image(device),
             "line_type_label": LINE_TYPE_LABELS.get(reservation["line_type"], reservation["line_type"]),
+            "carrier_change": carrier_change(reservation["line_type"], reservation.get("previous_carrier")),
             "status": reservation["status"],
             "status_label": STATUS_LABELS.get(reservation["status"], reservation["status"]),
             "is_open": is_open,

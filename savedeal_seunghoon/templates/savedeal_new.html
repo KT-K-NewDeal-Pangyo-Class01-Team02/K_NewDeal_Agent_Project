@@ -46,6 +46,16 @@
         </select>
       </div>
 
+      <div class="form-field" id="previous-carrier-field" hidden>
+        <label for="previous_carrier">기존 통신사 <span class="field-hint">→ KT로 번호이동</span></label>
+        <select id="previous_carrier" name="previous_carrier">
+          <option value="" disabled selected>현재 쓰는 통신사를 선택하세요</option>
+          {% for carrier in previous_carriers %}
+          <option value="{{ carrier.code }}">{{ carrier.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       <div class="form-field">
         <label for="store_id">방문 예정 매장</label>
         <select id="store_id" name="store_id" required>

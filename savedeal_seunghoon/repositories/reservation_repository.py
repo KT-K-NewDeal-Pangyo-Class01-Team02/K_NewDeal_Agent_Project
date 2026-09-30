@@ -12,6 +12,7 @@ _COLUMNS = [
     "device_color",
     "device_storage",
     "line_type",
+    "previous_carrier",
     "desired_activation_date",
     "activation_deadline",
     "status",

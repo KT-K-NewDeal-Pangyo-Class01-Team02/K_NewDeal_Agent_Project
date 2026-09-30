@@ -3,6 +3,7 @@ from flask import Blueprint, current_app, redirect, render_template, url_for
 from repositories.customer_repository import CustomerRepository
 from repositories.device_repository import DeviceRepository
 from repositories.store_repository import StoreRepository
+from services.carriers import PREVIOUS_CARRIER_CODES, carrier_info
 from services.dashboard_service import FILTERS
 from services.device_images import image_for
 
@@ -45,4 +46,5 @@ def savedeal_new():
         customers=customers,
         devices=devices,
         line_types=LINE_TYPES,
+        previous_carriers=[carrier_info(code) for code in PREVIOUS_CARRIER_CODES],
     )

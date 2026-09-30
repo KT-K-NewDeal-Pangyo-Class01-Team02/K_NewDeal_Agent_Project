@@ -389,6 +389,12 @@
   max-width: var(--size-device-col);
 }
 
+.cell-sub-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .device-cell {
   display: flex;
   align-items: center;

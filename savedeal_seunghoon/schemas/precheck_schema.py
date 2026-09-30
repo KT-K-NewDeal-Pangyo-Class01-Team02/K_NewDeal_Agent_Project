@@ -1,6 +1,7 @@
 REQUIRED_FIELDS = ["customer_id", "store_id", "device", "desired_activation_date", "line_type"]
 REQUIRED_DEVICE_FIELDS = ["model", "color", "storage"]
 VALID_LINE_TYPES = {"NEW", "MNP", "CHANGE"}
+VALID_PREVIOUS_CARRIERS = {"SKT", "LGU", "MVNO"}
 
 
 class PrecheckValidationError(Exception):
@@ -31,6 +32,11 @@ def validate_precheck_request(payload: dict | None) -> None:
     line_type = payload.get("line_type")
     if line_type is not None and line_type not in VALID_LINE_TYPES:
         errors.append(f"line_type은 {sorted(VALID_LINE_TYPES)} 중 하나여야 합니다.")
+
+    # 선택 항목: 번호이동 고객의 기존 통신사
+    previous_carrier = payload.get("previous_carrier")
+    if previous_carrier is not None and previous_carrier not in VALID_PREVIOUS_CARRIERS:
+        errors.append(f"previous_carrier는 {sorted(VALID_PREVIOUS_CARRIERS)} 중 하나여야 합니다.")
 
     if errors:
         raise PrecheckValidationError(errors)

@@ -81,6 +81,29 @@
     return box;
   }
 
+  // 번호이동: [기존 통신사 로고] → [KT 로고]. 로고가 없으면 이름을 글자로 쓴다.
+  function carrierMark(carrier) {
+    if (!carrier) return el("span", "carrier-name", "미입력");
+    if (!carrier.logo_url) return el("span", "carrier-name", carrier.label);
+    var img = document.createElement("img");
+    img.className = "carrier-logo carrier-" + carrier.code;
+    img.src = carrier.logo_url;
+    img.alt = carrier.label;
+    img.addEventListener("error", function () {
+      img.replaceWith(el("span", "carrier-name", carrier.label));
+    });
+    return img;
+  }
+
+  function carrierChange(change, large) {
+    var box = el("span", "carrier-change" + (large ? " is-large" : ""));
+    box.title = "번호이동 · " + change.label;
+    box.appendChild(carrierMark(change.from));
+    box.appendChild(el("span", "carrier-arrow", "→"));
+    box.appendChild(carrierMark(change.to));
+    return box;
+  }
+
   function statusBadge(status, label) {
     return badge(label, STATUS_TONES[status], STATUS_ICONS[status]);
   }
@@ -192,7 +215,13 @@
 
     var customer = el("td");
     customer.appendChild(el("span", "cell-main cell-strong", item.customer_name));
-    customer.appendChild(el("span", "cell-sub", item.reservation_id + " · " + item.line_type_label));
+    var customerSub = el("span", "cell-sub cell-sub-inline", item.reservation_id + " · ");
+    if (item.carrier_change) {
+      customerSub.appendChild(carrierChange(item.carrier_change, false));
+    } else {
+      customerSub.appendChild(document.createTextNode(item.line_type_label));
+    }
+    customer.appendChild(customerSub);
     row.appendChild(customer);
 
     var device = el("td", "cell-device");
@@ -370,7 +399,13 @@
       ["진행상태", detail.status_label],
     ].forEach(function (pair) {
       dl.appendChild(el("dt", null, pair[0]));
-      dl.appendChild(el("dd", null, pair[1]));
+      var value = el("dd", null, pair[1]);
+      // 가입유형이 번호이동이면 통신사 변경을 로고로 함께 보여 준다
+      if (pair[0] === "가입유형" && detail.carrier_change) {
+        value.textContent = pair[1] + " ";
+        value.appendChild(carrierChange(detail.carrier_change, true));
+      }
+      dl.appendChild(value);
     });
     info.appendChild(dl);
     body.appendChild(info);

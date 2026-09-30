@@ -27,11 +27,20 @@ def connect(db_path):
         conn.close()
 
 
+# 나중에 추가된 칸. CREATE TABLE IF NOT EXISTS 는 기존 테이블에 칸을 더하지 않으므로 직접 추가한다.
+ADDED_COLUMNS = {"reservations": {"previous_carrier": "TEXT"}}
+
+
 def init_schema(db_path) -> None:
     path = resolve_db_path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with connect(path) as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        for table, columns in ADDED_COLUMNS.items():
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            for column, column_type in columns.items():
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
 
 
 _ensured_paths: set[Path] = set()

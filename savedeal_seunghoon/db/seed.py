@@ -50,7 +50,7 @@ def _cases(now: datetime) -> list[dict]:
     }
     return [
         {
-            "id": "R2001", "name": "김민수", "store": "S001", "device": FOLD8_SILVER, "line": "MNP",
+            "id": "R2001", "name": "김민수", "store": "S001", "device": FOLD8_SILVER, "line": "MNP", "carrier": "SKT",
             "deadline": ("hours", 4), "waited": 30,
             "issues": [(ISSUE_STOCK_SHORTAGE, {**fold_silver_shortage, "nearby_stores": [{"store_id": "S002", "quantity": 2}]})],
         },
@@ -65,7 +65,7 @@ def _cases(now: datetime) -> list[dict]:
             "issues": [(ISSUE_MISSING_DOCUMENTS, {"documents": ["가족관계증명서"]})],
         },
         {
-            "id": "R2004", "name": "최유진", "store": "S002", "device": IPHONE18_SILVER, "line": "MNP",
+            "id": "R2004", "name": "최유진", "store": "S002", "device": IPHONE18_SILVER, "line": "MNP", "carrier": "LGU",
             "deadline": ("days", 1), "waited": 52,
             "issues": [
                 (
@@ -75,7 +75,7 @@ def _cases(now: datetime) -> list[dict]:
             ],
         },
         {
-            "id": "R2005", "name": "정하늘", "store": "S001", "device": S25_ULTRA, "line": "MNP",
+            "id": "R2005", "name": "정하늘", "store": "S001", "device": S25_ULTRA, "line": "MNP", "carrier": "SKT",
             "deadline": ("hours", 3), "waited": 26,
             "issues": [(ISSUE_ACTIVATION_REJECTED, {"reason": "가입자 생년월일 불일치", "field_label": "생년월일"})],
         },
@@ -85,7 +85,7 @@ def _cases(now: datetime) -> list[dict]:
             "issues": [(ISSUE_IDENTITY_FAILED, {"method": "PASS 앱 인증", "reason": "명의 불일치"})],
         },
         {
-            "id": "R2007", "name": "윤서아", "store": "S001", "device": FOLD8_SILVER, "line": "MNP",
+            "id": "R2007", "name": "윤서아", "store": "S001", "device": FOLD8_SILVER, "line": "MNP", "carrier": "LGU",
             "deadline": ("hours", -2), "waited": 60, "fail": [ISSUE_STOCK_SHORTAGE, ISSUE_STOCK_SHORTAGE],
             "issues": [
                 (ISSUE_STOCK_SHORTAGE, {**fold_silver_shortage, "nearby_stores": [{"store_id": "S002", "quantity": 1}]}),
@@ -114,7 +114,7 @@ def _cases(now: datetime) -> list[dict]:
             "deadline": ("days", 1), "waited": 5, "issues": [],
         },
         {
-            "id": "R2011", "name": "서예린", "store": "S001", "device": IPHONE_BLUE, "line": "MNP",
+            "id": "R2011", "name": "서예린", "store": "S001", "device": IPHONE_BLUE, "line": "MNP", "carrier": "MVNO",
             "deadline": ("hours", 10), "waited": 18, "approve": ISSUE_STOCK_SHORTAGE,
             "issues": [
                 (
@@ -129,7 +129,7 @@ def _cases(now: datetime) -> list[dict]:
             "issues": [(ISSUE_ACTIVATION_REJECTED, {"reason": "요금제 코드 오류", "field_label": "요금제 코드"})],
         },
         {
-            "id": "R2013", "name": "배성호", "store": "S001", "device": FOLD_BLACK, "line": "MNP",
+            "id": "R2013", "name": "배성호", "store": "S001", "device": FOLD_BLACK, "line": "MNP", "carrier": "LGU",
             "deadline": ("hours", 7), "waited": 28,
             "issues": [
                 (ISSUE_MISSING_DOCUMENTS, {"documents": ["위임장", "대리인 신분증"]}),
@@ -138,7 +138,7 @@ def _cases(now: datetime) -> list[dict]:
         },
         {"id": "R2014", "name": "권나연", "store": "S001", "device": IPHONE_PRO, "line": "CHANGE", "completed": 3, "issues": []},
         {"id": "R2015", "name": "황민재", "store": "S002", "device": IPHONE_BLUE, "line": "NEW", "completed": 26, "issues": []},
-        {"id": "R2016", "name": "송지우", "store": "S002", "device": IPHONE18_LIGHT_BLUE, "line": "MNP", "completed": 50, "issues": []},
+        {"id": "R2016", "name": "송지우", "store": "S002", "device": IPHONE18_LIGHT_BLUE, "line": "MNP", "carrier": "SKT", "completed": 50, "issues": []},
         {"id": "R2017", "name": "조은비", "store": "S001", "device": S25_ULTRA, "line": "CHANGE", "cancelled": 20, "issues": []},
     ]
 
@@ -187,6 +187,7 @@ def seed_demo_data(db_path, data_dir=None, now: datetime | None = None) -> None:
                 "store_id": case["store"],
                 "device": case["device"],
                 "line_type": case["line"],
+                "previous_carrier": case.get("carrier"),
                 "desired_activation_date": deadline.date().isoformat(),
                 "activation_deadline": deadline.isoformat(timespec="seconds"),
                 "status": status,

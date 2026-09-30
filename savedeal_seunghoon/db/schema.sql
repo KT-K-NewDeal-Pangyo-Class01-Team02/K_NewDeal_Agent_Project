@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     device_color            TEXT NOT NULL,
     device_storage          TEXT NOT NULL,
     line_type               TEXT NOT NULL,
+    -- 번호이동(MNP) 고객의 기존 통신사: SKT / LGU / MVNO (번호이동이 아니면 NULL)
+    previous_carrier        TEXT,
     desired_activation_date TEXT NOT NULL,
     activation_deadline     TEXT NOT NULL,
     -- ACTION_REQUIRED / IN_PROGRESS / READY / COMPLETED / CANCELLED

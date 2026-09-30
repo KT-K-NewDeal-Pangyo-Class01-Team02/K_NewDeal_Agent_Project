@@ -169,6 +169,7 @@
       customer_id: data.get("customer_id"),
       store_id: data.get("store_id"),
       line_type: data.get("line_type"),
+      previous_carrier: data.get("line_type") === "MNP" ? data.get("previous_carrier") || null : null,
       desired_activation_date: data.get("desired_activation_date"),
       device: {
         model: data.get("device_model"),
@@ -183,6 +184,7 @@
     if (!payload.customer_id) missing.push("고객번호");
     if (!payload.store_id) missing.push("방문 매장");
     if (!payload.line_type) missing.push("가입유형");
+    if (payload.line_type === "MNP" && !payload.previous_carrier) missing.push("기존 통신사");
     if (!payload.device.model) missing.push("단말 모델");
     if (!payload.device.color) missing.push("색상");
     if (!payload.device.storage) missing.push("용량");
@@ -379,6 +381,15 @@
     if (!form) return;
 
     setupRegisterButton();
+
+    // 번호이동을 고를 때만 '기존 통신사' 칸을 보여 준다
+    var lineType = $("#line_type");
+    var carrierField = $("#previous-carrier-field");
+    if (lineType && carrierField) {
+      lineType.addEventListener("change", function () {
+        carrierField.hidden = lineType.value !== "MNP";
+      });
+    }
 
     var catalog = loadDeviceCatalog();
     setupDeviceSelectors(catalog);

@@ -101,6 +101,11 @@
   --size-rank: 22px;
   --size-avatar: 28px;
   --size-device-thumb: 36px;
+  --size-carrier-logo: 13px;
+  --size-carrier-logo-lg: 18px;
+  /* SK텔레콤은 글자가 작은 가로형 로고라 같은 크기로 보이려면 더 높게 둔다 */
+  --size-carrier-logo-wordmark: 22px;
+  --size-carrier-logo-wordmark-lg: 28px;
   --size-device-photo: 64px;
   --size-control: 36px;
   --size-button-sm: 28px;
@@ -709,6 +714,44 @@ button:disabled,
   height: var(--size-device-photo);
   border-radius: var(--radius-md);
   padding: var(--space-1);
+}
+
+/* ── 통신사 (번호이동) ─────────────────────────────────────── */
+.carrier-change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  vertical-align: middle;
+}
+
+.carrier-logo {
+  display: block;
+  height: var(--size-carrier-logo);
+  width: auto;
+}
+
+.carrier-change.is-large .carrier-logo {
+  height: var(--size-carrier-logo-lg);
+}
+
+.carrier-logo.carrier-SKT {
+  height: var(--size-carrier-logo-wordmark);
+  margin: calc(var(--space-1) * -1) 0;
+}
+
+.carrier-change.is-large .carrier-logo.carrier-SKT {
+  height: var(--size-carrier-logo-wordmark-lg);
+}
+
+.carrier-arrow {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-12);
+}
+
+.carrier-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 /* ── 로딩 · 빈 목록 · 오류 상태 ───────────────────────────── */

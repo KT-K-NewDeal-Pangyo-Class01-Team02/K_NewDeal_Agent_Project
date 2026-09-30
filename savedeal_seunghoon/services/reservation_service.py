@@ -108,6 +108,7 @@ class ReservationService:
                 "store_id": payload["store_id"],
                 "device": device,
                 "line_type": payload["line_type"],
+                "previous_carrier": payload.get("previous_carrier") if payload["line_type"] == "MNP" else None,
                 "desired_activation_date": payload["desired_activation_date"],
                 "activation_deadline": f"{payload['desired_activation_date']}T{ACTIVATION_DEADLINE_TIME}",
                 "status": STATUS_ACTION_REQUIRED,
