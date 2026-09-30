@@ -16,5 +16,41 @@
     "color": "Blue",
     "storage": "128GB",
     "price": 1250000
+  },
+  {
+    "model": "Galaxy Z Fold8",
+    "color": "Silver",
+    "storage": "512GB",
+    "price": 2390000
+  },
+  {
+    "model": "Galaxy Z Fold8",
+    "color": "Lavender",
+    "storage": "256GB",
+    "price": 2220000
+  },
+  {
+    "model": "Galaxy Z Fold8",
+    "color": "Black",
+    "storage": "256GB",
+    "price": 2220000
+  },
+  {
+    "model": "iPhone 18 Pro",
+    "color": "Silver",
+    "storage": "256GB",
+    "price": 1790000
+  },
+  {
+    "model": "iPhone 18 Pro",
+    "color": "Burgundy",
+    "storage": "256GB",
+    "price": 1790000
+  },
+  {
+    "model": "iPhone 18 Pro",
+    "color": "Light Blue",
+    "storage": "512GB",
+    "price": 2090000
   }
 ]

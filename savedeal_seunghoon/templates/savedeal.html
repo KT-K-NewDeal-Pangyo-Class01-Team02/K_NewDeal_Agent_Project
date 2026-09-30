@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}예약판매 이탈 방지 - SAVEDEAL{% endblock %}
 
@@ -19,31 +20,36 @@
     <p class="page-subtitle">미완료 예약을 처리 우선순위대로 감시하고, Agent가 제안한 해결책을 승인해 개통까지 이끕니다.</p>
   </div>
   <div class="header-actions">
-    <button type="button" class="btn-ghost" id="reset-demo">데모 데이터 초기화</button>
-    <a class="btn-primary" href="{{ url_for('pages.savedeal_new') }}">+ 신규 예약 등록</a>
+    <button type="button" class="btn-text" id="reset-demo">{{ icon("rotate-ccw", "icon-sm") }}데모 데이터 초기화</button>
+    <a class="btn-primary" href="{{ url_for('pages.savedeal_new') }}">{{ icon("plus", "icon-sm") }}신규 예약 등록</a>
   </div>
 </div>
 
 <section class="summary-grid" aria-label="예약 요약">
   <button type="button" class="summary-card" data-filter="all">
-    <span class="summary-label">미완료 예약</span>
-    <strong class="summary-value" id="summary-open">-</strong>
+    <span class="summary-label">{{ icon("clipboard-list", "icon-sm summary-icon") }}미완료 예약</span>
+    <strong class="summary-value num" id="summary-open">-</strong>
+    <span class="summary-note" id="summary-note-open">&nbsp;</span>
   </button>
-  <button type="button" class="summary-card" data-filter="needs_action">
-    <span class="summary-label">처리 필요</span>
-    <strong class="summary-value tone-warning" id="summary-needs_action">-</strong>
+  <button type="button" class="summary-card is-urgent tone-warning" data-filter="needs_action">
+    <span class="summary-label">{{ icon("circle-alert", "icon-sm summary-icon") }}처리 필요</span>
+    <strong class="summary-value num" id="summary-needs_action">-</strong>
+    <span class="summary-note" id="summary-note-needs_action">&nbsp;</span>
   </button>
-  <button type="button" class="summary-card" data-filter="high_risk">
-    <span class="summary-label">고위험</span>
-    <strong class="summary-value tone-danger" id="summary-high_risk">-</strong>
+  <button type="button" class="summary-card is-urgent tone-danger" data-filter="high_risk">
+    <span class="summary-label">{{ icon("triangle-alert", "icon-sm summary-icon") }}고위험</span>
+    <strong class="summary-value num" id="summary-high_risk">-</strong>
+    <span class="summary-note" id="summary-note-high_risk">&nbsp;</span>
   </button>
-  <button type="button" class="summary-card" data-filter="due_today">
-    <span class="summary-label">오늘 마감</span>
-    <strong class="summary-value tone-danger" id="summary-due_today">-</strong>
+  <button type="button" class="summary-card is-urgent tone-danger" data-filter="due_today">
+    <span class="summary-label">{{ icon("alarm-clock", "icon-sm summary-icon") }}오늘 마감</span>
+    <strong class="summary-value num" id="summary-due_today">-</strong>
+    <span class="summary-note" id="summary-note-due_today">&nbsp;</span>
   </button>
   <button type="button" class="summary-card" data-filter="completed">
-    <span class="summary-label">오늘 개통 완료</span>
-    <strong class="summary-value tone-success" id="summary-completed_today">-</strong>
+    <span class="summary-label">{{ icon("circle-check", "icon-sm summary-icon") }}오늘 개통 완료</span>
+    <strong class="summary-value num" id="summary-completed_today">-</strong>
+    <span class="summary-note" id="summary-note-completed_today">&nbsp;</span>
   </button>
 </section>
 
@@ -64,7 +70,7 @@
       <table class="reservation-table">
         <thead>
           <tr>
-            <th scope="col">우선순위</th>
+            <th scope="col" class="col-num">우선순위</th>
             <th scope="col">고객 · 예약</th>
             <th scope="col">단말 · 매장</th>
             <th scope="col">문제 원인</th>
@@ -74,7 +80,9 @@
           </tr>
         </thead>
         <tbody id="reservation-rows">
-          <tr><td colspan="7" class="table-empty">예약 목록을 불러오는 중입니다...</td></tr>
+          <tr><td colspan="7" class="table-state">
+            <span class="state-block">{{ icon("loader-circle", "state-icon is-spinning") }}<span class="state-title">예약 목록을 불러오는 중입니다...</span></span>
+          </td></tr>
         </tbody>
       </table>
     </div>
@@ -87,7 +95,7 @@
         <p class="detail-eyebrow" id="detail-id"></p>
         <h2 id="detail-title" class="detail-title"></h2>
       </div>
-      <button type="button" class="icon-button" id="detail-close" aria-label="상세 패널 닫기">✕</button>
+      <button type="button" class="icon-button" id="detail-close" aria-label="상세 패널 닫기">{{ icon("x") }}</button>
     </div>
     <div id="detail-body" aria-live="polite"></div>
   </aside>

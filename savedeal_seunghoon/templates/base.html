@@ -1,37 +1,40 @@
+{% from "_icons.html" import icon, sprite %}
 <!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SAVEDEAL Command Center{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
   {% block extra_css %}{% endblock %}
 </head>
 <body>
+  {{ sprite() }}
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <span class="sidebar-logo">Command Center</span>
+        <span class="sidebar-logo"><span class="sidebar-logo-mark" aria-hidden="true">C</span>Command Center</span>
       </div>
       <nav class="sidebar-nav" aria-label="주요 메뉴">
         <a href="{{ config.COMMAND_CENTER_URL }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'home' else '' }}">
-          <span class="sidebar-nav-icon" aria-hidden="true">🏠</span>
+          {{ icon("house", "sidebar-nav-icon") }}
           <span>홈</span>
         </a>
         <a href="{{ url_for('pages.savedeal') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'agents' else '' }}">
-          <span class="sidebar-nav-icon" aria-hidden="true">🧭</span>
+          {{ icon("compass", "sidebar-nav-icon") }}
           <span>예약 운영</span>
         </a>
         <a href="{{ url_for('pages.savedeal_new') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'new' else '' }}">
-          <span class="sidebar-nav-icon" aria-hidden="true">➕</span>
+          {{ icon("circle-plus", "sidebar-nav-icon") }}
           <span>신규 예약</span>
         </a>
         <span class="sidebar-nav-item is-disabled" aria-disabled="true">
-          <span class="sidebar-nav-icon" aria-hidden="true">🕘</span>
+          {{ icon("history", "sidebar-nav-icon") }}
           <span>활동 내역</span>
         </span>
         <span class="sidebar-nav-item is-disabled" aria-disabled="true">
-          <span class="sidebar-nav-icon" aria-hidden="true">⚙️</span>
+          {{ icon("settings", "sidebar-nav-icon") }}
           <span>설정</span>
         </span>
       </nav>
@@ -43,16 +46,16 @@
     <div class="main">
       <header class="topbar">
         <label class="topbar-search" for="global-search">
-          <span aria-hidden="true">🔍</span>
+          {{ icon("search", "topbar-search-icon") }}
           <span class="visually-hidden">검색</span>
           <input id="global-search" type="search" placeholder="무엇을 도와드릴까요?">
         </label>
         <div class="topbar-actions">
           <button type="button" class="icon-button" aria-label="알림">
-            <span aria-hidden="true">🔔</span>
+            {{ icon("bell") }}
           </button>
           <div class="user-info">
-            <span class="user-avatar" aria-hidden="true"></span>
+            <span class="user-avatar" aria-hidden="true">김</span>
             <span class="user-name">김지현 매니저</span>
           </div>
         </div>

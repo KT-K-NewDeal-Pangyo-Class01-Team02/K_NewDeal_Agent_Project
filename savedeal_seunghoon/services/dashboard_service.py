@@ -34,6 +34,7 @@ from services.codes import (
     STATUS_LABELS,
     STATUS_READY,
 )
+from services.device_images import image_for
 from services.risk_scoring_service import (
     RISK_HIGH,
     calculate_churn_risk,
@@ -63,6 +64,8 @@ STATUS_PARAM_COMPLETED = "completed"
 STATUS_PARAMS = {STATUS_INCOMPLETE, STATUS_PARAM_COMPLETED}
 RISK_PARAMS = {"high", "medium", "low"}
 
+DUE_SOON_HOURS = 6
+
 
 def _duration_label(hours: float) -> str:
     hours = abs(hours)
@@ -84,6 +87,13 @@ def _format_datetime(value: str | None) -> str | None:
     if not value:
         return None
     return datetime.fromisoformat(value).strftime("%m/%d %H:%M")
+
+
+def _device_image(device: dict) -> dict | None:
+    image = image_for(device)
+    if image is None:
+        return None
+    return {"url": f"/static/{image['path']}", "is_representative": image["is_representative"]}
 
 
 def _is_open(reservation: dict) -> bool:
@@ -154,6 +164,9 @@ class DashboardService:
             "customer_phone": reservation["customer_phone"],
             "store_name": self._store_name(reservation["store_id"]),
             "device_label": f"{device['model']} {device['color']} {device['storage']}",
+            "device_model": device["model"],
+            "device_option": f"{device['color']} · {device['storage']}",
+            "device_image": _device_image(device),
             "line_type_label": LINE_TYPE_LABELS.get(reservation["line_type"], reservation["line_type"]),
             "status": reservation["status"],
             "status_label": STATUS_LABELS.get(reservation["status"], reservation["status"]),
@@ -219,25 +232,45 @@ class DashboardService:
             FILTER_COMPLETED: closed_items,
         }
 
+        summary = {
+            "open": len(open_items),
+            "needs_action": len(buckets[FILTER_NEEDS_ACTION]),
+            "high_risk": len(buckets[FILTER_HIGH_RISK]),
+            "due_today": len(buckets[FILTER_DUE_TODAY]),
+            "ready": len([s for s in open_items if s["status"] == STATUS_READY]),
+            "completed_today": len(
+                [
+                    s
+                    for s in closed_items
+                    if s["status"] == STATUS_COMPLETED and s["_completed_at"][:10] == now.date().isoformat()
+                ]
+            ),
+        }
+        in_progress = len([s for s in open_items if s["status"] == STATUS_IN_PROGRESS])
+        overdue = len([s for s in open_items if s["is_overdue"]])
+        due_soon = len(
+            [s for s in open_items if 0 <= hours_until(s["activation_deadline"], now) <= DUE_SOON_HOURS]
+        )
+        high_risk_ratio = round(summary["high_risk"] * 100 / summary["open"]) if summary["open"] else 0
+
         return {
             "filter": filter_key,
             "filters": [
                 {"key": key, "label": label, "count": len(buckets[key])} for key, label in FILTERS
             ],
-            "summary": {
-                "open": len(open_items),
-                "needs_action": len(buckets[FILTER_NEEDS_ACTION]),
-                "high_risk": len(buckets[FILTER_HIGH_RISK]),
-                "due_today": len(buckets[FILTER_DUE_TODAY]),
-                "ready": len([s for s in open_items if s["status"] == STATUS_READY]),
-                "completed_today": len(
-                    [
-                        s
-                        for s in closed_items
-                        if s["status"] == STATUS_COMPLETED
-                        and s["_completed_at"][:10] == now.date().isoformat()
-                    ]
-                ),
+            "summary": summary,
+            # KPI 카드 보조 라인. 과거 기록이 없으므로 현재 데이터에서 계산한 값만 쓴다.
+            "summary_notes": {
+                "open": f"해결 진행 중 {in_progress}건",
+                "needs_action": f"마감 초과 {overdue}건",
+                "high_risk": f"미완료의 {high_risk_ratio}%",
+                "due_today": f"{DUE_SOON_HOURS}시간 이내 {due_soon}건",
+                "completed_today": f"개통 대기 {summary['ready']}건",
+            },
+            # 보조 라인 강조: 바로 처리해야 할 사실이 있을 때만 색을 준다 (없으면 None)
+            "summary_note_tones": {
+                "needs_action": "danger" if overdue else None,
+                "due_today": "warning" if due_soon else None,
             },
             "status": status,
             "risk": risk,

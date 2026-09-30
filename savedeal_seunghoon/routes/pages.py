@@ -4,6 +4,7 @@ from repositories.customer_repository import CustomerRepository
 from repositories.device_repository import DeviceRepository
 from repositories.store_repository import StoreRepository
 from services.dashboard_service import FILTERS
+from services.device_images import image_for
 
 pages_bp = Blueprint("pages", __name__)
 
@@ -33,6 +34,9 @@ def savedeal_new():
     stores = StoreRepository(data_dir).load_all()
     customers = CustomerRepository(data_dir).load_all()
     devices = DeviceRepository(data_dir).load_all()
+    for device in devices:
+        image = image_for(device)
+        device["image_url"] = url_for("static", filename=image["path"]) if image else None
 
     return render_template(
         "savedeal_new.html",

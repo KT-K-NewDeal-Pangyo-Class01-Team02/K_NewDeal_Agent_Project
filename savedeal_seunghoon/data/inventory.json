@@ -34,5 +34,68 @@
     "store_id": "S001",
     "quantity_on_hand": 0,
     "expected_restock_date": null
+  },
+  {
+    "sku": "SKU005",
+    "model": "Galaxy Z Fold8",
+    "color": "Silver",
+    "storage": "512GB",
+    "store_id": "S001",
+    "quantity_on_hand": 0,
+    "expected_restock_date": "2026-10-11"
+  },
+  {
+    "sku": "SKU006",
+    "model": "Galaxy Z Fold8",
+    "color": "Silver",
+    "storage": "512GB",
+    "store_id": "S002",
+    "quantity_on_hand": 2,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU007",
+    "model": "Galaxy Z Fold8",
+    "color": "Black",
+    "storage": "256GB",
+    "store_id": "S001",
+    "quantity_on_hand": 4,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU008",
+    "model": "Galaxy Z Fold8",
+    "color": "Lavender",
+    "storage": "256GB",
+    "store_id": "S001",
+    "quantity_on_hand": 1,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU009",
+    "model": "iPhone 18 Pro",
+    "color": "Silver",
+    "storage": "256GB",
+    "store_id": "S002",
+    "quantity_on_hand": 3,
+    "expected_restock_date": null
+  },
+  {
+    "sku": "SKU010",
+    "model": "iPhone 18 Pro",
+    "color": "Burgundy",
+    "storage": "256GB",
+    "store_id": "S002",
+    "quantity_on_hand": 0,
+    "expected_restock_date": "2026-10-08"
+  },
+  {
+    "sku": "SKU011",
+    "model": "iPhone 18 Pro",
+    "color": "Light Blue",
+    "storage": "512GB",
+    "store_id": "S001",
+    "quantity_on_hand": 2,
+    "expected_restock_date": null
   }
 ]

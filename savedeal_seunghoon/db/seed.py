@@ -29,10 +29,15 @@ from services.codes import (
 )
 
 FOLD_BLACK = {"model": "GalaxyZ Fold6", "color": "Black", "storage": "256GB"}
-FOLD_SILVER = {"model": "GalaxyZ Fold6", "color": "Silver", "storage": "512GB"}
 IPHONE_BLUE = {"model": "iPhone 16", "color": "Blue", "storage": "128GB"}
 IPHONE_PRO = {"model": "iPhone 16 Pro", "color": "Desert Titanium", "storage": "256GB"}
 S25_ULTRA = {"model": "Galaxy S25 Ultra", "color": "Titanium Gray", "storage": "256GB"}
+# 예약판매 신모델 (색상명은 임시 이름)
+FOLD8_SILVER = {"model": "Galaxy Z Fold8", "color": "Silver", "storage": "512GB"}
+FOLD8_LAVENDER = {"model": "Galaxy Z Fold8", "color": "Lavender", "storage": "256GB"}
+IPHONE18_SILVER = {"model": "iPhone 18 Pro", "color": "Silver", "storage": "256GB"}
+IPHONE18_BURGUNDY = {"model": "iPhone 18 Pro", "color": "Burgundy", "storage": "256GB"}
+IPHONE18_LIGHT_BLUE = {"model": "iPhone 18 Pro", "color": "Light Blue", "storage": "512GB"}
 
 
 def _cases(now: datetime) -> list[dict]:
@@ -45,7 +50,7 @@ def _cases(now: datetime) -> list[dict]:
     }
     return [
         {
-            "id": "R2001", "name": "김민수", "store": "S001", "device": FOLD_SILVER, "line": "MNP",
+            "id": "R2001", "name": "김민수", "store": "S001", "device": FOLD8_SILVER, "line": "MNP",
             "deadline": ("hours", 4), "waited": 30,
             "issues": [(ISSUE_STOCK_SHORTAGE, {**fold_silver_shortage, "nearby_stores": [{"store_id": "S002", "quantity": 2}]})],
         },
@@ -60,7 +65,7 @@ def _cases(now: datetime) -> list[dict]:
             "issues": [(ISSUE_MISSING_DOCUMENTS, {"documents": ["가족관계증명서"]})],
         },
         {
-            "id": "R2004", "name": "최유진", "store": "S002", "device": IPHONE_PRO, "line": "MNP",
+            "id": "R2004", "name": "최유진", "store": "S002", "device": IPHONE18_SILVER, "line": "MNP",
             "deadline": ("days", 1), "waited": 52,
             "issues": [
                 (
@@ -80,7 +85,7 @@ def _cases(now: datetime) -> list[dict]:
             "issues": [(ISSUE_IDENTITY_FAILED, {"method": "PASS 앱 인증", "reason": "명의 불일치"})],
         },
         {
-            "id": "R2007", "name": "윤서아", "store": "S001", "device": FOLD_SILVER, "line": "MNP",
+            "id": "R2007", "name": "윤서아", "store": "S001", "device": FOLD8_SILVER, "line": "MNP",
             "deadline": ("hours", -2), "waited": 60, "fail": [ISSUE_STOCK_SHORTAGE, ISSUE_STOCK_SHORTAGE],
             "issues": [
                 (ISSUE_STOCK_SHORTAGE, {**fold_silver_shortage, "nearby_stores": [{"store_id": "S002", "quantity": 1}]}),
@@ -92,7 +97,7 @@ def _cases(now: datetime) -> list[dict]:
             ],
         },
         {
-            "id": "R2008", "name": "임현우", "store": "S002", "device": IPHONE_PRO, "line": "NEW",
+            "id": "R2008", "name": "임현우", "store": "S002", "device": IPHONE18_BURGUNDY, "line": "NEW",
             "deadline": ("days", 5), "waited": 4,
             "issues": [
                 (ISSUE_OVERDUE_PAYMENT, {"amount": 87000}),
@@ -100,7 +105,7 @@ def _cases(now: datetime) -> list[dict]:
             ],
         },
         {
-            "id": "R2009", "name": "한지민", "store": "S001", "device": FOLD_SILVER, "line": "CHANGE",
+            "id": "R2009", "name": "한지민", "store": "S001", "device": FOLD8_LAVENDER, "line": "CHANGE",
             "deadline": ("days", 4), "waited": 12,
             "issues": [(ISSUE_STOCK_SHORTAGE, fold_silver_shortage)],
         },
@@ -131,9 +136,9 @@ def _cases(now: datetime) -> list[dict]:
                 (ISSUE_IDENTITY_FAILED, {"method": "휴대폰 본인인증", "reason": "인증번호 시간 초과"}),
             ],
         },
-        {"id": "R2014", "name": "권나연", "store": "S001", "device": FOLD_BLACK, "line": "CHANGE", "completed": 3, "issues": []},
+        {"id": "R2014", "name": "권나연", "store": "S001", "device": IPHONE_PRO, "line": "CHANGE", "completed": 3, "issues": []},
         {"id": "R2015", "name": "황민재", "store": "S002", "device": IPHONE_BLUE, "line": "NEW", "completed": 26, "issues": []},
-        {"id": "R2016", "name": "송지우", "store": "S002", "device": IPHONE_PRO, "line": "MNP", "completed": 50, "issues": []},
+        {"id": "R2016", "name": "송지우", "store": "S002", "device": IPHONE18_LIGHT_BLUE, "line": "MNP", "completed": 50, "issues": []},
         {"id": "R2017", "name": "조은비", "store": "S001", "device": S25_ULTRA, "line": "CHANGE", "cancelled": 20, "issues": []},
     ]
 

@@ -10,9 +10,9 @@
   };
 
   var VERDICT_META = {
-    feasible: { label: "즉시 가능", icon: "✅", className: "status-feasible", feasibility: "높음" },
-    conditional: { label: "조건부 가능", icon: "⚠️", className: "status-conditional", feasibility: "보통" },
-    high_risk: { label: "개통 어려움", icon: "⛔", className: "status-high-risk", feasibility: "낮음" },
+    feasible: { label: "즉시 가능", icon: "circle-check", className: "status-feasible", feasibility: "높음" },
+    conditional: { label: "조건부 가능", icon: "triangle-alert", className: "status-conditional", feasibility: "보통" },
+    high_risk: { label: "개통 어려움", icon: "octagon-x", className: "status-high-risk", feasibility: "낮음" },
   };
 
   var INVENTORY_STATUS_LABELS = {
@@ -26,6 +26,30 @@
     medium: "보통",
     high: "높음",
   };
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function svgIcon(name) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "icon icon-sm");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    var use = document.createElementNS(SVG_NS, "use");
+    use.setAttribute("href", "#icon-" + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  // 로딩 · 오류를 대시보드와 같은 모양으로 그린다
+  function stateBlock(kind, title, desc) {
+    var block = el("div", { className: "state-block" + (kind === "error" ? " is-error" : "") });
+    var stateIcon = svgIcon(kind === "loading" ? "loader-circle" : "triangle-alert");
+    stateIcon.setAttribute("class", "icon state-icon" + (kind === "loading" ? " is-spinning" : ""));
+    block.appendChild(stateIcon);
+    block.appendChild(el("span", { className: "state-title", text: title }));
+    if (desc) block.appendChild(el("span", { className: "state-desc", text: desc }));
+    return block;
+  }
 
   function $(selector, scope) {
     return (scope || document).querySelector(selector);
@@ -100,7 +124,37 @@
         "storage"
       );
       fillSelect(storageSelect, storages, "용량을 선택하세요");
+      updateDevicePreview(catalog);
     });
+
+    modelSelect.addEventListener("change", function () {
+      updateDevicePreview(catalog);
+    });
+    storageSelect.addEventListener("change", function () {
+      updateDevicePreview(catalog);
+    });
+  }
+
+  // 선택한 모델(·색상·용량)의 사진을 보여 준다. 색상 선택 전에는 모델 대표 사진.
+  function updateDevicePreview(catalog) {
+    var model = $("#device_model").value;
+    var color = $("#device_color").value;
+    var storage = $("#device_storage").value;
+    var preview = $("#device-preview");
+    if (!preview) return;
+    var candidates = catalog.filter(function (item) {
+      return item.model === model && (!color || item.color === color);
+    });
+    var match = candidates.filter(function (item) { return item.image_url; })[0];
+    if (!model || !match) {
+      preview.hidden = true;
+      return;
+    }
+    $("#device-preview-img").src = match.image_url;
+    $("#device-preview-img").alt = model;
+    $("#device-preview-model").textContent = model;
+    $("#device-preview-option").textContent = [color, storage].filter(Boolean).join(" · ") || "색상을 선택하세요";
+    preview.hidden = false;
   }
 
   function showError(message) {
@@ -139,15 +193,13 @@
   function renderLoading() {
     var content = $("#result-content");
     content.innerHTML = "";
-    content.appendChild(el("p", { className: "loading-state", text: "사전검증을 실행하는 중입니다..." }));
+    content.appendChild(stateBlock("loading", "사전검증을 실행하는 중입니다..."));
   }
 
   function renderApiError(message) {
     var content = $("#result-content");
     content.innerHTML = "";
-    var box = el("div", { className: "result-error" });
-    box.appendChild(el("p", { text: "⚠️ " + message }));
-    content.appendChild(box);
+    content.appendChild(stateBlock("error", "사전검증을 완료하지 못했습니다.", message));
   }
 
   function renderIssueList(title, issues) {
@@ -210,9 +262,9 @@
     var list = el("ul", { className: "checklist" });
     items.forEach(function (item) {
       var li = el("li", { className: item.ok ? "checklist-ok" : "checklist-fail" });
-      var icon = item.ok ? "✅" : "❌";
       var state = item.ok ? "완료" : "미충족";
-      li.textContent = icon + " " + item.label + " - " + state;
+      li.appendChild(svgIcon(item.ok ? "circle-check" : "circle-x"));
+      li.appendChild(document.createTextNode(item.label + " - " + state));
       list.appendChild(li);
     });
     section.appendChild(list);
@@ -225,14 +277,15 @@
 
     var verdictMeta = VERDICT_META[data.overall_verdict] || {
       label: data.overall_verdict,
-      icon: "ℹ️",
+      icon: "info",
       className: "status-unknown",
       feasibility: "-",
     };
 
     var summary = el("div", { className: "result-summary " + verdictMeta.className });
     var badge = el("p", { className: "status-badge" });
-    badge.textContent = verdictMeta.icon + " " + data.overall_verdict + " · " + verdictMeta.label;
+    badge.appendChild(svgIcon(verdictMeta.icon));
+    badge.appendChild(document.createTextNode(data.overall_verdict + " · " + verdictMeta.label));
     summary.appendChild(badge);
 
     var scoreRow = el("div", { className: "score-row" });

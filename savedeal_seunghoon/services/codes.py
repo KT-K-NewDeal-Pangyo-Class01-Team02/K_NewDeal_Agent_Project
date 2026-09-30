@@ -105,4 +105,4 @@ EVENT_LABELS = {
 
 LINE_TYPE_LABELS = {"NEW": "신규가입", "MNP": "번호이동", "CHANGE": "기기변경"}
 
-RISK_LABELS = {"high": "고위험", "medium": "주의", "low": "양호"}
+RISK_LABELS = {"high": "고위험", "medium": "주의", "low": "안정"}

@@ -5,6 +5,25 @@
 
   var state = { filter: "all", selectedId: null };
 
+  // 표시용 색 매핑 (판정이 아니라 서버가 준 상태값을 어떤 색 뱃지로 그릴지만 정한다)
+  var STATUS_TONES = {
+    ACTION_REQUIRED: "tone-warning",
+    IN_PROGRESS: "tone-info",
+    READY: "tone-success",
+    COMPLETED: "tone-success",
+    CANCELLED: "",
+  };
+  var STATUS_ICONS = {
+    ACTION_REQUIRED: "circle-alert",
+    IN_PROGRESS: "circle-dashed",
+    READY: "clock",
+    COMPLETED: "circle-check",
+    CANCELLED: "ban",
+  };
+  var RISK_TONES = { high: "tone-danger", medium: "tone-warning", low: "tone-success" };
+  var ACTION_STATUS_TONES = { APPROVED: "tone-info", SUCCEEDED: "tone-success", FAILED: "tone-danger" };
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
   function $(selector, scope) {
     return (scope || document).querySelector(selector);
   }
@@ -14,6 +33,85 @@
     if (className) node.className = className;
     if (text !== undefined && text !== null) node.textContent = text;
     return node;
+  }
+
+  function icon(name, extraClass) {
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "icon" + (extraClass ? " " + extraClass : ""));
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    var use = document.createElementNS(SVG_NS, "use");
+    use.setAttribute("href", "#icon-" + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function withIcon(node, name, text) {
+    node.appendChild(icon(name, "icon-sm"));
+    node.appendChild(document.createTextNode(text));
+    return node;
+  }
+
+  function badge(text, tone, iconName) {
+    var node = el("span", "badge" + (tone ? " " + tone : ""));
+    if (iconName) node.appendChild(icon(iconName));
+    node.appendChild(document.createTextNode(text));
+    return node;
+  }
+
+  // 단말 사진 (없거나 불러오지 못하면 기본 단말 아이콘)
+  function deviceThumb(image, label, large) {
+    var box = el("span", "device-thumb" + (large ? " is-large" : ""));
+    var fallback = function () {
+      box.innerHTML = "";
+      box.appendChild(icon("smartphone", large ? "" : "icon-sm"));
+    };
+    if (!image) {
+      fallback();
+      return box;
+    }
+    var img = document.createElement("img");
+    img.src = image.url;
+    img.alt = large ? label : "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("error", fallback);
+    box.title = image.is_representative ? label + " (대표 이미지 · 실제 색상과 다를 수 있음)" : label;
+    box.appendChild(img);
+    return box;
+  }
+
+  function statusBadge(status, label) {
+    return badge(label, STATUS_TONES[status], STATUS_ICONS[status]);
+  }
+
+  function riskBadge(level, label, score) {
+    var node = el("span", "badge " + (RISK_TONES[level] || ""));
+    node.appendChild(el("span", "badge-dot"));
+    node.appendChild(document.createTextNode(label));
+    node.title = "이탈위험 점수 " + score;
+    return node;
+  }
+
+  // 로딩 · 빈 목록 · 오류를 같은 모양으로 그린다
+  function stateBlock(kind, title, desc) {
+    var icons = { loading: "loader-circle", empty: "inbox", error: "triangle-alert" };
+    var block = el("div", "state-block" + (kind === "error" ? " is-error" : ""));
+    block.appendChild(icon(icons[kind], "state-icon" + (kind === "loading" ? " is-spinning" : "")));
+    block.appendChild(el("span", "state-title", title));
+    if (desc) block.appendChild(el("span", "state-desc", desc));
+    return block;
+  }
+
+  function tableState(kind, title, desc) {
+    var tbody = $("#reservation-rows");
+    tbody.innerHTML = "";
+    var row = el("tr");
+    var cell = el("td", "table-state");
+    cell.colSpan = 7;
+    cell.appendChild(stateBlock(kind, title, desc));
+    row.appendChild(cell);
+    tbody.appendChild(row);
   }
 
   function request(method, url) {
@@ -33,13 +131,7 @@
     return request("GET", "/api/reservations?filter=" + encodeURIComponent(state.filter))
       .then(renderList)
       .catch(function (err) {
-        var tbody = $("#reservation-rows");
-        tbody.innerHTML = "";
-        var row = el("tr");
-        var cell = el("td", "table-empty", "⚠️ " + err.message);
-        cell.colSpan = 7;
-        row.appendChild(cell);
-        tbody.appendChild(row);
+        tableState("error", "예약 목록을 불러오지 못했습니다.", err.message);
       });
   }
 
@@ -47,6 +139,13 @@
     Object.keys(data.summary).forEach(function (key) {
       var target = document.getElementById("summary-" + key);
       if (target) target.textContent = data.summary[key];
+    });
+    var noteTones = data.summary_note_tones || {};
+    Object.keys(data.summary_notes || {}).forEach(function (key) {
+      var note = document.getElementById("summary-note-" + key);
+      if (!note) return;
+      note.textContent = data.summary_notes[key];
+      note.className = "summary-note" + (noteTones[key] ? " tone-" + noteTones[key] : "");
     });
     data.filters.forEach(function (filter) {
       var count = document.querySelector('[data-count-for="' + filter.key + '"]');
@@ -62,11 +161,7 @@
     var tbody = $("#reservation-rows");
     tbody.innerHTML = "";
     if (data.items.length === 0) {
-      var emptyRow = el("tr");
-      var emptyCell = el("td", "table-empty", "해당하는 예약이 없습니다.");
-      emptyCell.colSpan = 7;
-      emptyRow.appendChild(emptyCell);
-      tbody.appendChild(emptyRow);
+      tableState("empty", "해당하는 예약이 없습니다.", "다른 필터를 선택해 보세요.");
       return;
     }
 
@@ -77,16 +172,18 @@
   }
 
   function renderRow(item, rank) {
-    var row = el("tr", "reservation-row" + (item.is_open ? "" : " is-closed"));
+    var row = el("tr", "reservation-row" + (item.is_open ? "" : " is-closed") + (item.is_overdue ? " is-overdue" : ""));
     row.tabIndex = 0;
     row.dataset.id = item.reservation_id;
     if (item.reservation_id === state.selectedId) row.classList.add("is-selected");
 
-    var priority = el("td");
+    var priority = el("td", "col-num");
     var priorityCell = el("div", "priority-cell");
     if (rank !== null) {
       priorityCell.appendChild(el("span", "priority-rank" + (rank <= 3 ? " is-top" : ""), rank));
-      priorityCell.appendChild(el("span", "priority-score", item.priority_score + "점"));
+      var score = el("span", "priority-score", item.priority_score);
+      score.appendChild(el("span", "priority-unit", "점"));
+      priorityCell.appendChild(score);
     } else {
       priorityCell.appendChild(el("span", "cell-sub", "-"));
     }
@@ -94,16 +191,23 @@
     row.appendChild(priority);
 
     var customer = el("td");
-    customer.appendChild(el("span", "cell-main", item.customer_name));
+    customer.appendChild(el("span", "cell-main cell-strong", item.customer_name));
     customer.appendChild(el("span", "cell-sub", item.reservation_id + " · " + item.line_type_label));
     row.appendChild(customer);
 
-    var device = el("td");
-    device.appendChild(el("span", "cell-main", item.device_label));
-    device.appendChild(el("span", "cell-sub", item.store_name));
+    var device = el("td", "cell-device");
+    var deviceCell = el("div", "device-cell");
+    deviceCell.appendChild(deviceThumb(item.device_image, item.device_label, false));
+    var deviceText = el("div", "device-text");
+    var deviceName = el("span", "cell-main", item.device_model);
+    deviceName.title = item.device_label;
+    deviceText.appendChild(deviceName);
+    deviceText.appendChild(el("span", "cell-sub", item.device_option + " · " + item.store_name));
+    deviceCell.appendChild(deviceText);
+    device.appendChild(deviceCell);
     row.appendChild(device);
 
-    var issues = el("td");
+    var issues = el("td", "cell-issues");
     var chips = el("div", "chip-list");
     if (item.issues.length === 0) {
       chips.appendChild(el("span", "cell-sub", item.is_open ? "문제 없음" : "-"));
@@ -116,15 +220,18 @@
 
     var risk = el("td");
     if (item.is_open) {
-      risk.appendChild(el("span", "pill pill-risk-" + item.risk_level, item.risk_label + " " + item.churn_risk_score));
+      risk.appendChild(riskBadge(item.risk_level, item.risk_label, item.churn_risk_score));
     } else {
       risk.appendChild(el("span", "cell-sub", "-"));
     }
     row.appendChild(risk);
 
-    var deadline = el("td");
+    var deadline = el("td", "cell-deadline");
     if (item.is_open) {
-      deadline.appendChild(el("span", "cell-main" + (item.is_overdue ? " deadline-overdue" : ""), item.deadline_label));
+      var deadlineLabel = el("span", "cell-main cell-strong" + (item.is_overdue ? " deadline-overdue" : ""));
+      if (item.is_overdue) deadlineLabel.appendChild(icon("alarm-clock"));
+      deadlineLabel.appendChild(document.createTextNode(item.deadline_label));
+      deadline.appendChild(deadlineLabel);
       deadline.appendChild(el("span", "cell-sub", item.deadline_display));
     } else {
       deadline.appendChild(el("span", "cell-sub", item.completed_at_display ? item.completed_at_display + " 완료" : "-"));
@@ -132,7 +239,7 @@
     row.appendChild(deadline);
 
     var status = el("td");
-    status.appendChild(el("span", "pill pill-status-" + item.status, item.status_label));
+    status.appendChild(statusBadge(item.status, item.status_label));
     row.appendChild(status);
 
     row.addEventListener("click", function () {
@@ -159,7 +266,7 @@
     window.history.replaceState(null, "", url);
     openPanel();
     $("#detail-body").innerHTML = "";
-    $("#detail-body").appendChild(el("p", "muted", "상세 정보를 불러오는 중입니다..."));
+    $("#detail-body").appendChild(stateBlock("loading", "상세 정보를 불러오는 중입니다..."));
     return loadDetail();
   }
 
@@ -171,7 +278,7 @@
       })
       .catch(function (err) {
         $("#detail-body").innerHTML = "";
-        $("#detail-body").appendChild(el("div", "panel-message is-error", "⚠️ " + err.message));
+        $("#detail-body").appendChild(stateBlock("error", "상세 정보를 불러오지 못했습니다.", err.message));
       });
   }
 
@@ -209,13 +316,30 @@
   }
 
   function renderDetail(detail, message) {
-    $("#detail-id").textContent = detail.reservation_id + " · " + detail.status_label;
+    var eyebrow = $("#detail-id");
+    eyebrow.innerHTML = "";
+    eyebrow.appendChild(document.createTextNode(detail.reservation_id));
+    eyebrow.appendChild(statusBadge(detail.status, detail.status_label));
     $("#detail-title").textContent = detail.customer_name + " 고객";
 
     var body = $("#detail-body");
     body.innerHTML = "";
 
-    if (message) body.appendChild(el("div", "panel-message " + message.kind, message.text));
+    if (message) {
+      var messageIcon = message.kind === "is-error" ? "triangle-alert" : "circle-check";
+      body.appendChild(withIcon(el("div", "panel-message " + message.kind), messageIcon, message.text));
+    }
+
+    var deviceSummary = el("div", "detail-device");
+    deviceSummary.appendChild(deviceThumb(detail.device_image, detail.device_label, true));
+    var deviceInfo = el("div");
+    deviceInfo.appendChild(el("span", "detail-device-model", detail.device_model));
+    deviceInfo.appendChild(el("span", "detail-device-option", detail.device_option + " · " + detail.store_name));
+    if (detail.device_image && detail.device_image.is_representative) {
+      deviceInfo.appendChild(el("span", "detail-device-note", "대표 이미지 · 실제 색상과 다를 수 있음"));
+    }
+    deviceSummary.appendChild(deviceInfo);
+    body.appendChild(deviceSummary);
 
     var scores = el("div", "score-grid");
     if (detail.is_open) {
@@ -260,8 +384,11 @@
         var issueList = el("ul", "issue-cards");
         detail.issues.forEach(function (issue) {
           var li = el("li", "issue-card");
-          li.appendChild(el("strong", null, issue.label));
-          li.appendChild(el("span", null, issue.summary));
+          li.appendChild(icon("circle-alert", "icon-sm"));
+          var text = el("div");
+          text.appendChild(el("strong", null, issue.label));
+          text.appendChild(el("span", null, issue.summary));
+          li.appendChild(text);
           issueList.appendChild(li);
         });
         issues.appendChild(issueList);
@@ -274,7 +401,7 @@
       var actions = section("Agent 제안 해결책");
       if (detail.can_complete) {
         var ready = el("div", "ready-box");
-        ready.appendChild(el("p", null, "모든 문제가 해결됐습니다. 개통을 진행한 뒤 완료 처리하세요."));
+        ready.appendChild(withIcon(el("p"), "circle-check", "모든 문제가 해결됐습니다. 개통을 진행한 뒤 완료 처리하세요."));
         var completeButton = el("button", "btn-success btn-small", "개통 완료 처리");
         completeButton.type = "button";
         completeButton.addEventListener("click", function () {
@@ -335,7 +462,7 @@
     var card = el("li", "action-card" + (action.can_record_result ? " is-approved" : ""));
     var top = el("div", "action-card-top");
     top.appendChild(el("span", "action-type", action.issue_label + " · " + action.type_label));
-    top.appendChild(el("span", "pill", action.status_label));
+    top.appendChild(badge(action.status_label, ACTION_STATUS_TONES[action.status], action.status === "APPROVED" ? "circle-dashed" : null));
     card.appendChild(top);
     card.appendChild(el("span", "action-title", action.title));
     card.appendChild(el("p", "action-desc", action.description));
@@ -351,12 +478,12 @@
       buttons.appendChild(approve);
     }
     if (action.can_record_result) {
-      var succeed = el("button", "btn-success btn-small", "실행 성공");
+      var succeed = withIcon(el("button", "btn-success btn-small"), "check", "실행 성공");
       succeed.type = "button";
       succeed.addEventListener("click", function () {
         runAction(succeed, base + "/succeed", "'" + action.title + "' 성공으로 문제를 해결했습니다.");
       });
-      var fail = el("button", "btn-danger-outline btn-small", "실행 실패");
+      var fail = withIcon(el("button", "btn-danger-outline btn-small"), "x", "실행 실패");
       fail.type = "button";
       fail.addEventListener("click", function () {
         runAction(fail, base + "/fail", "'" + action.title + "' 실패. Agent가 새로운 대안을 생성했습니다.");
@@ -379,7 +506,7 @@
         return loadList();
       })
       .catch(function (err) {
-        return loadDetail({ kind: "is-error", text: "⚠️ " + err.message });
+        return loadDetail({ kind: "is-error", text: err.message });
       });
   }
 
