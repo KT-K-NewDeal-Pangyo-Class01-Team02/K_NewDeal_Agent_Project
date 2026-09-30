@@ -85,6 +85,29 @@
 .insight .icon { margin-top: 2px; flex-shrink: 0; }
 .insight strong { display: block; margin-bottom: 2px; color: #6f1a21; }
 
+/* ---------- 기획안 문서 ---------- */
+/* hidden 속성이 .plan-empty · .cc-btn 의 display 규칙에 덮이지 않게 한다 */
+.campaign [hidden] { display: none !important; }
+.plan-actions { display: flex; gap: 8px; }
+.plan-doc { padding: 22px 24px; font-size: 14px; line-height: 1.75; color: var(--cc-text); }
+.plan-doc h2, .plan-doc h3, .plan-doc h4 { margin: 22px 0 10px; font-weight: 800; letter-spacing: -0.01em; }
+.plan-doc h2 { margin-top: 0; font-size: 20px; }
+.plan-doc h3 { font-size: 17px; padding-bottom: 8px; border-bottom: 1px solid var(--cc-border); }
+.plan-doc h4 { font-size: 15px; }
+.plan-doc p { margin: 8px 0; }
+.plan-doc ul, .plan-doc ol { margin: 6px 0 10px; padding-left: 22px; }
+.plan-doc li { margin: 3px 0; }
+.plan-doc .plan-table-wrap { overflow-x: auto; margin: 10px 0 14px; }
+.plan-doc table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.plan-doc th, .plan-doc td { padding: 9px 12px; border-bottom: 1px solid var(--cc-border); text-align: left; vertical-align: top; }
+.plan-doc th { background: #f4f5f7; font-weight: 700; }
+.site-visual { margin: 12px 0 16px; border: 1px solid var(--cc-border); border-radius: 12px; overflow: hidden; background: #fff; }
+.site-visual svg { display: block; width: 100%; height: auto; }
+.site-visual figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; font-size: 12px; color: var(--cc-text-sub); border-top: 1px solid var(--cc-border); }
+.site-visual a { color: #b85a0d; font-weight: 700; text-decoration: none; }
+.site-visual a:hover { text-decoration: underline; }
+
 /* ---------- F-02 캠페인 발의 폼 ---------- */
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .staff-stack { display: grid; gap: 8px; }

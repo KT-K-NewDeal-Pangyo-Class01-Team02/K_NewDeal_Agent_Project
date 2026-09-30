@@ -72,6 +72,7 @@ def home():
         budget_max=BUDGET_MAX,
         default_date=(_today_kst() + timedelta(days=1)).isoformat(),
         f02_connected=bool(config.F02_VALIDATE_URL),
+        tonghagil_url=config.TONGHAGIL_URL,
     )
 
 
@@ -202,6 +203,8 @@ def create_plan():
     }
     f02 = data.get("f02")
     if isinstance(f02, dict):
+        # 기존 plan-gen 워크플로는 constraints 문장만 읽으므로, 검증된 조건을 문장으로 앞에 붙인다
+        payload["constraints"] = _f02_brief(f02, target["label"]) + (f" / 추가 조건: {constraints}" if constraints else "")
         # F-02 검증을 통과한 파라미터 (날짜 · 시간대 · 장소 · 출동 인력 · 예산 · 사은품)
         payload["f02"] = f02
         payload["campaignId"] = data.get("campaign_id")
@@ -215,6 +218,21 @@ def create_plan():
     except N8nError as exc:
         return jsonify(error=str(exc)), 502
     return jsonify(plan=plan, source="n8n")
+
+
+def _f02_brief(f02, target_label):
+    """F-02 통과 조건을 plan-gen 이 그대로 따를 문장으로 만든다."""
+    staff = " + ".join(f"{p.get('employee_name')}({p.get('employment_type')})" for p in f02.get("staff") or [])
+    parts = [
+        f"운영 일자 {f02.get('target_date')}" if f02.get("target_date") else "",
+        f"운영 시간 {str(f02.get('operating_hours') or '').replace('-', '~')}" if f02.get("operating_hours") else "",
+        f"운영 장소 {f02.get('site_name')} (이 장소로 입지를 확정)" if f02.get("site_name") else "",
+        f"타깃 {target_label}",
+        f"출동 {staff}" if staff else "",
+        f"예산 {int(f02['budget']):,}원 이내" if f02.get("budget") else "",
+        f"사은품 {f02.get('reward_item')} {f02.get('reward_qty')}개" if f02.get("reward_item") and f02.get("reward_qty") else "",
+    ]
+    return "[F-02 검증 통과 조건] " + " / ".join(p for p in parts if p)
 
 
 _DEMO_STAFF = [
