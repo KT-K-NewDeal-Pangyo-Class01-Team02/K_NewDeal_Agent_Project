@@ -44,6 +44,8 @@ python -m vicddory_campaign.app
 | 캠페인 발의 제출 ① 제약 검증 | `POST /api/f02/validate` | `F02_validate` (action=validate) | `N8N_BASE_URL` |
 | 캠페인 발의 제출 ② 기획서 생성 (검증 통과 시) | `POST /api/plan` | `BTL 기획안 생성 (Webhook)` (`/webhook/plan-gen`) | `N8N_WEBHOOK_URL` |
 
+기획안은 마크다운을 문서로 바꿔 보여 주며, **서식 복사**(워드·한글·구글 문서에 표 그대로 붙여 넣기)와 **PDF 저장**(A4 인쇄 창)을 지원합니다. 입지 섹션에는 캠페인 이미지 자리가 있고, 통하길 스튜디오 포스터 제작으로 링크합니다.
+
 n8n 쪽 공용 부품: `00_dummy_data`(프로모션·유동인구·과거 성과 더미), Supabase `roster`·`opportunity_cards`·`campaigns` 테이블.
 
 ## Command Center 연동

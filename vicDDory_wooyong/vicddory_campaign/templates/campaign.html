@@ -148,16 +148,19 @@
         <h2 id="plan-title">3시간 기획 확정안</h2>
         <p>입지 분석 · 카피 · A4 콜시트를 한 번에 편성합니다.</p>
       </div>
-      <button type="button" class="cc-btn copy-btn" id="copy-btn" hidden>{{ icon("check", 16) }}<span>복사</span></button>
+      <div class="plan-actions">
+        <button type="button" class="cc-btn copy-btn" id="copy-btn" hidden title="표·굵은 글씨를 살린 채로 워드·한글·구글 문서에 붙여 넣을 수 있습니다">{{ icon("check", 16) }}<span>서식 복사</span></button>
+        <button type="button" class="cc-btn copy-btn" id="pdf-btn" hidden title="인쇄 창에서 'PDF로 저장'을 고르세요">{{ icon("sparkles", 16) }}<span>PDF 저장</span></button>
+      </div>
     </header>
 
-    <div class="plan-box" id="plan-box" aria-live="polite">
+    <div class="plan-box" id="plan-box" aria-live="polite" data-tonghagil="{{ tonghagil_url }}">
       <div class="plan-empty" id="plan-empty">
         {{ icon("qr-code", 28) }}
-        <p>왼쪽에 현장 조건을 입력하고 <strong>BTL 기획서 생성</strong>을 누르면,<br>
-          입지 분석과 카피, 콜시트가 여기에 편성됩니다.</p>
+        <p>왼쪽에 조건을 넣고 <strong>캠페인 발의 제출</strong>을 누르면,<br>
+          제약 검증을 통과한 뒤 입지 분석과 카피, 콜시트가 여기에 편성됩니다.</p>
       </div>
-      <pre class="plan-text" id="plan-text" hidden></pre>
+      <article class="plan-doc" id="plan-text" hidden></article>
     </div>
   </section>
 </div>
