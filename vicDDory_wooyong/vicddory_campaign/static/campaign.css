@@ -108,10 +108,23 @@
 .site-visual a { color: #b85a0d; font-weight: 700; text-decoration: none; }
 .site-visual a:hover { text-decoration: underline; }
 
+/* ---------- F-06 승인 ---------- */
+.hq-link { margin-left: 10px; font-size: 13px; font-weight: 700; color: #b85a0d; text-decoration: none; }
+.hq-link:hover { text-decoration: underline; }
+.approval { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-top: 14px; padding: 14px 16px; border: 1px solid var(--cc-border); border-radius: 12px; background: #fff; }
+.approval-state { display: flex; align-items: center; gap: 10px; flex: 1 1 280px; }
+.approval-badge { flex: none; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #eef0f4; color: var(--cc-text-sub); }
+.approval-badge.is-requested { background: #fff1e3; color: #b85a0d; }
+.approval-badge.is-approved { background: #e3f5ea; color: #1d7a4b; }
+.approval-badge.is-rejected { background: var(--cc-accent-soft); color: var(--cc-accent); }
+.approval-text { margin: 0; font-size: 13px; line-height: 1.6; color: var(--cc-text-sub); }
+.approval-actions { display: flex; gap: 8px; }
+
 /* ---------- F-02 캠페인 발의 폼 ---------- */
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .staff-stack { display: grid; gap: 8px; }
-.field-row-tight { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; }
+.field-row-tight { grid-template-columns: minmax(0, 1fr) 120px; gap: 8px; }
 .field-row > .cc-field { margin: 0; }
 .field-hint { justify-content: flex-start; color: var(--cc-muted); }
 .field-hint.is-warn { color: #d46b12; }
@@ -180,3 +193,15 @@
   .panel { padding: 18px 16px 20px; }
   .stat-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- 지사 승인 화면 ---------- */
+.hq-list { display: grid; gap: 14px; }
+.hq-card { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid var(--cc-border); border-radius: 12px; background: #fbfcfd; }
+.hq-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.hq-head h3 { margin: 0 0 4px; font-size: 17px; font-weight: 800; }
+.hq-sub { margin: 0; font-size: 13px; color: var(--cc-text-sub); line-height: 1.6; }
+.hq-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.hq-prev { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--cc-accent-soft); color: #8d2129; font-size: 13px; }
+.hq-plan { border: 1px solid var(--cc-border); border-radius: 10px; background: #fff; }
+.hq-plan summary { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #b85a0d; }
+.hq-plan .plan-doc { border-top: 1px solid var(--cc-border); max-height: 520px; overflow: auto; }

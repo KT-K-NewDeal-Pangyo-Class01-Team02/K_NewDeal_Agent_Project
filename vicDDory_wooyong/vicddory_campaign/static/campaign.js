@@ -24,6 +24,15 @@
   const copyBtn = document.getElementById('copy-btn');
   const copyLabel = copyBtn.querySelector('span');
   const pdfBtn = document.getElementById('pdf-btn');
+  const approval = document.getElementById('approval');
+  const approvalBadge = document.getElementById('approval-badge');
+  const approvalText = document.getElementById('approval-text');
+  const approvalBtn = document.getElementById('approval-btn');
+  const reviseBtn = document.getElementById('revise-btn');
+  let lastPlanMd = '';
+  let planCampaignId = null;
+  let pollTimer = null;
+  let planShownAt = 0;  // 지금 보이는 기획안이 만들어진 시각 (반려 이후에 새로 만든 건지 판단)
   let lastSiteName = '';
   let staff = [];
   let optionsSeq = 0;
@@ -128,54 +137,8 @@
     checksBox.hidden = false;
   }
 
-  // ---------- 기획안: 마크다운 → 문서 ----------
-  const esc = (t) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
-  const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
-
-  function markdownToHtml(md) {
-    const lines = md.replace(/\r/g, '').split('\n');
-    const out = [];
-    const stack = [];  // 열린 목록 [{ kind, indent }] — 들여쓰기로 하위 목록을 만든다
-    const closeOne = () => { const top = stack.pop(); out.push(`</li></${top.kind}>`); };
-    const closeAll = () => { while (stack.length) closeOne(); };
-    for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i];
-      const t = line.trim();
-      if (!t) continue;  // 빈 줄은 목록을 끊지 않는다 (번호가 1부터 다시 시작하지 않게)
-      if (/^\|.*\|$/.test(t) && lines[i + 1] && /^\|?\s*:?-{2,}/.test(lines[i + 1].trim())) {
-        closeAll();
-        const head = cells(t);
-        const rows = [];
-        i += 2;
-        while (i < lines.length && /^\|.*\|$/.test(lines[i].trim())) { rows.push(cells(lines[i])); i += 1; }
-        i -= 1;
-        out.push('<div class="plan-table-wrap"><table><thead><tr>' + head.map((c) => `<th>${inline(c)}</th>`).join('') +
-          '</tr></thead><tbody>' + rows.map((r) => '<tr>' + r.map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>');
-        continue;
-      }
-      const h = t.match(/^(#{1,6})\s+(.*)$/);
-      if (h) { closeAll(); const lv = Math.min(4, Math.max(2, h[1].length - 1)); out.push(`<h${lv}>${inline(h[2])}</h${lv}>`); continue; }
-      const m = line.match(/^(\s*)(?:([-*])|(\d+)[.)])\s+(.*)$/);
-      if (m) {
-        const indent = m[1].replace(/\t/g, '  ').length;
-        const kind = m[2] ? 'ul' : 'ol';
-        while (stack.length && stack[stack.length - 1].indent > indent) closeOne();
-        const top = stack[stack.length - 1];
-        if (top && top.indent === indent) {
-          if (top.kind !== kind) { closeOne(); out.push(`<${kind}>`); stack.push({ kind, indent }); } else out.push('</li>');
-        } else { out.push(`<${kind}>`); stack.push({ kind, indent }); }
-        out.push(`<li>${inline(m[4])}`);
-        continue;
-      }
-      if (/^-{3,}$/.test(t)) { closeAll(); continue; }
-      if (stack.length && /^\s{2,}/.test(line)) { out.push(`<br>${inline(t)}`); continue; }  // 목록 항목의 이어지는 줄
-      closeAll();
-      out.push(`<p>${inline(t)}</p>`);
-    }
-    closeAll();
-    return out.join('');
-  }
+  // 마크다운 → 문서 변환은 plan_render.js (지사 승인 화면과 같이 쓴다)
+  const { esc, toHtml: markdownToHtml } = window.vicPlan;
 
   // 입지 섹션 아래에 캠페인 이미지 자리를 둔다 (지금은 시안 자리, 이후 생성 이미지로 교체)
   function siteVisual(siteName) {
@@ -212,6 +175,7 @@
   }
   function showWaiting(message) {
     planText.hidden = true; planEmpty.hidden = false; copyBtn.hidden = true; pdfBtn.hidden = true;
+    approval.hidden = true; stopPolling();
     planEmpty.querySelector('p').textContent = message;
   }
   function setBusy(label) {
@@ -258,7 +222,11 @@
         store_id: storeSel.value, store_name: storeSel.selectedOptions[0].textContent, target_group: data.target_group,
         constraints: data.constraints, f02: result.f02, campaign_id: params.campaign_id,
       });
+      lastPlanMd = body.plan || '';
+      planCampaignId = params.campaign_id;
       showPlan(body.plan);
+      planShownAt = Date.now();
+      showApproval();
       if (body.source === 'demo' || result.source === 'demo') window.ccToast('데모 모드예요. .env 에 n8n 주소를 넣으면 실제로 검증·생성합니다.');
     } catch (err) {
       errorBox.textContent = err.message;
@@ -303,6 +271,68 @@
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 300);
+  });
+
+  // ---------- F-06 승인 요청 · 상태 반영 ----------
+  const BADGE = { not_requested: '승인 요청 전', requested: '지사 승인 대기', approved: '승인됨', rejected: '반려' };
+  const hhmm = (iso) => (iso ? new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '');
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  function renderApproval(c) {
+    const st = (c && c.approval_status) || 'not_requested';
+    approvalBadge.textContent = BADGE[st] || st;
+    approvalBadge.className = `approval-badge is-${st}`;
+    const last = c && c.last_decision;
+    const round = (c && c.revision_round) || 0;
+    // 반려 뒤에는 발의를 고쳐 새 기획안이 나온 경우에만 재요청할 수 있다
+    const revisedAfterReject = st === 'rejected' && last && new Date(last.at).getTime() < planShownAt;
+    approvalBtn.hidden = st === 'requested' || st === 'approved' || (st === 'rejected' && !revisedAfterReject);
+    reviseBtn.hidden = st !== 'rejected' || revisedAfterReject;
+    approvalBtn.textContent = st === 'rejected' ? '수정본으로 다시 승인 요청' : '지사 승인 요청';
+    if (st === 'requested') approvalText.textContent = `${hhmm(c.requested_at)}에 요청했습니다. 지사가 승인하거나 반려하면 여기에 바로 표시됩니다.${round ? ` (수정 ${round}회차)` : ''}`;
+    else if (st === 'approved') approvalText.textContent = `${last ? `${last.by} · ${hhmm(last.at)}` : ''} 승인되었습니다. 콜시트대로 출동을 준비하세요.${last && last.comment ? ` 코멘트: ${last.comment}` : ''}`;
+    else if (st === 'rejected') approvalText.textContent = revisedAfterReject
+      ? `수정 ${round}회차 기획안이 준비됐습니다. 지난 반려 사유: ${(last && last.comment) || '-'}`
+      : `수정 ${round}회차 · 반려 사유: ${(last && last.comment) || '-'} → 캠페인 발의를 고쳐 다시 제출하면 새 기획안으로 재요청할 수 있습니다.`;
+    else approvalText.textContent = '기획안을 확인했으면 지사에 승인을 요청하세요.';
+    if (st === 'requested') startPolling(); else stopPolling();
+  }
+
+  async function refreshApproval() {
+    try {
+      const data = await post('/api/f06/status', { campaign_id: planCampaignId });
+      renderApproval(data.campaign);
+    } catch (err) { /* 잠깐의 네트워크 오류는 다음 확인 때 다시 시도한다 */ }
+  }
+  function startPolling() { if (!pollTimer) pollTimer = setInterval(refreshApproval, 8000); }
+
+  function showApproval() {
+    approval.hidden = false;
+    if (!planCampaignId) {
+      approvalBadge.textContent = '요청 불가';
+      approvalBadge.className = 'approval-badge';
+      approvalText.textContent = '승인 요청은 위 "이번 주 옥외 기회"에서 카드를 골라 시작한 캠페인만 할 수 있습니다.';
+      approvalBtn.hidden = true; reviseBtn.hidden = true;
+      return;
+    }
+    refreshApproval();  // 재제출이면 이전 반려 기록이 함께 보인다
+  }
+
+  approvalBtn.addEventListener('click', async () => {
+    approvalBtn.disabled = true;
+    try {
+      const data = await post('/api/f06/submit', { campaign_id: planCampaignId, plan_markdown: lastPlanMd });
+      renderApproval(data.campaign);
+      window.ccToast(data.source === 'demo' ? '데모 모드: 지사 승인 화면에서 승인·반려를 눌러 보세요.' : '지사에 승인을 요청했습니다.');
+    } catch (err) {
+      window.ccToast(err.message);
+      refreshApproval();
+    } finally { approvalBtn.disabled = false; }
+  });
+
+  reviseBtn.addEventListener('click', () => {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    siteSel.focus();
   });
 
   loadOptions();

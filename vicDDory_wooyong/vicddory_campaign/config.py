@@ -39,6 +39,9 @@ F01_SELECT_URL = f"{N8N_BASE_URL}/f01-select" if N8N_BASE_URL else ""
 F02_VALIDATE_URL = f"{N8N_BASE_URL}/f02-validate" if N8N_BASE_URL else ""
 # F-02 통과 후 기획안: F-03 입지 → F-04 카피 → F-05 콜시트 (없으면 기존 plan-gen 사용)
 WF_PLAN_URL = f"{N8N_BASE_URL}/wf-plan" if N8N_BASE_URL else ""
+# F-06 승인: 점장 요청 · 상태 확인 / 지사 목록 · 승인 · 반려
+F06_SUBMIT_URL = f"{N8N_BASE_URL}/f06-submit" if N8N_BASE_URL else ""
+F06_DECIDE_URL = f"{N8N_BASE_URL}/f06-decide" if N8N_BASE_URL else ""
 
 # 통하길 스튜디오(이승현, 포트 5004): 입지 이미지 자리에서 포스터 제작 화면으로 링크만 건다.
 TONGHAGIL_URL = os.getenv("TONGHAGIL_URL", "http://localhost:5004").rstrip("/")

@@ -30,6 +30,8 @@ python -m vicddory_campaign.app
 | `vicddory_campaign/templates/campaign.html` | 화면 |
 | `vicddory_campaign/static/campaign.js` | 캠페인 발의(8개 파라미터) → F-02 검증 → 기획안 |
 | `vicddory_campaign/static/f01.js` | F-01 이번 주 옥외 기회 스캔 · 카드 선택 |
+| `vicddory_campaign/static/plan_render.js` | 기획안 마크다운 → 문서 (점장 · 지사 화면 공용) |
+| `vicddory_campaign/templates/hq.html`, `static/hq.js` | F-06 지사 승인 화면 (`/hq`) |
 | `Outdoor-Public-Relations-Campaign-Agent-main/index.html` | Flask 이전의 초기 프로토타입 (참고용 보관, 더 이상 수정하지 않음) |
 
 ## 화면과 n8n 워크플로
@@ -43,6 +45,8 @@ python -m vicddory_campaign.app
 | 캠페인 발의 폼 채우기 (근무자 · 장소 · 재고) | `POST /api/f02/options` | `F02_validate` (`/webhook/f02-validate`, action=options) | `N8N_BASE_URL` |
 | 캠페인 발의 제출 ① 제약 검증 | `POST /api/f02/validate` | `F02_validate` (action=validate) | `N8N_BASE_URL` |
 | 캠페인 발의 제출 ② 기획서 생성 (검증 통과 시) | `POST /api/plan` | `WF_plan` (`/webhook/wf-plan`) → `F03_site` → `F04_copy` → `F05_callsheet` | `N8N_BASE_URL` |
+| 기획안 아래 "지사 승인 요청" · 상태 확인(8초마다) | `POST /api/f06/submit`, `/api/f06/status` | `F06_submit` (`/webhook/f06-submit`) | `N8N_BASE_URL` |
+| 지사 승인 화면 `/hq`: 대기 목록 · 승인 · 반려 | `POST /api/f06/list`, `/api/f06/decide` | `F06_decide` (`/webhook/f06-decide`) | `N8N_BASE_URL` |
 | (F-02 없이 부를 때만) 기존 기획서 생성 | `POST /api/plan` | `BTL 기획안 생성 (Webhook)` (`/webhook/plan-gen`) | `N8N_WEBHOOK_URL` |
 
 기획안은 마크다운을 문서로 바꿔 보여 주며, **서식 복사**(워드·한글·구글 문서에 표 그대로 붙여 넣기)와 **PDF 저장**(A4 인쇄 창)을 지원합니다. 입지 섹션에는 캠페인 이미지 자리가 있고, 통하길 스튜디오 포스터 제작으로 링크합니다.

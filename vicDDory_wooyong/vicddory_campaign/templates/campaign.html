@@ -14,7 +14,8 @@
 {% from "_icons.html" import icon %}
 <div class="cc-page-head">
   <h1 class="cc-page-title">{{ agent.name }}</h1>
-  <p class="cc-page-sub">현장에서 3시간 만에 끝내는 옥외 BTL 캠페인 기획과 성과 환류.</p>
+  <p class="cc-page-sub">현장에서 3시간 만에 끝내는 옥외 BTL 캠페인 기획과 성과 환류.
+    <a class="hq-link" href="{{ url_for('hq') }}" target="_blank" rel="noopener">지사 승인 화면 ↗</a></p>
 </div>
 
 {# ---------- 맨 위: F-01 이번 주 옥외 기회 ---------- #}
@@ -109,20 +110,19 @@
         <div class="field-foot field-hint" id="f-staff-hint"></div>
       </div>
 
-      <div class="field-row">
-        <label class="cc-field">
-          <span class="cc-label">⑦ 집행 예산 (원)</span>
-          <input class="cc-input" type="number" name="budget" value="1200000" min="1" max="{{ budget_max }}" step="10000" required>
-          <div class="field-foot field-hint">부스 지원금 한도 {{ "{:,}".format(budget_max) }}원</div>
-        </label>
-        <div class="cc-field">
-          <span class="cc-label">⑧ 사은품 · 수량</span>
-          <div class="field-row field-row-tight">
-            <select class="cc-select" name="reward_item" id="f-reward"><option value="">없음</option></select>
-            <input class="cc-input" type="number" name="reward_qty" value="0" min="0" step="10" aria-label="사은품 수량">
-          </div>
-          <div class="field-foot field-hint" id="f-reward-hint"></div>
+      <label class="cc-field">
+        <span class="cc-label">⑦ 집행 예산 (원)</span>
+        <input class="cc-input" type="number" name="budget" value="1200000" min="1" max="{{ budget_max }}" step="10000" required>
+        <div class="field-foot field-hint">부스 지원금 한도 {{ "{:,}".format(budget_max) }}원</div>
+      </label>
+
+      <div class="cc-field">
+        <span class="cc-label">⑧ 사은품 · 수량</span>
+        <div class="field-row field-row-tight">
+          <select class="cc-select" name="reward_item" id="f-reward"><option value="">없음</option></select>
+          <input class="cc-input" type="number" name="reward_qty" value="0" min="0" step="10" aria-label="사은품 수량">
         </div>
+        <div class="field-foot field-hint" id="f-reward-hint"></div>
       </div>
 
       <div class="cc-field">
@@ -162,6 +162,18 @@
       </div>
       <article class="plan-doc" id="plan-text" hidden></article>
     </div>
+
+    {# F-06: 기획안이 나온 뒤 점장이 지사에 승인을 요청한다 #}
+    <div class="approval" id="approval" hidden>
+      <div class="approval-state">
+        <span class="approval-badge" id="approval-badge">승인 요청 전</span>
+        <p class="approval-text" id="approval-text">기획안을 확인했으면 지사에 승인을 요청하세요.</p>
+      </div>
+      <div class="approval-actions">
+        <button type="button" class="cc-btn cc-btn-primary" id="approval-btn">지사 승인 요청</button>
+        <button type="button" class="cc-btn" id="revise-btn" hidden>캠페인 발의 고치기</button>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -190,6 +202,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='plan_render.js') }}"></script>
 <script src="{{ url_for('static', filename='campaign.js') }}"></script>
 <script src="{{ url_for('static', filename='f01.js') }}"></script>
 {% endblock %}

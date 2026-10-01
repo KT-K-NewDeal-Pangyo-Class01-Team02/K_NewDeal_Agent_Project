@@ -76,6 +76,86 @@ def home():
     )
 
 
+@app.get("/hq")
+def hq():
+    """지사 승인 화면 (F-06): 점장이 요청한 기획안을 보고 승인 · 반려한다."""
+    return render_template("hq.html", agent=AGENT, f06_connected=bool(config.F06_DECIDE_URL))
+
+
+def _call_f06(url, payload, demo):
+    """F-06 웹훅 호출 공통: 오류 응답(status=error)은 409 로 넘겨 화면이 사유를 보여 주게 한다."""
+    if not url:
+        return jsonify(demo(payload))
+    try:
+        result = request_json(url, payload, timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    if result.get("status") != "success":
+        return jsonify(error=result.get("message") or "처리하지 못했어요.", campaign=result.get("campaign")), 409
+    return jsonify({**result, "source": "n8n"})
+
+
+@app.post("/api/f06/submit")
+def f06_submit():
+    data = request.get_json(silent=True) or {}
+    plan = str(data.get("plan_markdown") or "")
+    if not data.get("campaign_id"):
+        return jsonify(error="F-01 카드로 시작한 캠페인만 승인을 요청할 수 있어요."), 400
+    if not plan.strip():
+        return jsonify(error="승인 요청에 첨부할 기획안이 없어요."), 400
+    return _call_f06(config.F06_SUBMIT_URL, {"action": "submit", "campaign_id": data.get("campaign_id"),
+                                             "plan_markdown": plan[:60000], "requested_by": "점장"}, _demo_f06)
+
+
+@app.post("/api/f06/status")
+def f06_status():
+    data = request.get_json(silent=True) or {}
+    return _call_f06(config.F06_SUBMIT_URL, {"action": "status", "campaign_id": data.get("campaign_id")}, _demo_f06)
+
+
+@app.post("/api/f06/list")
+def f06_list():
+    return _call_f06(config.F06_DECIDE_URL, {"action": "list"}, _demo_f06)
+
+
+@app.post("/api/f06/decide")
+def f06_decide():
+    data = request.get_json(silent=True) or {}
+    decision = data.get("decision")
+    if decision not in ("approve", "reject"):
+        return jsonify(error="승인 또는 반려를 골라 주세요."), 400
+    if decision == "reject" and len(str(data.get("comment") or "").strip()) < 5:
+        return jsonify(error="반려 사유를 5자 이상 적어 주세요. 점장이 무엇을 고칠지 알 수 있어야 합니다."), 400
+    return _call_f06(config.F06_DECIDE_URL, {"action": "decide", "campaign_id": data.get("campaign_id"),
+                                             "decision": decision, "comment": str(data.get("comment") or "")[:300],
+                                             "reviewer": "지사 담당"}, _demo_f06)
+
+
+# 데모 모드(n8n 없음)용 메모리 저장소: 서버를 끄면 사라진다
+_DEMO_F06 = {}
+
+
+def _demo_f06(p):
+    now = datetime.now(timezone.utc).isoformat()
+    action, cid = p.get("action"), str(p.get("campaign_id"))
+    if action == "list":
+        return {"status": "success", "source": "demo", "items": [
+            {"campaign_id": k, "store_name": "신천역점 (데모)", "target_date": "", "revision_round": v["round"],
+             "requested_at": v["at"], "site_name": "", "staff": "", "budget": None, "plan_markdown": v["plan"], "history": []}
+            for k, v in _DEMO_F06.items() if v["state"] == "requested"]}
+    c = _DEMO_F06.setdefault(cid, {"state": "not_requested", "round": 0, "plan": "", "at": None, "last": None})
+    if action == "submit":
+        c.update(state="requested", plan=p.get("plan_markdown", ""), at=now)
+    elif action == "decide":
+        c["last"] = {"action": "approved" if p["decision"] == "approve" else "rejected", "comment": p.get("comment", ""), "by": "지사 담당", "at": now}
+        c["state"] = "approved" if p["decision"] == "approve" else "rejected"
+        if p["decision"] == "reject":
+            c["round"] += 1
+    return {"status": "success", "source": "demo", "message": "데모 처리", "campaign": {
+        "campaign_id": cid, "status": {"approved": "approved", "rejected": "revising"}.get(c["state"], "planned"),
+        "approval_status": c["state"], "revision_round": c["round"], "last_decision": c["last"], "requested_at": c["at"]}}
+
+
 def _today_kst():
     return datetime.now(timezone(timedelta(hours=9))).date()
 

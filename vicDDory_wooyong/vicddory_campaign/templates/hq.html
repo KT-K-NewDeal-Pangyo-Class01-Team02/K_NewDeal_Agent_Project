@@ -1,0 +1,38 @@
+{% extends "cc_layout.html" %}
+
+{% block title %}지사 승인 · {{ agent.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='campaign.css') }}">
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ command_center_url }}">Command Center</a><span>/</span><a href="{{ url_for('home') }}">{{ agent.name }}</a><span>/</span><strong>지사 승인</strong>
+{% endblock %}
+
+{% block content %}
+{% from "_icons.html" import icon %}
+<div class="cc-page-head">
+  <h1 class="cc-page-title">지사 승인 (F-06)</h1>
+  <p class="cc-page-sub">직영점 점장이 요청한 옥외 캠페인 기획안을 검토하고 승인하거나 반려합니다. 반려하면 점장 화면에 사유와 수정 회차가 바로 표시됩니다.</p>
+</div>
+
+<section class="cc-card panel" aria-labelledby="hq-title">
+  <header class="panel-head">
+    <div>
+      <h2 id="hq-title">승인 대기</h2>
+      <p id="hq-meta">불러오는 중…</p>
+    </div>
+    <div class="plan-actions">
+      {% if f06_connected %}<span class="conn is-live">n8n 연결됨</span>{% else %}<span class="conn is-demo">데모 모드</span>{% endif %}
+      <button type="button" class="cc-btn copy-btn" id="hq-refresh">{{ icon("refresh", 16) }}<span>새로고침</span></button>
+    </div>
+  </header>
+  <div class="hq-list" id="hq-list"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='plan_render.js') }}"></script>
+<script src="{{ url_for('static', filename='hq.js') }}"></script>
+{% endblock %}
