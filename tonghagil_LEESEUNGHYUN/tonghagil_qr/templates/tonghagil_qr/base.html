@@ -27,7 +27,7 @@
 
 <nav class="q-tabs" aria-label="메뉴">
   {% set tabs = [("home", "tonghagil_qr.home", "home", "홈"), ("map", "tonghagil_qr.map_view", "map", "지도·통신"),
-                 ("stamps", "tonghagil_qr.stamps", "stamp", "스탬프"), ("chat", "tonghagil_qr.chat", "chat", "챗봇")] %}
+                 ("stamps", "tonghagil_qr.stamps", "stamp", "스탬프"), ("chat", "tonghagil_qr.chat", "chat", "채팅")] %}
   {% for key, endpoint, ico, label in tabs %}
   <a class="q-tab {% if page == key %}is-active{% endif %}" href="{{ url_for(endpoint) }}" {% if page == key %}aria-current="page"{% endif %}>
     {{ qicon(ico, 22) }}

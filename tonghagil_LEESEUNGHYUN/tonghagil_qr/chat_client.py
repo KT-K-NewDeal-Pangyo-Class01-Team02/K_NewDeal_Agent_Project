@@ -58,17 +58,17 @@ def reply(message, session_id, *, webhook_url, timeout, headers=None, event_id="
     except requests.Timeout as exc:
         raise ChatError("답변이 늦어지고 있어요. 잠시 후 다시 물어봐 주세요.") from exc
     except requests.RequestException as exc:
-        raise ChatError("안내 챗봇에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.") from exc
+        raise ChatError("채팅 에이전트에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.") from exc
 
     if resp.status_code in (401, 403):
-        raise ChatError("안내 챗봇 인증에 실패했어요. (담당자: QR_CHAT_WEBHOOK_SECRET 과 n8n Header Auth 값 확인)")
+        raise ChatError("채팅 에이전트 인증에 실패했어요. (담당자: QR_CHAT_WEBHOOK_SECRET 과 n8n Header Auth 값 확인)")
     if resp.status_code == 404:
-        raise ChatError("안내 챗봇 주소를 찾을 수 없어요. (담당자: n8n 워크플로 활성화와 /webhook/ 운영 주소 확인)")
+        raise ChatError("채팅 에이전트 주소를 찾을 수 없어요. (담당자: n8n 워크플로 활성화와 /webhook/ 운영 주소 확인)")
     if resp.status_code >= 400:
         # n8n 이 알려 준 이유를 서버 창과 화면에 같이 남긴다 (예: "No Respond to Webhook node found in the workflow")
         print(f"[통하길 QR] n8n 챗봇 오류 HTTP {resp.status_code}: {resp.text[:500]}", file=sys.stderr)
         detail = _error_detail(resp)
-        raise ChatError(f"안내 챗봇이 오류를 돌려줬어요 (HTTP {resp.status_code}{detail}). 담당자: n8n Executions 확인")
+        raise ChatError(f"채팅 에이전트가 오류를 돌려줬어요 (HTTP {resp.status_code}{detail}). 담당자: n8n Executions 확인")
 
     try:
         data = resp.json()
@@ -76,7 +76,7 @@ def reply(message, session_id, *, webhook_url, timeout, headers=None, event_id="
         data = resp.text
     text = parse_reply(data)
     if not text:
-        raise ChatError("안내 챗봇이 빈 답변을 보냈어요. (담당자: Respond to Webhook 의 reply 값 확인)")
+        raise ChatError("채팅 에이전트가 빈 답변을 보냈어요. (담당자: Respond to Webhook 의 reply 값 확인)")
     return ChatReply(text, "n8n")
 
 
