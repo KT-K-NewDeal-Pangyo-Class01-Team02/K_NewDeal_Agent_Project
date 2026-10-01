@@ -14,7 +14,7 @@
   let failed = false;
   let infoOverlay = null;
   let meOverlay = null;
-  const polygons = {}; // 구역 id → kakao.maps.Polygon
+  const circles = {}; // 구역 id → kakao.maps.Circle
   const zoneLabels = {}; // 구역 id → 라벨 요소
 
   // ---------------- 카카오맵 불러오기 ----------------
@@ -72,42 +72,64 @@
     document.addEventListener('qr:network', (event) => recolor(event.detail.zones));
   }
 
+  // 구역 = 원(중심 + 반지름 m). 색은 통신 상태, 이름표는 원 가운데 마커 바로 아래.
   function drawZone(zone) {
     const maps = window.kakao.maps;
-    const path = zone.geo.map(latLng);
-    const polygon = new maps.Polygon({
+    const circle = new maps.Circle({
       map,
-      path,
+      center: latLng(zone.center),
+      radius: zone.radius,
       strokeWeight: 2,
       strokeColor: COLORS[zone.level],
       strokeOpacity: 0.9,
       fillColor: COLORS[zone.level],
       fillOpacity: 0.22,
     });
-    maps.event.addListener(polygon, 'click', () => showZone(zone.id));
-    polygons[zone.id] = polygon;
+    maps.event.addListener(circle, 'click', () => showZone(zone.id));
+    circles[zone.id] = circle;
 
     const label = document.createElement('div');
     label.className = 'km-zone';
     label.dataset.level = zone.level;
-    const name = document.createElement('b');
-    name.textContent = zone.name;
     const status = document.createElement('span');
     status.textContent = zone.label;
-    label.append(name, status);
-    new maps.CustomOverlay({ map, position: centerOf(zone.geo), content: label, yAnchor: 0.5, zIndex: 1 });
+    const isBooth = zone.id === data.booth.zone_id;
+    if (isBooth) {
+      label.append(status); // KT 홍보부스는 배지에 이름이 있으니 통신 상태만
+    } else {
+      const name = document.createElement('b');
+      name.textContent = zone.name;
+      label.append(name, status);
+    }
+    // yAnchor 가 음수면 기준점 아래에 붙는다. KT 배지(34px)는 스탬프 마커(30px)보다 커서 조금 더 내린다.
+    new maps.CustomOverlay({ map, position: latLng(zone.center), content: label, yAnchor: isBooth ? -1.2 : -0.55, zIndex: 1 });
     zoneLabels[zone.id] = label;
   }
 
   function drawStamp(stamp) {
-    const btn = markerButton(`km-stamp${stamp.done ? ' is-done' : ''}`, stamp.done ? '✓' : String(stamp.no),
-      `스탬프 ${stamp.no}. ${stamp.name} QR 위치`);
+    // 찍은 스탬프: 번호는 그대로, 연노랑 채움 + 체크 배지
+    const btn = markerButton(`km-stamp${stamp.done ? ' is-done' : ''}`, String(stamp.no),
+      `스탬프 ${stamp.no}. ${stamp.name} QR 위치${stamp.done ? ' (완료)' : ''}`);
+    if (stamp.done) {
+      const check = document.createElement('span');
+      check.className = 'km-check';
+      check.textContent = '✓';
+      btn.append(check);
+    }
     btn.addEventListener('click', () => showStamp(stamp.id));
     new window.kakao.maps.CustomOverlay({ map, position: latLng(stamp.geo), content: btn, yAnchor: 0.5, zIndex: 5, clickable: true });
   }
 
+  // KT 홍보부스: KT 로고 배지 + 이름
   function drawBooth() {
-    const btn = markerButton('km-booth', 'KT', `${data.booth.name} 위치`);
+    const btn = markerButton('km-booth', '', `${data.booth.name} 위치`);
+    const logo = document.createElement('span');
+    logo.className = 'km-booth-logo';
+    logo.textContent = 'KT';
+    const name = document.createElement('span');
+    name.className = 'km-booth-name';
+    name.textContent = data.booth.name;
+    btn.append(logo, name);
     btn.addEventListener('click', showBooth);
     new window.kakao.maps.CustomOverlay({ map, position: latLng(data.booth.geo), content: btn, yAnchor: 0.5, zIndex: 6, clickable: true });
   }
@@ -124,8 +146,8 @@
   function recolor(zones) {
     if (!map) return;
     zones.forEach((zone) => {
-      const polygon = polygons[zone.id];
-      if (polygon) polygon.setOptions({ strokeColor: COLORS[zone.level], fillColor: COLORS[zone.level] });
+      const circle = circles[zone.id];
+      if (circle) circle.setOptions({ strokeColor: COLORS[zone.level], fillColor: COLORS[zone.level] });
       const label = zoneLabels[zone.id];
       if (label) {
         label.dataset.level = zone.level;
@@ -161,7 +183,7 @@
     const row = document.querySelector(`.q-zone-row[data-zone="${id}"]`);
     if (!map || !zone) return;
     const field = (name) => (row ? textOf(`[data-field="${name}"]`, row) : '');
-    openInfo(centerOf(zone.geo, true), zone.name, [
+    openInfo(zone.center, zone.name, [
       `통신 ${field('label')} · ${field('users')}명 접속`,
       `예상 속도 약 ${field('speed')}Mbps (모의)`,
     ], null);
@@ -244,7 +266,11 @@
 
   function fitAll() {
     const bounds = new window.kakao.maps.LatLngBounds();
-    data.zones.forEach((zone) => zone.geo.forEach((p) => bounds.extend(latLng(p))));
+    Object.values(circles).forEach((circle) => {
+      const b = circle.getBounds();
+      bounds.extend(b.getSouthWest());
+      bounds.extend(b.getNorthEast());
+    });
     data.stamps.forEach((s) => bounds.extend(latLng(s.geo)));
     bounds.extend(latLng(data.booth.geo));
     map.setBounds(bounds, 16, 16, 16, 16);
@@ -303,12 +329,6 @@
   // ---------------- 도우미 ----------------
   function latLng(p) {
     return new window.kakao.maps.LatLng(p[0], p[1]);
-  }
-
-  function centerOf(points, asLatLng = true) {
-    const lat = points.reduce((sum, p) => sum + p[0], 0) / points.length;
-    const lng = points.reduce((sum, p) => sum + p[1], 0) / points.length;
-    return asLatLng ? latLng([lat, lng]) : [lat, lng];
   }
 
   // 두 위경도 사이 거리(m)

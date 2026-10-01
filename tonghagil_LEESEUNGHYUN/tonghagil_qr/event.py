@@ -46,11 +46,12 @@ class Event:
         return min(self.data["benefit"].get("required_stamps", len(self.data["stamps"])), len(self.data["stamps"]))
 
     def map_data(self, done, network_by_id):
-        """실제 지도(카카오맵)에 넘길 값. 위경도(geo)가 하나라도 빠져 있으면 None → 그림 약도를 쓴다.
+        """실제 지도(카카오맵)에 넘길 값. 위경도가 하나라도 빠져 있으면 None → 그림 약도를 쓴다.
+        (booth.geo, stamps[].geo, zones[].circle = {center, radius(m)})
         스탬프 토큰은 넣지 않는다 (방문객 화면 소스에 보이면 QR 없이 스탬프를 찍을 수 있다)."""
         d = self.data
-        items = [d["booth"], *d["stamps"], *d["zones"]]
-        if "map" not in d or any("geo" not in item for item in items):
+        if ("map" not in d or "geo" not in d["booth"] or any("geo" not in s for s in d["stamps"])
+                or any("circle" not in z for z in d["zones"])):
             return None
         zones = {z["id"]: z["name"] for z in d["zones"]}
         return {
@@ -58,11 +59,11 @@ class Event:
             "level": d["map"].get("level", 3),
             "near_km": d["map"].get("near_km", 2),
             "booth": {"name": d["booth"]["name"], "geo": d["booth"]["geo"], "location": d["booth"]["location"],
-                      "hours": d["booth"]["hours"], "zone": zones.get(d["booth"]["zone"], "")},
+                      "hours": d["booth"]["hours"], "zone": zones.get(d["booth"]["zone"], ""), "zone_id": d["booth"]["zone"]},
             "stamps": [{"id": s["id"], "no": no, "name": s["name"], "hint": s["hint"], "zone": zones.get(s["zone"], ""),
                         "geo": s["geo"], "done": s["id"] in done}
                        for no, s in enumerate(d["stamps"], start=1)],
-            "zones": [{"id": z["id"], "name": z["name"], "geo": z["geo"],
+            "zones": [{"id": z["id"], "name": z["name"], "center": z["circle"]["center"], "radius": z["circle"]["radius"],
                        "level": network_by_id[z["id"]]["level"], "label": network_by_id[z["id"]]["label"]}
                       for z in d["zones"]],
         }

@@ -85,9 +85,15 @@ tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
 - 챗봇: `QR_CHAT_WEBHOOK_URL`이 비어 있으면 고정 답변 **"테스트 단계입니다"**를 준다(사용자 요청). n8n 연결을 대비해 `chatInput`, `sessionId`, `eventId`, `context`(토큰 제외 행사 요약), `network`, `stamps`를 보내고, 응답은 `reply`/`output`/`text`/`message`/`answer` 또는 문자열을 받도록 만들어 두었다. 형식은 README에 있다.
 - **지도 = 카카오맵** (2026-09-30 사용자 결정). 네이버는 2025-07부터 옛 무료 이용량이 끝났고 결제 수단 등록이 필요할 수 있어서 제외했다. 카카오는 비즈월렛을 연결하지 않으면 과금되지 않는다. 키는 `QR_KAKAO_MAP_KEY`이고, 카카오 콘솔에서 "카카오맵 활성화 ON"과 사이트 도메인(localhost:5000, ngrok) 등록이 필요하다.
   - `static/qr_map.js`가 SDK를 `autoload=false`로 동적으로 불러온다. 8초 안에 안 뜨거나 오류가 나면 `#svg-map`(그림 약도)으로 바꾼다. 키가 없으면 서버가 처음부터 약도를 그린다.
-  - 지도 데이터는 `event.map_data()` → `<script type="application/json" id="map-data">`로 넘긴다. **스탬프 토큰은 넣지 않는다.** `map`, `booth.geo`, `stamps[].geo`, `zones[].geo` 중 하나라도 없으면 None이 되고 약도를 쓴다. 위경도는 여의도 한강공원 기준 대략적인 초안이다.
-  - `qr.js`가 통신 상태를 갱신하면 `qr:network` 이벤트를 쏘고, `qr_map.js`가 받아서 구역 다각형 색을 바꾼다.
+  - 지도 데이터는 `event.map_data()` → `<script type="application/json" id="map-data">`로 넘긴다. **스탬프 토큰은 넣지 않는다.** `map`, `booth.geo`, `stamps[].geo`, `zones[].circle`({center, radius}) 중 하나라도 없으면 None이 되고 약도를 쓴다.
+  - `qr.js`가 통신 상태를 갱신하면 `qr:network` 이벤트를 쏘고, `qr_map.js`가 받아서 구역 원(`kakao.maps.Circle`) 색을 바꾼다.
+  - **2026-09-30 사용자 요청:** 시연 공감을 위해 행사장을 **KT판교빌딩**으로 옮겼다. 행사명은 "2026 판교 테크노밸리 페스티벌"로 바꿨다(한강 불꽃축제에서 변경). 구역은 네모 대신 **원**(스탬프 5곳 + KT 홍보부스 = 6개)이다. KT 마커는 "KT 로고 배지 + KT 홍보부스" 알약 모양이다. **KT 위치만 정확해야 한다**(사용자 요청): OSM relation 21205162 "KT 판교빌딩"의 중심 37.40656, 127.09082. 스탬프는 사용자가 그린 스케치의 상대 배치로 대략 놓았다(정확할 필요 없음). 그림 약도(예비)도 타원으로 바꿨다.
+  - 2026-09-30: 카카오 앱 "n8n용 지도 보이기"의 카카오맵 활성화 OFF → sdk.js 403(`disabled OPEN_MAP_AND_LOCAL service`)이 원인이었다. 사용자가 켠 뒤 200을 확인했다. 같은 날 `.q-card{display:block}`이 `hidden`을 덮어 약도 전환이 안 되던 버그를 `.q-body [hidden]{display:none!important}`로 고쳤다.
   - **실제 카카오맵 표시는 키가 없어서 아직 확인하지 않았다.** 서버 쪽 70개 항목은 통과했고, JS는 esprima로 문법 검사만 했다(이 PC에는 Node가 없다).
+- **2026-10-01 ngrok 휴대폰 실측:** 허브를 ngrok 무료 플랜(`https://fasting-transpose-earthling.ngrok-free.dev`)으로 열었다.
+  - 휴대폰에서 빨간색이 전부 빠지는 문제가 있었다. 원인: ngrok 무료 **경고 페이지 통과 쿠키가 처음 들어온 경로(`/qr/`) 아래에서만 통해서**, 허브의 `/static/common.css`는 CSS 대신 경고 페이지(HTML)가 내려왔다. 해결: **방문객 화면은 `/qr/` 아래 파일만 부른다.** `qr.css` 맨 위에 `--cc-*` 변수와 기본 스타일을 직접 넣었고, `base.html`에서 `common.css` 링크를 뺐다. 방문객 템플릿에 `/qr/` 밖 주소를 넣지 않는다(테스트로 확인한다). 담당자 화면(`/qr/staff/`)은 허브 `cc_layout`을 쓰므로 무료 플랜 + 휴대폰에서는 같은 문제가 날 수 있다. 유료 플랜이면 경고 페이지가 없어 사라진다.
+  - 휴대폰에서 지도가 약도로 나왔다. 원인: 카카오 콘솔 JavaScript SDK 도메인에 ngrok 주소가 없어서 401 `domain mismatched`가 났다. 디버그 모드와는 관계없다. 사용자가 콘솔에 ngrok 주소를 추가해야 한다.
+  - 사용자 요청으로 찍은 스탬프 표시를 바꿨다: 번호를 남기고 **연노랑 채움(`--q-done-bg`) + 초록 체크 배지**(`.q-done-mark`, 카카오맵은 `.km-check`). 홈·스탬프 화면·지도 목록·카카오 마커·그림 약도에 모두 적용했다.
 - `data/.gitignore`(이 폴더 안)가 `qr.db`와 `.secret`을 막는다. 루트 `.gitignore`는 공용 파일이라 건드리지 않았다.
 - 검증(2026-09-30): 임시 DB로 방문객·스탬프·쿠폰·챗봇(가짜 n8n 응답 포함)·담당자 PIN·지급·초기화 57개 항목을 확인했고 모두 통과했다. 실제 서버에서도 `/qr/` 전 화면이 200이었다. **브라우저·휴대폰 화면은 아직 눈으로 확인하지 않았다.**
 

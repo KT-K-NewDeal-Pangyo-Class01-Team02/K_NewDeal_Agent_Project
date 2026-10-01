@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#151a23">
   <title>{% block title %}{{ ev.name }}{% endblock %} · 통하길</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='common.css') }}">
+  {#- 방문객 화면은 /qr/ 아래 파일만 쓴다 (허브 /static/common.css 를 부르지 않는 이유는 qr.css 맨 위 설명) -#}
   <link rel="stylesheet" href="{{ url_for('tonghagil_qr.static', filename='qr.css') }}">
 </head>
 {#- data-base: qr.js 가 API 주소를 만들 때 쓰는 기준 주소 (예: /qr/) -#}

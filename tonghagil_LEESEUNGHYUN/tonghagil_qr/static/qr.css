@@ -1,8 +1,36 @@
-/* 통하길 QR 방문객 화면 (휴대폰 기준). 색·글꼴 변수는 허브 common.css 의 --cc-* 를 쓴다. */
+/* 통하길 QR 방문객 화면 (휴대폰 기준).
+   방문객 화면은 이 파일만으로 완성된다. 허브의 /static/common.css 를 부르지 않는다.
+   이유: ngrok 무료 플랜의 경고 페이지 통과 쿠키가 처음 들어온 경로(/qr/) 아래에서만 통해서,
+   /qr/ 밖의 파일(/static/…)은 CSS 대신 경고 페이지가 내려온다 (2026-10-01 휴대폰에서 색이 다 빠진 원인).
+   아래 --cc-* 값은 허브 common.css 와 같은 값이다. 허브 색을 바꾸면 여기도 맞춘다. */
+:root {
+  --cc-bg: #f4f6f9;
+  --cc-border: #e5e8ee;
+  --cc-text: #151a23;
+  --cc-text-sub: #4b5563;
+  --cc-muted: #8a93a3;
+  --cc-accent: #e3313f;
+  --cc-accent-hover: #c92633;
+  --cc-accent-soft: #fdecee;
+  --cc-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.04);
+  --cc-font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: var(--cc-font); color: var(--cc-text); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.icon { display: block; flex-shrink: 0; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
 .q-body {
   --q-good: #1d9a5b; --q-good-bg: #e3f5ea;
   --q-busy: #d48a0f; --q-busy-bg: #fff3dc;
   --q-jam: #d7353f;  --q-jam-bg: #fdecee;
+  /* 찍은 스탬프: 연노랑 채움 + 번호 + 체크 */
+  --q-done-bg: #fff1a8; --q-done-line: #e6c229; --q-done-text: #5c4a00; --q-done-check: #1d9a5b;
   --q-tab-h: 64px;
   min-height: 100vh;
   padding-bottom: calc(var(--q-tab-h) + env(safe-area-inset-bottom));
@@ -118,7 +146,17 @@
   border: 2px dashed #d2d7df; border-radius: 50%;
   color: var(--cc-muted); font-weight: 700;
 }
-.q-dot.is-done { border: 0; background: var(--cc-accent); color: #fff; }
+.q-dot.is-done { border: 2px solid var(--q-done-line); background: var(--q-done-bg); color: var(--q-done-text); }
+
+/* 찍은 스탬프 공통: 번호 동그라미 오른쪽 아래에 붙는 체크 배지 (홈 · 스탬프 화면 · 지도 목록) */
+.q-dot, .q-stamp-no, .q-spot-no { position: relative; }
+.q-done-mark {
+  position: absolute; right: -4px; bottom: -4px;
+  width: 18px; height: 18px; display: grid; place-items: center;
+  border: 2px solid #fff; border-radius: 50%;
+  background: var(--q-done-check); color: #fff;
+}
+.q-done-mark .icon { stroke-width: 3; }
 
 .q-chat-card { display: flex; align-items: center; gap: 12px; }
 .q-chat-card strong { display: block; font-size: 16px; }
@@ -135,19 +173,21 @@
 .q-river { fill: #d7e8fb; }
 .q-river-wave { fill: none; stroke: #b3d2f5; stroke-width: 3; }
 .q-river-label { fill: #4b7fbf; font-size: 14px; font-weight: 700; }
-.q-zone rect { stroke-width: 2; transition: fill .4s, stroke .4s; }
-.q-zone[data-level="good"] rect { fill: var(--q-good-bg); stroke: #a8dcbf; }
-.q-zone[data-level="busy"] rect { fill: var(--q-busy-bg); stroke: #f1cf8f; }
-.q-zone[data-level="jam"] rect  { fill: var(--q-jam-bg);  stroke: #f3b1b6; }
-.q-zone-name { fill: var(--cc-text); font-size: 13px; font-weight: 700; }
-.q-zone-status { font-size: 12px; font-weight: 700; }
+.q-zone ellipse { stroke-width: 2; transition: fill .4s, stroke .4s; }
+.q-zone[data-level="good"] ellipse { fill: var(--q-good-bg); stroke: #a8dcbf; }
+.q-zone[data-level="busy"] ellipse { fill: var(--q-busy-bg); stroke: #f1cf8f; }
+.q-zone[data-level="jam"] ellipse  { fill: var(--q-jam-bg);  stroke: #f3b1b6; }
+.q-zone-name { fill: var(--cc-text); font-size: 13px; font-weight: 700; text-anchor: middle; }
+.q-zone-status { font-size: 12px; font-weight: 700; text-anchor: middle; }
 .q-zone[data-level="good"] .q-zone-status { fill: var(--q-good); }
 .q-zone[data-level="busy"] .q-zone-status { fill: var(--q-busy); }
 .q-zone[data-level="jam"] .q-zone-status  { fill: var(--q-jam); }
 .q-map-stamp circle { fill: #fff; stroke: #8a93a3; stroke-width: 2; stroke-dasharray: 3 2; }
 .q-map-stamp text { fill: #4b5563; font-size: 12px; font-weight: 700; text-anchor: middle; }
-.q-map-stamp.is-done circle { fill: #151a23; stroke: #151a23; stroke-dasharray: none; }
-.q-map-stamp.is-done text { fill: #fff; }
+.q-map-stamp.is-done circle { fill: var(--q-done-bg); stroke: var(--q-done-line); stroke-dasharray: none; }
+.q-map-stamp.is-done text { fill: var(--q-done-text); }
+.q-map-stamp.is-done circle.q-map-check { fill: var(--q-done-check); stroke: #fff; stroke-width: 1.5; }
+.q-map-check-mark { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .q-map-booth rect { fill: var(--cc-accent); }
 .q-map-booth text { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; }
 .q-map-gate { fill: var(--cc-muted); font-size: 12px; font-weight: 600; }
@@ -215,11 +255,11 @@
   width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center;
   border: 2px dashed #d2d7df; border-radius: 50%; color: var(--cc-muted); font-weight: 700;
 }
-.q-stamp.is-done .q-stamp-no { border: 0; background: var(--cc-accent); color: #fff; }
+.q-stamp.is-done .q-stamp-no { border: 2px solid var(--q-done-line); background: var(--q-done-bg); color: var(--q-done-text); }
 .q-stamp.is-new .q-stamp-no { animation: q-stamp .6s ease-out; }
 @keyframes q-stamp { 0% { transform: scale(1.8) rotate(-20deg); opacity: 0; } 70% { transform: scale(.9); } 100% { transform: none; opacity: 1; } }
 .q-stamp-state { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--cc-muted); }
-.q-stamp.is-done .q-stamp-state { color: var(--cc-accent); }
+.q-stamp.is-done .q-stamp-state { color: var(--q-done-check); }
 
 .q-coupon {
   margin-bottom: 14px; padding: 22px 20px; border-radius: 20px; text-align: center;
@@ -305,12 +345,28 @@
   background: #fff; color: #151a23; font-size: 14px;
   outline: 2px dashed #151a23; outline-offset: -4px;
 }
-.km-stamp.is-done { background: #151a23; color: #fff; outline: 0; }
+.km-stamp { position: relative; }
+.km-stamp.is-done { background: var(--q-done-bg); color: var(--q-done-text); outline: 2px solid var(--q-done-line); outline-offset: -2px; }
+.km-check {
+  position: absolute; right: -5px; bottom: -5px;
+  width: 16px; height: 16px; display: grid; place-items: center;
+  border: 2px solid #fff; border-radius: 50%;
+  background: var(--q-done-check); color: #fff; font-size: 9px; line-height: 1;
+}
+/* KT 홍보부스: 왼쪽 KT 로고 배지 + 이름 (공식 로고 이미지가 생기면 .km-booth-logo 를 이미지로 바꾸면 된다) */
 .km-booth {
-  height: 30px; padding: 0 10px; border-radius: 8px;
-  background: var(--cc-accent); color: #fff; font-size: 14px;
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px 0 3px; border-radius: 999px;
+  background: #fff; color: #151a23; font-size: 13px;
+  border: 2px solid var(--cc-accent);
   animation: km-bounce 1.8s ease-in-out infinite;
 }
+.km-booth-logo {
+  width: 26px; height: 26px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--cc-accent); color: #fff;
+  font-size: 11px; font-weight: 900; letter-spacing: -0.03em;
+}
+.km-booth-name { white-space: nowrap; }
 @keyframes km-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .km-zone {
   display: flex; flex-direction: column; align-items: center;
@@ -363,7 +419,7 @@ button.q-spot { cursor: pointer; }
   width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center;
   border: 2px dashed #b6bcc7; border-radius: 50%; font-weight: 800; color: var(--cc-text-sub);
 }
-.q-spot.is-done .q-spot-no { border: 0; background: #151a23; color: #fff; }
+.q-spot.is-done .q-spot-no { border: 2px solid var(--q-done-line); background: var(--q-done-bg); color: var(--q-done-text); }
 .q-spot-text { flex: 1; min-width: 0; }
 .q-spot-text strong { display: block; font-size: 15px; }
 .q-spot-text small { display: block; margin-top: 2px; font-size: 12px; color: var(--cc-muted); line-height: 1.4; }
