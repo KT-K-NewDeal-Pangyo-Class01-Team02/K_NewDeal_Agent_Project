@@ -25,10 +25,10 @@ python -m command_center.app
 ## 테스트
 
 ```powershell
-python -m unittest thejo_project.tests.test_thejo -v
+python -m unittest thejo_project.tests.test_thejo thejo_project.tests.test_insights -v
 ```
 
-추가 패키지 없이 표준 `unittest` 로 돕니다.
+추가 패키지 없이 표준 `unittest` 로 돕니다. 외부 호출(n8n)은 전부 mock 이라 **실제 네트워크로 나가지 않습니다.**
 
 ## 기능
 
@@ -100,6 +100,35 @@ n8n 으로 가는 본문은 이렇습니다.
 }
 ```
 
+## Google Sheets 인사이트 연동
+
+n8n 이 매일 09:00 에 Google Sheets `daily_insights` 시트에 쌓은 결과를, **Flask 서버가 n8n 조회용 Webhook 으로 가져와** 화면에 보여 줍니다. n8n Cloud 가 localhost 로 들어오는 게 아니라 **localhost 가 밖으로 나가는** 방향입니다.
+
+```
+n8n (매일 09:00) → Google Sheets daily_insights
+                              ↑ GET
+                    Flask (localhost:5000) → 화면
+```
+
+`thejo_project/.env` 에 조회 Webhook 을 넣으면 켜집니다. 비워 두면 기존 데모 데이터로 그대로 돕니다.
+
+```
+N8N_INSIGHTS_WEBHOOK_URL=https://<내 n8n>/webhook/thejo-insights
+N8N_INSIGHTS_TOKEN=<토큰. 없으면 비워 둠>
+N8N_INSIGHTS_TIMEOUT=5
+```
+
+- 토큰이 있으면 요청 헤더 **`X-Thejo-Token`** 으로 보냅니다.
+- URL·토큰은 서버에서만 읽습니다. HTML·JS·API 응답 어디에도 나가지 않고, **로그에도 찍지 않습니다**.
+- 응답은 원시 배열 `[...]` 과 `{"items": [...]}` 를 모두 받습니다.
+- `insight_id` 가 겹치면 `created_at` 이 가장 최신인 것만 남기고, `report_date` 가 가장 최신인 날짜만 씁니다.
+- 수익 기회는 `category == "추가 수익 기회"`, 위험은 `category == "확인해야 할 위험"` **이면서** `severity == "높음"` 인 것만 보여 줍니다.
+- 조회에 성공하면 화면에 `Google Sheets 최신 데이터 기준 · 2026-10-01` 이 작게 붙습니다.
+- **실패하면 화면이 깨지지 않고 기존 데모 데이터로 돌아갑니다.** 네트워크 오류·타임아웃·잘못된 JSON·빈 응답 모두 같습니다.
+- 결과는 메모리에 5분 캐시합니다. 실패는 60초만 캐시해, n8n 이 죽어도 페이지마다 타임아웃을 기다리지 않습니다.
+
+`daily_insights` 에 없는 값(유지 잔여일·확인 날짜·건당 인센티브 등)은 **만들어서 표시하지 않습니다.** 그래서 인사이트 카드는 기존 카드와 별도 매크로(`insight_opportunity_card`, `insight_warning_card`)를 씁니다. 거래 ID 가 기존 거래 데이터에서 조회될 때만 **거래 확인**(문자 모달) 버튼이 켜지고, 없는 거래면 버튼이 비활성화됩니다.
+
 ## 라우트
 
 | 메서드 | 경로 | 용도 |
@@ -120,14 +149,16 @@ thejo_project/
 ├─ routes.py          Blueprint 정의 · 라우트 · 금액 표기 필터(won, manwon)
 ├─ config.py          정책 상수 + 문자 템플릿 + n8n 설정 ← 정책·문구가 바뀌면 여기만
 ├─ data/
-│   ├─ demo_data.py   거래·고객·경고 데모 데이터 (계산하지 않는다)
-│   ├─ sms_store.py   문자 발송 기록 (sms_log.json)
-│   └─ sms_log.json   실행 중 생성. 새로고침해도 발송 상태가 남게 한다
+│   ├─ demo_data.py     거래·고객·경고 데모 데이터 (계산하지 않는다)
+│   ├─ insight_data.py  n8n 조회 · 정규화 · 중복 제거 · 캐시
+│   ├─ sms_store.py     문자 발송 기록 (sms_log.json)
+│   └─ sms_log.json     실행 중 생성. 새로고침해도 발송 상태가 남게 한다
 ├─ services/          비즈니스 계산. 모든 금액 계산이 여기에만 있다
 │   ├─ incentive_service.py     구간 계산 (순수 함수)
 │   ├─ transaction_service.py   거래 조회 + 유지일수 계산
 │   ├─ warning_service.py       위험 경고 조회 · 조치 완료
 │   ├─ opportunity_service.py   수익 기회 · 대시보드 요약
+│   ├─ insight_service.py       인사이트 + 기존 거래 연결
 │   └─ sms_service.py           템플릿 치환 · SMS/LMS 판정 · 발송
 ├─ templates/thejo/   Jinja2. Command Center 의 cc_layout.html 을 그대로 상속한다
 │   └─ _sms_modal.html  고객 안내 문자 모달

@@ -1,6 +1,7 @@
 {% extends "thejo/base.html" %}
 {% from "_icons.html" import icon %}
-{% from "thejo/_parts.html" import stat, warning_card, back_to_command_center %}
+{% from "thejo/_parts.html" import stat, warning_card, back_to_command_center,
+                                   insight_warning_card, insight_source_note %}
 
 {% block title %}위험 경고 · 더 줘{% endblock %}
 {% block crumb %}위험 경고{% endblock %}
@@ -14,18 +15,34 @@
   {{ back_to_command_center() }}
 </div>
 
-<section class="tj-stats tj-stats-2" aria-label="위험 요약">
-  {{ stat("조치 안 한 위험 노출액", summary.risk_exposure | manwon, " 원", "", "danger") }}
-  {{ stat("그중 인센티브 환수", summary.expected_clawback | manwon, " 원") }}
-</section>
+{% if insights_source == 'n8n' %}
+  {{ insight_source_note(insights_date) }}
+  <section class="tj-stats tj-stats-2" aria-label="위험 요약">
+    {{ stat("높은 위험 건수", insight_warnings | length, "건", "", "danger") }}
+    {{ stat("예상 영향 금액 합계", (insight_warnings | sum(attribute='amount')) | manwon, " 원") }}
+  </section>
 
-<section class="tj-list">
-  {% for w in warnings %}
-    {{ warning_card(w, detailed=True) }}
-  {% else %}
-    <p class="tj-empty cc-card">확인해야 할 위험이 없습니다.</p>
-  {% endfor %}
-</section>
+  <section class="tj-list">
+    {% for w in insight_warnings %}
+      {{ insight_warning_card(w) }}
+    {% else %}
+      <p class="tj-empty cc-card">오늘은 높은 위험으로 올라온 거래가 없습니다.</p>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="tj-stats tj-stats-2" aria-label="위험 요약">
+    {{ stat("조치 안 한 위험 노출액", summary.risk_exposure | manwon, " 원", "", "danger") }}
+    {{ stat("그중 인센티브 환수", summary.expected_clawback | manwon, " 원") }}
+  </section>
+
+  <section class="tj-list">
+    {% for w in warnings %}
+      {{ warning_card(w, detailed=True) }}
+    {% else %}
+      <p class="tj-empty cc-card">확인해야 할 위험이 없습니다.</p>
+    {% endfor %}
+  </section>
+{% endif %}
 
 {% include "thejo/_sms_modal.html" %}
 {% endblock %}

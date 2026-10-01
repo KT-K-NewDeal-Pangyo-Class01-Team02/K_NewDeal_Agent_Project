@@ -1,6 +1,7 @@
 {% extends "thejo/base.html" %}
 {% from "_icons.html" import icon %}
-{% from "thejo/_parts.html" import stat, warning_card, opportunity_card, back_to_command_center %}
+{% from "thejo/_parts.html" import stat, warning_card, opportunity_card, back_to_command_center,
+                                   insight_warning_card, insight_opportunity_card, insight_source_note %}
 
 {% block content %}
 <div class="cc-page-head tj-head">
@@ -26,14 +27,26 @@
       <h2 id="tj-risk-title">{{ icon("calendar-x", 22) }} 지금 확인해야 할 위험</h2>
       <a class="tj-more" href="{{ url_for('thejo.warnings') }}">전체 보기 {{ icon("chevron-right", 16) }}</a>
     </div>
-    {% for w in warnings %}
-      {{ warning_card(w) }}
+    {% if insights_source == 'n8n' %}
+      {{ insight_source_note(insights_date) }}
+      {% for w in insight_warnings %}
+        {{ insight_warning_card(w) }}
+      {% else %}
+        <p class="tj-empty cc-card">
+          <img src="{{ url_for('thejo.static', filename='images/all-clear.svg') }}" alt="" width="56" height="56">
+          오늘은 높은 위험으로 올라온 거래가 없습니다.
+        </p>
+      {% endfor %}
     {% else %}
-      <p class="tj-empty cc-card">
-        <img src="{{ url_for('thejo.static', filename='images/all-clear.svg') }}" alt="" width="56" height="56">
-        확인해야 할 위험이 없습니다. 이번 달은 깔끔하네요.
-      </p>
-    {% endfor %}
+      {% for w in warnings %}
+        {{ warning_card(w) }}
+      {% else %}
+        <p class="tj-empty cc-card">
+          <img src="{{ url_for('thejo.static', filename='images/all-clear.svg') }}" alt="" width="56" height="56">
+          확인해야 할 위험이 없습니다. 이번 달은 깔끔하네요.
+        </p>
+      {% endfor %}
+    {% endif %}
   </section>
 
   <section class="tj-col" aria-labelledby="tj-chance-title">
@@ -41,11 +54,20 @@
       <h2 id="tj-chance-title">{{ icon("coins", 22) }} 지금 활용할 수 있는 추가 수익 기회</h2>
       <a class="tj-more" href="{{ url_for('thejo.opportunities') }}">전체 보기 {{ icon("chevron-right", 16) }}</a>
     </div>
-    {% for o in opportunities %}
-      {{ opportunity_card(o) }}
+    {% if insights_source == 'n8n' %}
+      {{ insight_source_note(insights_date) }}
+      {% for o in insight_opportunities %}
+        {{ insight_opportunity_card(o) }}
+      {% else %}
+        <p class="tj-empty cc-card">오늘 올라온 추가 수익 기회가 없습니다.</p>
+      {% endfor %}
     {% else %}
-      <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다. 추가로 올릴 구간이 없습니다.</p>
-    {% endfor %}
+      {% for o in opportunities %}
+        {{ opportunity_card(o) }}
+      {% else %}
+        <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다. 추가로 올릴 구간이 없습니다.</p>
+      {% endfor %}
+    {% endif %}
   </section>
 </div>
 

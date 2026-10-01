@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 from thejo_project import config
 from thejo_project.data import demo_data
 from thejo_project.services import (
+    insight_service,
     opportunity_service,
     sms_service,
     transaction_service,
@@ -45,6 +46,23 @@ def format_manwon(value):
 
 
 # ── 화면 ─────────────────────────────────────────────────────────────────
+def _insight_context():
+    """인사이트를 쓸 수 있으면 화면에 넘길 값들, 아니면 demo 표시만.
+
+    n8n 조회가 실패해도 여기서 None 이 돌아오므로 화면은 기존 데모 데이터로 그려진다.
+    """
+    data = insight_service.get_view_data()
+    if not data:
+        return {"insights_source": "demo", "insights_date": None,
+                "insight_opportunities": [], "insight_warnings": []}
+    return {
+        "insights_source": "n8n",
+        "insights_date": data["report_date"],
+        "insight_opportunities": data["opportunities"],
+        "insight_warnings": data["high_risks"],
+    }
+
+
 @thejo_bp.get("/")
 def dashboard():
     return render_template(
@@ -56,6 +74,7 @@ def dashboard():
         snapshot=demo_data.get_sales_snapshot(),
         sms_templates=sms_service.template_choices(),
         sms_byte_limit=config.SMS_BYTE_LIMIT,
+        **_insight_context(),
     )
 
 
@@ -68,6 +87,7 @@ def warnings():
         summary=opportunity_service.get_dashboard_summary(),
         sms_templates=sms_service.template_choices(),
         sms_byte_limit=config.SMS_BYTE_LIMIT,
+        **_insight_context(),
     )
 
 
@@ -78,6 +98,7 @@ def opportunities():
         active_agent_id=AGENT_ID,
         opportunities=opportunity_service.get_profit_opportunities(),
         summary=opportunity_service.get_dashboard_summary(),
+        **_insight_context(),
     )
 
 

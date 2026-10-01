@@ -77,6 +77,100 @@
 </article>
 {%- endmacro %}
 
+{#- ───────── Google Sheets(daily_insights) 데이터용 카드 ─────────
+    기존 카드와 데이터 구조가 달라 매크로를 따로 둔다.
+    daily_insights 에 없는 값(유지 잔여일·확인 날짜·건당 인센티브 등)은 만들어 넣지 않는다. -#}
+
+{#- 데이터 출처 표시. n8n 데이터일 때만 쓴다. -#}
+{% macro insight_source_note(report_date) -%}
+<p class="tj-source-note">{{ icon("refresh", 14) }} Google Sheets 최신 데이터 기준 · {{ report_date }}</p>
+{%- endmacro %}
+
+{#- 추가 수익 기회 (category == "추가 수익 기회") -#}
+{% macro insight_opportunity_card(o) -%}
+<article class="tj-chance cc-card tj-insight">
+  <header class="tj-chance-head">
+    <span class="tj-chance-tag">{{ icon("coins", 18) }} 추가 수익 기회</span>
+    {% if o.severity %}<span class="tj-chance-note">{{ o.severity }}</span>{% endif %}
+  </header>
+
+  <p class="tj-chance-msg">
+    현재 판매량 <b>{{ o.current_sales }}건</b>에서
+    <b>{{ o.additional_sales_needed }}건</b>을 더 팔면
+    <b class="tj-gain">{{ o.amount | manwon }} 원</b>의 추가 수익이 예상됩니다.
+  </p>
+
+  <dl class="tj-insight-meta">
+    {% if o.device_model_name %}<div><dt>단말기</dt><dd>{{ o.device_model_name }}</dd></div>{% endif %}
+    {% if o.plan_code %}<div><dt>요금제</dt><dd>{{ o.plan_code }}</dd></div>{% endif %}
+    <div><dt>현재 판매량</dt><dd>{{ o.current_sales }}건</dd></div>
+    <div><dt>추가 필요</dt><dd>{{ o.additional_sales_needed }}건</dd></div>
+    <div><dt>예상 추가 수익</dt><dd class="tj-gain">{{ o.amount | won }}</dd></div>
+  </dl>
+
+  {% if o.reason %}
+  <p class="tj-action">{{ icon("sparkles", 18) }}<span><b>판단 근거</b> {{ o.reason }}</span></p>
+  {% endif %}
+
+  <footer class="tj-chance-foot">
+    <a class="cc-btn cc-btn-primary" href="{{ url_for('thejo.opportunities') }}#simulator">
+      {{ icon("sparkles", 18) }} 혜택 시뮬레이션
+    </a>
+  </footer>
+</article>
+{%- endmacro %}
+
+{#- 높은 위험 (category == "확인해야 할 위험" and severity == "높음")
+    거래가 조회될 때만 '거래 확인' 버튼을 켠다. class·data 속성은 기존 JS 가 쓰는 것과 같다. -#}
+{% macro insight_warning_card(w) -%}
+{% set tx = w.transaction %}
+<article class="tj-warning cc-card level-high tj-insight"
+         id="{{ w.insight_id }}"{% if tx %} data-transaction-id="{{ tx.transaction_id }}"{% endif %}>
+  <header class="tj-warning-head">
+    <span class="tj-level">{{ w.severity }}</span>
+    <span class="tj-kind">확인해야 할 위험</span>
+    {% if tx %}
+    <span class="cc-badge tj-sms-badge" data-sms-badge {% if tx.sms_status != '발송 완료' %}hidden{% endif %}>
+      {{ icon("check", 14) }} 문자 안내 완료
+      <time data-sms-time>{% if tx.last_sms %}{{ tx.last_sms.sent_at[:16] | replace('T', ' ') }}{% endif %}</time>
+    </span>
+    {% endif %}
+  </header>
+
+  <h3 class="tj-warning-title">
+    {% if w.customer_name_masked %}{{ w.customer_name_masked }} 고객{% else %}{{ w.insight_id }}{% endif %}
+  </h3>
+  <p class="tj-warning-msg">
+    예상 영향 금액은 <b class="tj-loss">{{ w.amount | manwon }} 원</b>입니다.
+  </p>
+
+  <dl class="tj-insight-meta">
+    {% if w.transaction_id %}<div><dt>거래 ID</dt><dd>{{ w.transaction_id }}</dd></div>{% endif %}
+    {% if w.customer_name_masked %}<div><dt>고객</dt><dd>{{ w.customer_name_masked }}</dd></div>{% endif %}
+    {% if w.device_model_name %}<div><dt>단말기</dt><dd>{{ w.device_model_name }}</dd></div>{% endif %}
+    <div><dt>예상 영향 금액</dt><dd class="tj-loss">{{ w.amount | won }}</dd></div>
+  </dl>
+
+  {% if w.reason %}
+  <p class="tj-action">{{ icon("sparkles", 18) }}<span><b>확인 사유</b> {{ w.reason }}</span></p>
+  {% endif %}
+
+  {% if tx %}
+  <footer class="tj-warning-foot">
+    <button type="button" class="cc-btn" data-open-sms="{{ tx.transaction_id }}">
+      {{ icon("user", 18) }} 거래 확인
+    </button>
+  </footer>
+  {% elif w.transaction_id %}
+  <footer class="tj-warning-foot">
+    <button type="button" class="cc-btn" disabled title="이 거래는 아직 시스템에 등록되지 않았습니다">
+      {{ icon("user", 18) }} 거래 확인
+    </button>
+  </footer>
+  {% endif %}
+</article>
+{%- endmacro %}
+
 {#- 수익 기회 카드. -#}
 {% macro opportunity_card(o) -%}
 <article class="tj-chance cc-card">

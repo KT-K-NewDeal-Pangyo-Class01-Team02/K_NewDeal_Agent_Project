@@ -104,6 +104,24 @@
 .tj-tier-arrow { flex-shrink: 0; color: var(--cc-muted); }
 .tj-tier-note { margin: 8px 0 16px; font-size: 12px; color: var(--cc-muted); }
 
+/* ---------- 인사이트(Google Sheets) 카드 ---------- */
+/* 기존 tj-warning / tj-chance 를 그대로 쓰고 메타 목록만 따로 둔다. */
+.tj-source-note {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 2px; font-size: 12px; color: var(--cc-muted);
+}
+.tj-source-note .icon { flex-shrink: 0; }
+
+.tj-insight-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px 18px; margin: 0 0 14px;
+}
+.tj-insight-meta div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tj-insight-meta dt { font-size: 12px; color: var(--cc-muted); }
+.tj-insight-meta dd { margin: 0; font-size: 14px; font-weight: 600; word-break: break-all; }
+
+.tj-insight .cc-btn:disabled { background: #f0f2f5; color: #9aa3b1; cursor: not-allowed; }
+
 /* ---------- 고객 안내 문자 모달 ---------- */
 /* cc-dialog 의 기본 틀(모서리·그림자·backdrop)을 그대로 쓰고 너비만 넓힌다. */
 .tj-sms-dialog { width: min(600px, calc(100vw - 32px)); }

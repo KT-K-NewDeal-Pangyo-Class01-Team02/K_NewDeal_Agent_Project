@@ -1,6 +1,7 @@
 {% extends "thejo/base.html" %}
 {% from "_icons.html" import icon %}
-{% from "thejo/_parts.html" import stat, opportunity_card, back_to_command_center %}
+{% from "thejo/_parts.html" import stat, opportunity_card, back_to_command_center,
+                                   insight_opportunity_card, insight_source_note %}
 
 {% block title %}수익 기회 · 더 줘{% endblock %}
 {% block crumb %}수익 기회{% endblock %}
@@ -14,19 +15,36 @@
   {{ back_to_command_center() }}
 </div>
 
-<section class="tj-stats tj-stats-3" aria-label="수익 기회 요약">
-  {{ stat("이번 달 누적 판매량", summary.units_sold, "건") }}
-  {{ stat("구간 달성 시 증가액", summary.tier_gain | manwon, " 원", "총인센티브 기준") }}
-  {{ stat("고객 혜택 활용 가능", summary.benefit_budget | manwon, " 원", "", "good") }}
-</section>
+{% if insights_source == 'n8n' %}
+  {{ insight_source_note(insights_date) }}
+  <section class="tj-stats tj-stats-3" aria-label="수익 기회 요약">
+    {{ stat("기회 건수", insight_opportunities | length, "건") }}
+    {{ stat("예상 추가 수익 합계", (insight_opportunities | sum(attribute='amount')) | manwon, " 원", "", "good") }}
+    {{ stat("추가 필요 판매 합계", insight_opportunities | sum(attribute='additional_sales_needed'), "건") }}
+  </section>
 
-<section class="tj-list">
-  {% for o in opportunities %}
-    {{ opportunity_card(o) }}
-  {% else %}
-    <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다.</p>
-  {% endfor %}
-</section>
+  <section class="tj-list">
+    {% for o in insight_opportunities %}
+      {{ insight_opportunity_card(o) }}
+    {% else %}
+      <p class="tj-empty cc-card">오늘 올라온 추가 수익 기회가 없습니다.</p>
+    {% endfor %}
+  </section>
+{% else %}
+  <section class="tj-stats tj-stats-3" aria-label="수익 기회 요약">
+    {{ stat("이번 달 누적 판매량", summary.units_sold, "건") }}
+    {{ stat("구간 달성 시 증가액", summary.tier_gain | manwon, " 원", "총인센티브 기준") }}
+    {{ stat("고객 혜택 활용 가능", summary.benefit_budget | manwon, " 원", "", "good") }}
+  </section>
+
+  <section class="tj-list">
+    {% for o in opportunities %}
+      {{ opportunity_card(o) }}
+    {% else %}
+      <p class="tj-empty cc-card">이번 달은 이미 최상위 구간입니다.</p>
+    {% endfor %}
+  </section>
+{% endif %}
 
 <section class="tj-sim cc-card" id="simulator" aria-labelledby="tj-sim-title">
   <h2 id="tj-sim-title">{{ icon("sparkles", 22) }} 혜택 시뮬레이션</h2>

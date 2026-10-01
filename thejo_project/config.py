@@ -34,6 +34,20 @@ SMS_BYTE_LIMIT = 90
 N8N_SMS_WEBHOOK_URL = os.getenv("N8N_SMS_WEBHOOK_URL", "").strip()
 N8N_SMS_TIMEOUT = float(os.getenv("N8N_SMS_TIMEOUT", "10"))
 
+# ── 인사이트 (n8n → Google Sheets daily_insights) ────────────────────────
+# n8n 이 매일 09:00 에 시트에 쌓은 결과를 **조회**하는 Webhook.
+# 비워 두면 인사이트 연동을 끄고 기존 데모 데이터로 화면을 그린다.
+# URL·토큰 모두 **서버에서만** 읽는다. 템플릿이나 JS 로 절대 내려보내지 않는다.
+N8N_INSIGHTS_WEBHOOK_URL = os.getenv("N8N_INSIGHTS_WEBHOOK_URL", "").strip()
+N8N_INSIGHTS_TOKEN = os.getenv("N8N_INSIGHTS_TOKEN", "").strip()
+N8N_INSIGHTS_TIMEOUT = float(os.getenv("N8N_INSIGHTS_TIMEOUT", "5"))
+
+# 조회 결과를 메모리에 들고 있는 시간(초). 페이지마다 외부 호출이 나가지 않게 한다.
+INSIGHTS_CACHE_SECONDS = float(os.getenv("INSIGHTS_CACHE_SECONDS", "300"))
+# 실패했을 때는 짧게만 캐시한다. n8n 이 죽어도 페이지마다 타임아웃을 기다리지 않도록.
+INSIGHTS_FAILURE_CACHE_SECONDS = float(os.getenv("INSIGHTS_FAILURE_CACHE_SECONDS", "60"))
+
+
 # 문자 템플릿. {중괄호} 변수는 sms_service 가 거래 데이터로 치환한다.
 SMS_TEMPLATES = [
     {
