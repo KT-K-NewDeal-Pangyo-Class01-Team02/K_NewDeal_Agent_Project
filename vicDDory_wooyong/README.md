@@ -46,6 +46,7 @@ python -m vicddory_campaign.app
 | 캠페인 발의 제출 ① 제약 검증 | `POST /api/f02/validate` | `F02_validate` (action=validate) | `N8N_BASE_URL` |
 | 캠페인 발의 제출 ② 기획서 생성 (검증 통과 시) | `POST /api/plan` | `WF_plan` (`/webhook/wf-plan`) → `F03_site` → `F04_copy` → `F05_callsheet` | `N8N_BASE_URL` |
 | 기획안 아래 "지사 승인 요청" · 상태 확인(8초마다) | `POST /api/f06/submit`, `/api/f06/status` | `F06_submit` (`/webhook/f06-submit`) | `N8N_BASE_URL` |
+| 진행 중인 캠페인 이어서 하기 (새로고침 후에도) | `POST /api/f06/mine` | `F06_submit` (action=list) | `N8N_BASE_URL` |
 | 지사 승인 화면 `/hq`: 대기 목록 · 승인 · 반려 | `POST /api/f06/list`, `/api/f06/decide` | `F06_decide` (`/webhook/f06-decide`) | `N8N_BASE_URL` |
 | (F-02 없이 부를 때만) 기존 기획서 생성 | `POST /api/plan` | `BTL 기획안 생성 (Webhook)` (`/webhook/plan-gen`) | `N8N_WEBHOOK_URL` |
 

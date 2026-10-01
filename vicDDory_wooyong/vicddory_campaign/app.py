@@ -113,6 +113,16 @@ def f06_status():
     return _call_f06(config.F06_SUBMIT_URL, {"action": "status", "campaign_id": data.get("campaign_id")}, _demo_f06)
 
 
+@app.post("/api/f06/mine")
+def f06_mine():
+    """점장 화면: 이 매장의 진행 중(승인 전) 캠페인. 새로고침해도 이어서 수정 · 재요청할 수 있게."""
+    data = request.get_json(silent=True) or {}
+    store = _store(data.get("store_id"))
+    if not store:
+        return jsonify(error="매장을 골라 주세요."), 400
+    return _call_f06(config.F06_SUBMIT_URL, {"action": "list", "store_id": store["id"]}, _demo_f06)
+
+
 @app.post("/api/f06/list")
 def f06_list():
     return _call_f06(config.F06_DECIDE_URL, {"action": "list"}, _demo_f06)
@@ -138,6 +148,12 @@ _DEMO_F06 = {}
 def _demo_f06(p):
     now = datetime.now(timezone.utc).isoformat()
     action, cid = p.get("action"), str(p.get("campaign_id"))
+    if action == "list" and p.get("store_id"):  # 점장 화면의 진행 중 캠페인 (데모는 매장 구분 없이)
+        return {"status": "success", "source": "demo", "items": [
+            {"campaign_id": k, "status": "revising" if v["state"] == "rejected" else "planned", "approval_status": v["state"],
+             "revision_round": v["round"], "last_decision": v["last"], "requested_at": v["at"], "target_date": "",
+             "card_title": "데모 캠페인", "f02": None, "plan_markdown": v["plan"] if v["state"] == "requested" else ""}
+            for k, v in _DEMO_F06.items() if v["state"] != "approved"]}
     if action == "list":
         return {"status": "success", "source": "demo", "items": [
             {"campaign_id": k, "store_name": "신천역점 (데모)", "target_date": "", "revision_round": v["round"],
