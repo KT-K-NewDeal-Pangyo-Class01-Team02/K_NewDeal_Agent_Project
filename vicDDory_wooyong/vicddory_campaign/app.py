@@ -41,16 +41,25 @@ TARGET_GROUPS = [
 ]
 
 # 14단계 환류 대시보드에 보여 줄 지난 캠페인 집계 (추후 POS 연동 예정)
-FUNNEL = [
-    {"label": "부스 방문 (익명 QR)", "value": "342명", "sub": "지난 캠페인 합계"},
-    {"label": "매장 내방율", "value": "28.4%", "sub": "97명 인입"},
-    {"label": "POS 최종 개통", "value": "19건", "sub": "내방 대비 19.6%"},
-]
-
-INSIGHT = (
-    "2030 타깃 요금제 캠페인의 점심 시간대(12~14시) 인입 전환율이 통상치 대비 1.8배 높았습니다. "
-    "차기 기획 시 부스 운영 인력을 해당 피크 시간대에 집중 배치할 것을 권장합니다."
-)
+# F-09 환류 대시보드는 n8n F09_report(Supabase pos_funnel)에서 불러온다. 아래는 데모 모드용 표본이다.
+_DEMO_F09 = {
+    "status": "success", "source": "demo", "store_id": "ST-SINCHEON", "store_name": "신천역점",
+    "period": {"from": "2026-04-18", "to": "2026-09-12"},
+    "totals": {"booth": 1120, "visits": 205, "acts": 47, "visit_rate": 0.183, "act_rate": 0.229},
+    "by_hour": [{"key": "14:00-15:00", "booth": 228, "visits": 35, "acts": 7, "visit_rate": 0.154, "act_rate": 0.2},
+                {"key": "15:00-16:00", "booth": 311, "visits": 64, "acts": 15, "visit_rate": 0.206, "act_rate": 0.234},
+                {"key": "16:00-17:00", "booth": 331, "visits": 66, "acts": 16, "visit_rate": 0.199, "act_rate": 0.242},
+                {"key": "17:00-18:00", "booth": 250, "visits": 40, "acts": 9, "visit_rate": 0.161, "act_rate": 0.225}],
+    "by_type": [{"key": "공원", "booth": 980, "visits": 183, "acts": 41, "visit_rate": 0.187, "act_rate": 0.224},
+                {"key": "역 출구", "booth": 140, "visits": 22, "acts": 6, "visit_rate": 0.157, "act_rate": 0.273}],
+    "campaigns": [], "mix": {"5G": 18, "가족결합": 18, "키즈폰": 11},
+    "baseline": {"visit_rate": 0.178, "act_rate": 0.245, "best_slot": "15:00-16:00", "best_slot_rate": 0.206,
+                 "best_type": "공원", "best_type_rate": 0.187},
+    "dataTags": ["데모 데이터입니다."],
+    "insight": "최근 3회 평균 내방률 17.8%, 개통률 24.5%를 차기 최소 기준선으로 둡니다. 운영 시간 중 15:00~16:00 내방률이 "
+               "20.6%로 가장 높아 이 시간대에 호객 인력을 집중하세요. (데모)",
+    "llm": False,
+}
 
 app = Flask(__name__)
 init_cc_layout(app)
@@ -62,8 +71,7 @@ def home():
         "campaign.html",
         agent=AGENT,
         target_groups=TARGET_GROUPS,
-        funnel=FUNNEL,
-        insight=INSIGHT,
+        f09_connected=bool(config.F09_REPORT_URL),
         max_constraints=MAX_CONSTRAINTS,
         n8n_connected=bool(config.N8N_WEBHOOK_URL),
         stores=STORES,
@@ -111,6 +119,22 @@ def f06_submit():
 def f06_status():
     data = request.get_json(silent=True) or {}
     return _call_f06(config.F06_SUBMIT_URL, {"action": "status", "campaign_id": data.get("campaign_id")}, _demo_f06)
+
+
+@app.post("/api/f09/report")
+def f09_report():
+    """F-09 환류: 지난 캠페인 POS 퍼널(부스 방문 → 내방 → 개통)과 차기 기준선 제안."""
+    data = request.get_json(silent=True) or {}
+    store = _store(data.get("store_id")) or STORES[0]
+    if not config.F09_REPORT_URL:
+        return jsonify({**_DEMO_F09, "store_id": store["id"], "store_name": store["name"]})
+    try:
+        result = request_json(config.F09_REPORT_URL, {"store_id": store["id"]}, timeout=config.N8N_TIMEOUT)
+    except N8nError as exc:
+        return jsonify(error=str(exc)), 502
+    if result.get("status") != "success":
+        return jsonify(error=result.get("message") or "성과 리포트를 받지 못했어요."), 502
+    return jsonify({**result, "source": "n8n"})
 
 
 @app.post("/api/f06/mine")

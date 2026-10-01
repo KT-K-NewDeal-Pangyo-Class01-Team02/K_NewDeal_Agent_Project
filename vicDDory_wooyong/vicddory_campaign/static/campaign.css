@@ -109,6 +109,20 @@
 .site-visual a { color: #b85a0d; font-weight: 700; text-decoration: none; }
 .site-visual a:hover { text-decoration: underline; }
 
+/* ---------- F-09 환류 대시보드 ---------- */
+.stat-row-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stat-goal { background: #fff8ef; }
+.f09-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; margin: 18px 0 14px; }
+.f09-h { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--cc-text-sub); }
+.hour-bars { display: grid; gap: 6px; margin-bottom: 12px; }
+.hour-bar { display: grid; grid-template-columns: 96px 1fr 120px; gap: 10px; align-items: center; font-size: 13px; }
+.hour-bar i { display: block; height: 10px; border-radius: 5px; background: #eef0f4; overflow: hidden; }
+.hour-bar i b { display: block; height: 100%; background: #d46b12; }
+.hour-bar.is-best span:first-child { font-weight: 800; color: #b85a0d; }
+.hour-bar span:last-child { color: var(--cc-text-sub); text-align: right; }
+.f09-mix { margin: 0; font-size: 13px; color: var(--cc-text-sub); line-height: 1.7; }
+@media (max-width: 1080px) { .stat-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .f09-grid { grid-template-columns: minmax(0, 1fr); } }
+
 /* ---------- 진행 중 캠페인 이어서 하기 ---------- */
 .resume { display: grid; gap: 6px; padding: 12px 14px; border: 1px dashed var(--cc-border); border-radius: 12px; background: #fbfcfd; }
 .resume .cc-label { margin: 0; }

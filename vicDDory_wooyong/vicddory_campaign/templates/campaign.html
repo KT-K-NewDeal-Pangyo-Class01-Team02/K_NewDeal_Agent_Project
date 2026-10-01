@@ -188,23 +188,44 @@
 <section class="cc-card panel funnel" aria-labelledby="funnel-title">
   <header class="panel-head">
     <div>
-      <h2 id="funnel-title">성과 환류</h2>
-      <p>POS 판매 · 개통 퍼널을 모아 다음 기획의 기준선을 제안합니다.</p>
+      <h2 id="funnel-title">성과 환류 (F-09)</h2>
+      <p>지난 캠페인의 POS 판매 · 개통 퍼널을 모아 다음 기획의 기준선을 제안합니다.</p>
     </div>
-    <span class="conn is-demo" title="POS 연동 전까지는 지난 캠페인 집계를 보여 줍니다">지난 캠페인 집계</span>
+    {% if f09_connected %}<span class="conn is-live">n8n · POS 퍼널 연결됨</span>{% else %}<span class="conn is-demo">데모 모드</span>{% endif %}
   </header>
 
-  <div class="stat-row">
-    {% for s in funnel %}
-    <div class="stat">
-      <span class="stat-label">{{ s.label }}</span>
-      <strong class="stat-value">{{ s.value }}</strong>
-      <span class="stat-sub">{{ s.sub }}</span>
-    </div>
-    {% endfor %}
+  <div class="opp-toolbar">
+    <label class="opp-store">
+      <span class="cc-label">매장</span>
+      <select class="cc-select" id="f09-store">
+        {% for s in stores %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="button" class="cc-btn" id="f09-btn">{{ icon("refresh", 16) }}<span>성과 리포트 갱신</span></button>
+    <p class="opp-meta" id="f09-meta" aria-live="polite">불러오는 중…</p>
   </div>
 
-  <p class="insight">{{ icon("sparkles", 18) }}<span><strong>AI 차기 기준선 제안</strong>{{ insight }}</span></p>
+  <div class="stat-row stat-row-4">
+    <div class="stat"><span class="stat-label">부스 방문</span><strong class="stat-value" id="f09-booth">–</strong><span class="stat-sub" id="f09-booth-sub">지난 캠페인 합계</span></div>
+    <div class="stat"><span class="stat-label">매장 내방률</span><strong class="stat-value" id="f09-visit">–</strong><span class="stat-sub" id="f09-visit-sub"></span></div>
+    <div class="stat"><span class="stat-label">POS 최종 개통</span><strong class="stat-value" id="f09-acts">–</strong><span class="stat-sub" id="f09-acts-sub"></span></div>
+    <div class="stat stat-goal"><span class="stat-label">차기 기준선 (최근 3회 평균)</span><strong class="stat-value" id="f09-base">–</strong><span class="stat-sub" id="f09-base-sub"></span></div>
+  </div>
+
+  <div class="f09-grid">
+    <div>
+      <h3 class="f09-h">시간대별 매장 내방률 (운영 14~18시)</h3>
+      <div class="hour-bars" id="f09-hours"></div>
+    </div>
+    <div>
+      <h3 class="f09-h">장소 유형별</h3>
+      <div class="hour-bars" id="f09-types"></div>
+      <h3 class="f09-h">개통 상품</h3>
+      <p class="f09-mix" id="f09-mix">–</p>
+    </div>
+  </div>
+
+  <p class="insight">{{ icon("sparkles", 18) }}<span><strong>AI 차기 기준선 제안</strong><span id="f09-insight">불러오는 중…</span></span></p>
 </section>
 {% endblock %}
 
@@ -212,4 +233,5 @@
 <script src="{{ url_for('static', filename='plan_render.js') }}"></script>
 <script src="{{ url_for('static', filename='campaign.js') }}"></script>
 <script src="{{ url_for('static', filename='f01.js') }}"></script>
+<script src="{{ url_for('static', filename='f09.js') }}"></script>
 {% endblock %}
