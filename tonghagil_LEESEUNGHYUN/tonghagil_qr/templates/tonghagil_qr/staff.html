@@ -63,11 +63,11 @@
       </li>
       {% endfor %}
     </ul>
-    <p class="s-desc">스탬프 {{ required }}개를 모두 모으면 쿠폰이 자동 발급돼요. 챗봇 질문 {{ stats.chat_messages }}건.</p>
+    <p class="s-desc">스탬프 {{ required }}개를 모두 모으면 쿠폰이 자동 발급돼요. 채팅 에이전트 질문{{ stats.chat_messages }}건.</p>
 
     <h3>설정</h3>
     <dl class="s-settings">
-      <div><dt>안내 챗봇</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
+      <div><dt>채팅 에이전트</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
       <div><dt>지도</dt><dd>{% if kakao_connected %}<span class="cc-badge is-live">카카오맵 키 있음</span>{% else %}<span class="cc-badge">그림 약도 (QR_KAKAO_MAP_KEY 없음)</span>{% endif %}</dd></div>
       <div><dt>담당자 PIN</dt><dd>{% if pin_is_default %}<span class="cc-badge">기본값 1234</span>{% else %}<span class="cc-badge is-live">설정됨</span>{% endif %}</dd></div>
       <div><dt>QR 주소</dt><dd><code>{{ public_base }}</code></dd></div>
