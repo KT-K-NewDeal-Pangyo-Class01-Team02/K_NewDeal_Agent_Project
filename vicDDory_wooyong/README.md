@@ -33,6 +33,7 @@ python -m vicddory_campaign.app
 | `vicddory_campaign/static/f09.js` | F-09 성과 환류 대시보드 |
 | `vicddory_campaign/static/plan_render.js` | 기획안 마크다운 → 문서 (점장 · 지사 화면 공용) |
 | `vicddory_campaign/templates/hq.html`, `static/hq.js` | F-06 지사 승인 화면 (`/hq`) |
+| `docs/규정요약본.md` | 표시광고법 요약 · BI · 기획서 양식 · 현장 매뉴얼 (F-04 카피 규칙의 근거) |
 | `Outdoor-Public-Relations-Campaign-Agent-main/index.html` | Flask 이전의 초기 프로토타입 (참고용 보관, 더 이상 수정하지 않음) |
 
 ## 화면과 n8n 워크플로
