@@ -66,6 +66,13 @@
 
     <form class="brief-form" id="brief-form" novalidate>
       <input type="hidden" name="campaign_id" id="f-campaign-id">
+      <div class="resume" id="resume" hidden>
+        <span class="cc-label">진행 중인 캠페인 이어서 하기</span>
+        <div class="field-row field-row-tight resume-row">
+          <select class="cc-select" id="resume-select" aria-label="진행 중인 캠페인"></select>
+          <button type="button" class="cc-btn" id="resume-btn">불러오기</button>
+        </div>
+      </div>
       <p class="brief-linked" id="f-linked" hidden></p>
 
       <div class="field-row">

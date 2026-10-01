@@ -32,7 +32,11 @@
   let lastPlanMd = '';
   let planCampaignId = null;
   let pollTimer = null;
-  let planShownAt = 0;  // 지금 보이는 기획안이 만들어진 시각 (반려 이후에 새로 만든 건지 판단)
+  let planShownAt = 0;
+  const resumeBox = document.getElementById('resume');
+  const resumeSel = document.getElementById('resume-select');
+  const resumeBtn = document.getElementById('resume-btn');
+  let resumeItems = [];  // 지금 보이는 기획안이 만들어진 시각 (반려 이후에 새로 만든 건지 판단)
   let lastSiteName = '';
   let staff = [];
   let optionsSeq = 0;
@@ -335,5 +339,68 @@
     siteSel.focus();
   });
 
+  // ---------- 진행 중 캠페인 이어서 하기 ----------
+  // 화면을 새로고침하거나 닫았다 열어도, 승인 전 캠페인을 골라 발의 폼 · 승인 상태를 다시 채운다.
+  const STATE = { requested: '승인 대기', rejected: '반려', not_requested: '승인 요청 전' };
+  async function loadResume() {
+    try {
+      const data = await post('/api/f06/mine', { store_id: storeSel.value });
+      resumeItems = data.items || [];
+    } catch (err) { resumeItems = []; }
+    resumeBox.hidden = resumeItems.length === 0;
+    resumeSel.replaceChildren(...resumeItems.map((c, i) => option(String(i),
+      `캠페인 ${c.campaign_id}${c.target_date ? ` · ${c.target_date}` : ''} · ${STATE[c.approval_status] || c.approval_status}` +
+      `${c.revision_round ? ` (수정 ${c.revision_round}회차)` : ''}${c.card_title ? ` · ${c.card_title}` : ''}`)));
+  }
+
+  async function restore(c) {
+    const f = c.f02 || {};
+    if (c.store_id) storeSel.value = c.store_id;
+    if (f.target_date || c.target_date) dateInput.value = f.target_date || c.target_date;
+    if (f.operating_hours) hoursSel.value = f.operating_hours;
+    if (f.target_group) form.elements.target_group.value = f.target_group;
+    if (f.budget) form.elements.budget.value = f.budget;
+    form.elements.reward_qty.value = f.reward_qty || 0;
+    if (typeof f.constraints === 'string' && f.constraints) { constraints.value = f.constraints; updateCounter(); }
+    campaignInput.value = c.campaign_id;
+    linked.textContent = `캠페인 ${c.campaign_id}${c.card_title ? ` "${c.card_title}"` : ''}을(를) 이어서 진행합니다.`;
+    linked.hidden = false;
+    await loadOptions();  // 그날 근무자 · 장소 · 재고를 다시 받은 뒤 고른 값을 채운다
+    if (f.site_id) siteSel.value = f.site_id;
+    const ids = (f.staff || []).map((s) => s.employee_id).filter(Boolean);
+    staffSels.forEach((sel, i) => { if (ids[i] && [...sel.options].some((o) => o.value === ids[i])) sel.value = ids[i]; });
+    if (f.reward_item) { rewardSel.value = f.reward_item; updateRewardHint(); }
+    checksBox.hidden = true;
+
+    planCampaignId = c.campaign_id;
+    if (c.approval_status === 'requested' && c.plan_markdown) {
+      // 승인 대기 중이면 지사에 보낸 기획안을 그대로 다시 보여 주고 상태를 계속 확인한다
+      lastPlanMd = c.plan_markdown;
+      showPlan(c.plan_markdown);
+      planShownAt = Date.now();
+      showApproval();
+    } else {
+      // 반려 · 요청 전이면 폼만 채운다. 고쳐서 '캠페인 발의 제출'을 누르면 새 기획안이 나온다
+      showWaiting(c.approval_status === 'rejected'
+        ? '반려된 캠페인을 불러왔습니다. 사유를 보고 조건을 고친 뒤 캠페인 발의 제출을 누르세요.'
+        : '캠페인을 불러왔습니다. 캠페인 발의 제출을 누르면 기획안을 다시 만듭니다.');
+      planShownAt = 0;
+      approval.hidden = false;
+      refreshApproval();
+    }
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  resumeBtn.addEventListener('click', async () => {
+    const c = resumeItems[Number(resumeSel.value)];
+    if (!c) return;
+    resumeBtn.disabled = true;
+    try { await restore(c); window.ccToast(`캠페인 ${c.campaign_id}을(를) 불러왔습니다.`); }
+    finally { resumeBtn.disabled = false; }
+  });
+  storeSel.addEventListener('change', loadResume);
+  document.addEventListener('vicddory:campaign-selected', () => setTimeout(loadResume, 500));
+
   loadOptions();
+  loadResume();
 })();

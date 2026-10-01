@@ -98,7 +98,8 @@
 .plan-doc ul, .plan-doc ol { margin: 6px 0 10px; padding-left: 22px; }
 .plan-doc li { margin: 3px 0; }
 .plan-doc .plan-table-wrap { overflow-x: auto; margin: 10px 0 14px; }
-.plan-doc table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.plan-doc table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; }  /* 좁은 화면에서는 줄이지 않고 가로로 스크롤 */
+.plan-doc td:first-child { white-space: nowrap; }
 .plan-doc th, .plan-doc td { word-break: keep-all; padding: 9px 12px; border-bottom: 1px solid var(--cc-border); text-align: left; vertical-align: top; }
 .plan-doc th { background: #f4f5f7; font-weight: 700; }
 .site-visual { max-width: 560px; margin: 12px 0 16px; border: 1px solid var(--cc-border); border-radius: 12px; overflow: hidden; background: #fff; }
@@ -107,6 +108,11 @@
   padding: 10px 14px; font-size: 12px; color: var(--cc-text-sub); border-top: 1px solid var(--cc-border); }
 .site-visual a { color: #b85a0d; font-weight: 700; text-decoration: none; }
 .site-visual a:hover { text-decoration: underline; }
+
+/* ---------- 진행 중 캠페인 이어서 하기 ---------- */
+.resume { display: grid; gap: 6px; padding: 12px 14px; border: 1px dashed var(--cc-border); border-radius: 12px; background: #fbfcfd; }
+.resume .cc-label { margin: 0; }
+.resume-row { grid-template-columns: minmax(0, 1fr) 110px; }
 
 /* ---------- F-06 승인 ---------- */
 .hq-link { margin-left: 10px; font-size: 13px; font-weight: 700; color: #b85a0d; text-decoration: none; }
