@@ -13,16 +13,13 @@
 <div class="cc-app">
   <aside class="cc-sidebar">
     <a class="cc-brand" href="{{ command_center_url }}">
-      <span class="cc-brand-full">Command Center</span><span class="cc-brand-short">CC</span>
+      <img class="cc-brand-logo" src="{{ url_for('static',filename='command-center-logo.png') }}" alt="" width="40" height="26"><span class="cc-brand-full">Command Center</span>
     </a>
 
     <nav class="cc-nav" aria-label="메인 메뉴">
       <a class="cc-nav-item {% if active_agent_id is none %}is-active{% endif %}" href="{{ command_center_url }}" title="홈">
         {{ icon("home") }}<span>홈</span>
       </a>
-      <button type="button" class="cc-nav-item" data-coming-soon title="에이전트">{{ icon("bot") }}<span>에이전트</span></button>
-      <button type="button" class="cc-nav-item" data-coming-soon title="활동 내역">{{ icon("history") }}<span>활동 내역</span></button>
-      <button type="button" class="cc-nav-item" data-coming-soon title="설정">{{ icon("settings") }}<span>설정</span></button>
     </nav>
 
     {#- agents.json 에 에이전트가 추가되면 여기에 한 줄씩 자동으로 늘어난다 #}
@@ -54,11 +51,6 @@
         <input type="search" placeholder="무엇을 도와드릴까요?" aria-label="검색">
       </label>
       <button type="button" class="cc-icon-btn" aria-label="알림" data-coming-soon>{{ icon("bell") }}</button>
-      <div class="cc-user">
-        <span class="cc-avatar">{{ icon("user", 18) }}</span>
-        <span class="cc-user-name">{{ user_name }}</span>
-        {{ icon("chevron-down", 16) }}
-      </div>
     </header>
     <main class="cc-content">
       {% block content %}{% endblock %}

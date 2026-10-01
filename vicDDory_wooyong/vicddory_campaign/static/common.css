@@ -59,11 +59,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow-y: auto;
 }
 .cc-brand {
-  padding: 0 12px 28px;
-  color: #fff; font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 6px 28px;
+  color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap;
   text-decoration: none;
 }
 .cc-brand-short { display: none; }
+.cc-brand-logo { display: block; height: 26px; width: auto; flex-shrink: 0; }
 
 .cc-nav { display: flex; flex-direction: column; gap: 4px; }
 .cc-nav-item {
@@ -197,7 +199,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- 반응형 ---------- */
 @media (max-width: 960px) {
   .cc-sidebar { width: 72px; padding: 20px 10px; }
-  .cc-brand { padding: 0 0 20px; text-align: center; }
+  .cc-brand { padding: 0 0 20px; justify-content: center; }
   .cc-brand-full, .cc-nav-item span, .cc-nav-label, .cc-sidebar-note { display: none; }
   .cc-brand-short { display: inline; }
   .cc-nav-item { justify-content: center; padding: 12px; }
