@@ -8,13 +8,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# .env 를 읽는다. command_center/app.py 는 command_center/.env 만 읽으므로 여기서 따로 챙긴다.
-# load_dotenv 는 이미 설정된 값을 덮어쓰지 않으니 **먼저 읽은 쪽이 이긴다**.
-#   1순위: thejo_project/.env  (더 줘 전용)
-#   2순위: 저장소 루트 .env    (팀 공용)
-_HERE = Path(__file__).resolve().parent
-load_dotenv(_HERE / ".env")
-load_dotenv(_HERE.parent / ".env")
+# thejo_project/.env 를 읽는다 (.env.example 참고). 다른 에이전트도 각자 자기 폴더의 .env 를 읽는다.
+# command_center/app.py 는 command_center/.env 만 읽으므로 여기서 따로 챙겨야 한다.
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 # ── 인센티브 정책 ────────────────────────────────────────────────────────
 # 월 누적 판매량에 따른 건당 인센티브 구간.
