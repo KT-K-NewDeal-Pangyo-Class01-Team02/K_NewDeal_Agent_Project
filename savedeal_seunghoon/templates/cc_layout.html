@@ -1,0 +1,77 @@
+{#- Command Center 허브(command_center/templates/cc_layout.html)의 사본. 사이드바·상단 바를 허브와 똑같이 보이게 한다.
+    허브 파일은 고치지 않는다. 허브 디자인이 바뀌면 이 사본을 다시 맞춘다.
+    바꾼 점: 아이콘·CSS·JS 경로와 아이콘 매크로 이름(cc_icon, SaveDeal의 icon 과 겹치지 않게). -#}
+{% from "cc_icons.html" import icon as cc_icon %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Command Center{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/cc_common.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="cc-app">
+  <aside class="cc-sidebar">
+    <a class="cc-brand" href="{{ command_center_url }}">
+      <span class="cc-brand-full">Command Center</span><span class="cc-brand-short">CC</span>
+    </a>
+
+    <nav class="cc-nav" aria-label="메인 메뉴">
+      <a class="cc-nav-item {% if active_agent_id is none %}is-active{% endif %}" href="{{ command_center_url }}" title="홈">
+        {{ cc_icon("home") }}<span>홈</span>
+      </a>
+      <button type="button" class="cc-nav-item" data-coming-soon title="에이전트">{{ cc_icon("bot") }}<span>에이전트</span></button>
+      <button type="button" class="cc-nav-item" data-coming-soon title="활동 내역">{{ cc_icon("history") }}<span>활동 내역</span></button>
+      <button type="button" class="cc-nav-item" data-coming-soon title="설정">{{ cc_icon("settings") }}<span>설정</span></button>
+    </nav>
+
+    {#- agents.json 에 에이전트가 추가되면 여기에 한 줄씩 자동으로 늘어난다 #}
+    <p class="cc-nav-label">에이전트 바로가기</p>
+    <nav class="cc-nav" aria-label="에이전트">
+      {% for agent in agents %}
+        {%- set link, new_tab = agent_link(agent) %}
+        {% if agent.id == active_agent_id %}
+          <a class="cc-nav-item is-active" href="{{ link or '/' }}" aria-current="page" title="{{ agent.name }}">{{ cc_icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+        {% elif link %}
+          <a class="cc-nav-item" href="{{ link }}" {% if new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ agent.name }}{% if new_tab %} (새 탭){% endif %}">{{ cc_icon(agent.icon) }}<span>{{ agent.name }}</span></a>
+        {% else %}
+          <button type="button" class="cc-nav-item" data-no-url="{{ agent.name }}" title="{{ agent.name }}">{{ cc_icon(agent.icon) }}<span>{{ agent.name }}</span></button>
+        {% endif %}
+      {% endfor %}
+    </nav>
+
+    <div class="cc-sidebar-spacer"></div>
+    <div class="cc-sidebar-note">
+      <p>AI와 함께<br>더 나은 유통의 내일을<br>만듭니다.</p>
+      <span class="cc-sidebar-note-bar"></span>
+    </div>
+  </aside>
+
+  <div class="cc-main">
+    <header class="cc-topbar">
+      <div class="cc-breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+      <label class="cc-search">
+        {{ cc_icon("search", 16) }}
+        <input type="search" placeholder="무엇을 도와드릴까요?" aria-label="검색">
+      </label>
+      <button type="button" class="cc-icon-btn" aria-label="알림" data-coming-soon>{{ cc_icon("bell") }}</button>
+      <div class="cc-user">
+        <span class="cc-avatar">{{ cc_icon("user", 18) }}</span>
+        <span class="cc-user-name">{{ user_name }}</span>
+        {{ cc_icon("chevron-down", 16) }}
+      </div>
+    </header>
+    <main class="cc-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="cc-toast" id="cc-toast" role="status" aria-live="polite"></div>
+<script src="{{ url_for('static',filename='js/cc_common.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

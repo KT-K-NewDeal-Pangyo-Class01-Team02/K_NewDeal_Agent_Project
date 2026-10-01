@@ -2,6 +2,7 @@ from routes.main import main_bp
 from routes.pages import pages_bp
 from routes.precheck import precheck_bp
 from routes.reservations import reservations_bp
+from routes.uploads import uploads_bp
 
 
 def register_routes(app):
@@ -9,3 +10,4 @@ def register_routes(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(precheck_bp)
     app.register_blueprint(reservations_bp)
+    app.register_blueprint(uploads_bp)

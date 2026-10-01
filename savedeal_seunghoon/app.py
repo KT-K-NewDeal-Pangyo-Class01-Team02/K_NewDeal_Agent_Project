@@ -3,6 +3,7 @@ from flask import Flask
 from config import Config
 from db.connection import ensure_database
 from routes import register_routes
+from routes.layout import init_layout
 
 
 def create_app(config_class: type[Config] = Config) -> Flask:
@@ -10,6 +11,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.config.from_object(config_class)
     ensure_database(app.config["DB_PATH"])
     register_routes(app)
+    init_layout(app)
     return app
 
 

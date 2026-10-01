@@ -10,6 +10,20 @@ from db.connection import ensure_database
 class TestConfig(Config):
     DEBUG = True
     TESTING = True
+    # 개발자 .env 에 실제 주소·키가 있어도 테스트에서는 외부로 나가지 않는다
+    N8N_WEBHOOK_URL = ""
+    OPENAI_API_KEY = ""
+
+
+@pytest.fixture(autouse=True)
+def block_real_network(monkeypatch):
+    """테스트 중 실제 HTTP 요청(n8n, OpenAI)이 나가면 실패시킨다. 필요한 테스트는 직접 가짜로 바꿔 끼운다."""
+    import requests
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("테스트에서 실제 네트워크 요청을 보내려고 했습니다.")
+
+    monkeypatch.setattr(requests, "post", refuse)
 
 
 @pytest.fixture(scope="session")

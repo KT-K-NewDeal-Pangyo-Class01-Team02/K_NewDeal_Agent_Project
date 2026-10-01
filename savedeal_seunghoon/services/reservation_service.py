@@ -13,6 +13,7 @@ from services.action_service import ACTIVATION_DEADLINE_TIME, ActionService
 from services.codes import (
     EVENT_ISSUE_DETECTED,
     EVENT_RESERVATION_CREATED,
+    ISSUE_CUSTOMER_UNKNOWN,
     ISSUE_IDENTITY_FAILED,
     ISSUE_INSTALLMENT_LIMIT,
     ISSUE_LABELS,
@@ -28,6 +29,8 @@ from services.precheck_service import PrecheckService
 def issues_from_precheck(precheck: dict, alt_device: dict | None = None) -> list[dict]:
     """사전검증 결과를 운영용 문제 원인 목록으로 바꾼다."""
     issues = []
+    if not precheck["lookup"]["customer_found"]:
+        issues.append({"code": ISSUE_CUSTOMER_UNKNOWN, "detail": {"customer_id": precheck["customer_id"]}})
     inventory = precheck["inventory_check"]
     if inventory["status"] != STATUS_AVAILABLE:
         issues.append(
@@ -71,13 +74,14 @@ def issues_from_precheck(precheck: dict, alt_device: dict | None = None) -> list
 
 
 class ReservationService:
-    def __init__(self, db_path, data_dir: Path, clock=datetime.now):
+    def __init__(self, db_path, data_dir: Path, clock=datetime.now, ai_service=None):
         self.reservation_repo = ReservationRepository(db_path)
         self.history_repo = ActionHistoryRepository(db_path)
-        self.customer_repo = CustomerRepository(data_dir)
-        self.inventory_repo = InventoryRepository(data_dir)
-        self.precheck_service = PrecheckService(data_dir)
+        self.customer_repo = CustomerRepository(data_dir, db_path)
+        self.inventory_repo = InventoryRepository(data_dir, db_path)
+        self.precheck_service = PrecheckService(data_dir, db_path)
         self.action_service = ActionService(db_path, data_dir, clock)
+        self.ai_service = ai_service
         self.clock = clock
 
     def _find_alt_device(self, store_id: str, device: dict) -> dict | None:
@@ -87,7 +91,8 @@ class ReservationService:
                 return {"model": item["model"], "color": item["color"], "storage": item["storage"]}
         return None
 
-    def create(self, payload: dict) -> tuple[str, dict]:
+    def create(self, payload: dict, source: str = "form") -> tuple[str, dict]:
+        """source: form(신규 예약 화면) / upload(엑셀 업로드). 업로드는 예약번호·고객명·연락처·메모를 함께 받는다."""
         precheck = self.precheck_service.run(payload)
         device = payload["device"]
         alt_device = None
@@ -97,14 +102,15 @@ class ReservationService:
 
         customer = self.customer_repo.find_by_id(payload["customer_id"]) or {}
         now = self.clock().isoformat(timespec="seconds")
-        reservation_id = self.reservation_repo.next_id()
+        reservation_id = payload.get("reservation_id") or self.reservation_repo.next_id()
 
         self.reservation_repo.insert(
             {
                 "reservation_id": reservation_id,
                 "customer_id": payload["customer_id"],
-                "customer_name": customer.get("name") or f"고객 {payload['customer_id']}",
-                "customer_phone": customer.get("phone"),
+                "customer_name": customer.get("name") or payload.get("customer_name") or f"고객 {payload['customer_id']}",
+                "customer_phone": customer.get("phone") or payload.get("customer_phone"),
+                "memo": payload.get("memo"),
                 "store_id": payload["store_id"],
                 "device": device,
                 "line_type": payload["line_type"],
@@ -120,10 +126,21 @@ class ReservationService:
                 "completed_at": None,
             }
         )
-        self.history_repo.add(reservation_id, EVENT_RESERVATION_CREATED, "신규 예약을 등록하고 사전검증을 실행했습니다.", now)
+        created_message = (
+            "엑셀 업로드로 예약을 등록하고 사전검증을 실행했습니다."
+            if source == "upload"
+            else "신규 예약을 등록하고 사전검증을 실행했습니다."
+        )
+        self.history_repo.add(reservation_id, EVENT_RESERVATION_CREATED, created_message, now)
         if issues:
             labels = ", ".join(ISSUE_LABELS[issue["code"]] for issue in issues)
             self.history_repo.add(reservation_id, EVENT_ISSUE_DETECTED, f"사전검증에서 문제를 감지했습니다: {labels}", now)
+
+        if payload.get("memo") and self.ai_service is not None:
+            insight = self.ai_service.interpret_memo(payload["memo"], reservation_id)
+            self.reservation_repo.update(reservation_id, {"memo_insight": insight})
+            how = f"AI · {insight['model']} · {insight['latency_ms'] / 1000:.1f}초" if insight["source"] == "ai" else "규칙 기반"
+            self.history_repo.add(reservation_id, "AI", f"예약 메모를 해석했습니다 ({how}).", now)
 
         reservation = self.reservation_repo.find_by_id(reservation_id)
         self.action_service.propose(reservation)

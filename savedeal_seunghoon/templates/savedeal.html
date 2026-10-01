@@ -7,12 +7,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 {% endblock %}
 
-{% block content %}
-<nav class="breadcrumb" aria-label="이동 경로">
-  <a href="{{ config.COMMAND_CENTER_URL }}">Command Center</a>
-  <span aria-hidden="true">/</span>
-  <span aria-current="page">예약판매 이탈 방지</span>
-</nav>
+{% block crumbs %}<strong>예약판매 이탈 방지</strong>{% endblock %}
+
+{% block page %}
 
 <div class="page-header dashboard-header">
   <div>
@@ -20,6 +17,8 @@
     <p class="page-subtitle">미완료 예약을 처리 우선순위대로 감시하고, Agent가 제안한 해결책을 승인해 개통까지 이끕니다.</p>
   </div>
   <div class="header-actions">
+    <span class="integration-chips" id="integration-chips" aria-label="연동 상태"></span>
+    <button type="button" class="btn-text" id="send-report">{{ icon("mail", "icon-sm") }}리포트 메일 보내기</button>
     <button type="button" class="btn-text" id="reset-demo">{{ icon("rotate-ccw", "icon-sm") }}데모 데이터 초기화</button>
     <a class="btn-primary" href="{{ url_for('pages.savedeal_new') }}">{{ icon("plus", "icon-sm") }}신규 예약 등록</a>
   </div>
@@ -103,6 +102,6 @@
 <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
 {% endblock %}
 
-{% block scripts %}
+{% block page_scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 {% endblock %}

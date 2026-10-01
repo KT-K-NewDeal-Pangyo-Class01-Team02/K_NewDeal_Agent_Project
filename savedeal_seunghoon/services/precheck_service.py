@@ -28,13 +28,13 @@ class PrecheckService:
     """재고·일정 검증, 개통위험 검증, 대체조건 생성을 조합해 종합 판정을 반환한다.
     이탈 위험 점수화(churn_risk_score)와 Next Best Action 추천(recommended_action)은 이후 단계에서 구현한다."""
 
-    def __init__(self, data_dir: Path):
-        self.customer_repo = CustomerRepository(data_dir)
+    def __init__(self, data_dir: Path, db_path=None):
+        self.customer_repo = CustomerRepository(data_dir, db_path)
         self.store_repo = StoreRepository(data_dir)
         self.device_repo = DeviceRepository(data_dir)
-        self.inventory_service = InventoryService(data_dir)
-        self.activation_risk_service = ActivationRiskService(data_dir)
-        self.alternative_service = AlternativeService(data_dir)
+        self.inventory_service = InventoryService(data_dir, db_path)
+        self.activation_risk_service = ActivationRiskService(data_dir, db_path)
+        self.alternative_service = AlternativeService(data_dir, db_path)
 
     def run(self, request_data: dict) -> dict:
         device = request_data["device"]

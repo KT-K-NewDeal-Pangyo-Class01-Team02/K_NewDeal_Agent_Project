@@ -20,6 +20,144 @@
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* 연동 상태 칩 (n8n · AI) */
+.integration-chips {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.integration-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--size-badge);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-12);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.integration-dot {
+  width: var(--size-dot-badge);
+  height: var(--size-dot-badge);
+  border-radius: var(--radius-round);
+  background: var(--color-text-muted);
+}
+
+.integration-chip.is-on .integration-dot {
+  background: var(--color-success);
+}
+
+/* 고객 메모 · AI 브리핑 · 알림 기록 */
+.memo-box,
+.briefing-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-13);
+}
+
+.memo-text {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.insight-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+}
+
+.briefing-text {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
+}
+
+.source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+}
+
+.source-tag.is-ai {
+  color: var(--color-info-strong);
+}
+
+.notice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.notice-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-13);
+}
+
+.notice-top {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notice-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: var(--font-weight-medium);
+}
+
+.notice-body {
+  width: 100%;
+  color: var(--color-text-secondary);
+}
+
+.notice-body summary {
+  cursor: pointer;
+}
+
+.notice-text {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  font-family: inherit;
+  font-size: var(--font-size-12);
+  white-space: pre-wrap;
+}
+
+.notice-error {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--color-danger-strong);
 }
 
 /* ── KPI 카드 ─────────────────────────────────────────────── */
@@ -295,8 +433,9 @@
   background: var(--color-bg);
 }
 
+/* 선택 행은 중립 배경 + 좌측 브랜드 바 (빨강 틴트는 '마감 초과' 행에만 쓴다) */
 .reservation-row.is-selected td {
-  background: color-mix(in srgb, var(--color-brand) var(--tint-selected), var(--color-surface));
+  background: var(--color-bg);
 }
 
 .reservation-row.is-selected td:first-child {
@@ -343,9 +482,10 @@
   border: var(--border-width) solid transparent;
 }
 
+/* 상위 순위 링은 진한 중립색 (빨강은 위험·선택 표시와 겹치므로 쓰지 않는다) */
 .priority-rank.is-top {
-  color: var(--color-brand);
-  border-color: var(--color-brand);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .priority-score {
@@ -393,6 +533,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  /* 통신사 로고(특히 세로로 긴 SK텔레콤 로고)가 잘리지 않게 */
+  overflow: visible;
 }
 
 .device-cell {
@@ -525,6 +667,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr);
   gap: var(--space-2);
+}
+
+/* 완료·취소 예약은 타일이 하나뿐이라 한 줄 전체를 쓴다 */
+.score-tile:only-child {
+  grid-column: 1 / -1;
 }
 
 .score-tile {
@@ -817,12 +964,8 @@
 
 /* 세로가 낮은 노트북 화면: 위쪽 여백을 줄여 목록 행이 더 많이 보이게 한다 */
 @media (max-height: 820px) {
-  .content {
-    padding-top: var(--space-4);
-  }
-
-  .breadcrumb {
-    margin-bottom: var(--space-2);
+  .cc-content {
+    padding-top: var(--space-3);
   }
 
   .page-header {

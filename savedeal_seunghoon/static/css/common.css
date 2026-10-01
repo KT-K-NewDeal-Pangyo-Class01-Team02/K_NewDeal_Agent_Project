@@ -3,11 +3,11 @@
    (예외: @media 조건식은 CSS 변수를 쓸 수 없어 숫자를 그대로 둔다.)
    ───────────────────────────────────────────────────────────── */
 :root {
-  /* 브랜드: CTA·선택 상태 전용 (인디고) */
-  --color-brand: #4338ca;
-  --color-brand-hover: #3730a3;
-  --color-brand-active: #312e81;
-  --color-brand-on-dark: #a5b4fc;
+  /* 브랜드: KT 레드. CTA·선택 상태 전용.
+     허브 강조색(#e3313f)과 같은 계열이며, 흰 글자 대비 4.5:1을 위해 한 톤 진하게 쓴다. */
+  --color-brand: #d42a37;
+  --color-brand-hover: #c92633;
+  --color-brand-active: #b01f2b;
   --color-on-brand: #ffffff;
 
   /* 시맨틱: 상태 표시 전용. danger(빨강)는 위험 상태에만 쓴다 */
@@ -30,14 +30,6 @@
   --color-text-secondary: #4b5563;
   --color-text-muted: #636b78;
 
-  /* 좌측 네비 (다크 네이비 배경) */
-  --color-nav-bg: #141a2e;
-  --color-nav-bg-hover: #1b2238;
-  --color-nav-bg-active: #222a44;
-  --color-nav-text: #c9cdda;
-  --color-nav-text-strong: #ffffff;
-  --color-nav-text-muted: #9aa1b5;
-  --color-nav-footer-bg: #1b2238;
   --color-overlay: rgba(17, 24, 39, 0.35);
 
   /* 틴트 비율: 뱃지 배경은 해당 색의 10% */
@@ -97,9 +89,7 @@
   --size-badge: 22px;
   --size-dot: 4px;
   --size-dot-badge: 6px;
-  --size-logo-mark: 24px;
   --size-rank: 22px;
-  --size-avatar: 28px;
   --size-device-thumb: 36px;
   --size-carrier-logo: 13px;
   --size-carrier-logo-lg: 18px;
@@ -109,8 +99,6 @@
   --size-device-photo: 64px;
   --size-control: 36px;
   --size-button-sm: 28px;
-  --size-sidebar: 220px;
-  --size-search-max: 420px;
 
   /* 모션 */
   --duration-fast: 120ms;
@@ -123,42 +111,22 @@
   --z-drawer: 20;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--color-bg);
+.sd-app {
   color: var(--color-text-primary);
-  font-family: var(--font-family);
   font-size: var(--font-size-14);
-  font-weight: var(--font-weight-regular);
   line-height: var(--line-height-base);
-  -webkit-font-smoothing: antialiased;
 }
 
-strong,
-b,
-th {
+.sd-app strong,
+.sd-app b,
+.sd-app th {
   font-weight: var(--font-weight-semibold);
-}
-
-a {
-  color: inherit;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
 }
 
 /* 숫자는 자리 폭을 맞춘다 */
 .num,
-input,
-select {
+.sd-app input,
+.sd-app select {
   font-variant-numeric: tabular-nums;
 }
 
@@ -179,7 +147,7 @@ select {
   display: none;
 }
 
-.icon {
+.sd-app .icon {
   width: var(--size-icon);
   height: var(--size-icon);
   flex-shrink: 0;
@@ -191,7 +159,7 @@ select {
   vertical-align: middle;
 }
 
-.icon-sm {
+.sd-app .icon-sm {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
 }
@@ -202,179 +170,43 @@ select {
   outline-offset: var(--focus-ring-offset);
 }
 
-/* ── 레이아웃 셸 ───────────────────────────────────────────── */
-.app-shell {
+/* ── SaveDeal 하위 메뉴 (예약 운영 / 신규 예약 …) ─────────── */
+.sd-subnav {
   display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  width: var(--size-sidebar);
-  flex-shrink: 0;
-  background: var(--color-nav-bg);
-  color: var(--color-nav-text);
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-5) var(--space-4);
-}
-
-.sidebar-header {
-  padding: 0 var(--space-2) var(--space-5);
-}
-
-.sidebar-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-nav-text-strong);
-}
-
-.sidebar-logo-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-logo-mark);
-  height: var(--size-logo-mark);
-  border-radius: var(--radius-sm);
-  background: var(--color-brand);
-  color: var(--color-on-brand);
-  font-size: var(--font-size-13);
-  font-weight: var(--font-weight-semibold);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
   gap: var(--space-1);
-  flex: 1;
-}
-
-.sidebar-nav-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  color: var(--color-nav-text);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-regular);
-  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
-}
-
-.sidebar-nav-icon {
-  color: var(--color-nav-text-muted);
-  transition: color var(--duration-fast) var(--ease-out);
-}
-
-a.sidebar-nav-item:hover {
-  background: var(--color-nav-bg-hover);
-  color: var(--color-nav-text-strong);
-}
-
-a.sidebar-nav-item:active {
-  background: var(--color-nav-bg-active);
-}
-
-.sidebar-nav-item.is-active {
-  background: var(--color-nav-bg-active);
-  color: var(--color-nav-text-strong);
-  font-weight: var(--font-weight-medium);
-}
-
-.sidebar-nav-item.is-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: var(--space-2);
-  bottom: var(--space-2);
-  width: var(--border-width-strong);
-  border-radius: var(--border-width-strong);
-  background: var(--color-brand-on-dark);
-}
-
-.sidebar-nav-item.is-active .sidebar-nav-icon {
-  color: var(--color-brand-on-dark);
-}
-
-.sidebar-nav-item.is-disabled {
-  color: var(--color-text-muted);
-  cursor: default;
-}
-
-.sidebar-footer {
-  margin-top: auto;
-  background: var(--color-nav-footer-bg);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  font-size: var(--font-size-12);
-  color: var(--color-nav-text-muted);
-}
-
-.sidebar-footer p {
-  margin: 0;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-surface);
+  margin-bottom: var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
-.topbar-search {
-  flex: 1;
-  max-width: var(--size-search-max);
-  height: var(--size-control);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--color-bg);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 var(--space-3);
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-
-.topbar-search:hover {
-  border-color: var(--color-border-strong);
-}
-
-.topbar-search:focus-within {
-  border-color: var(--color-brand);
-}
-
-.topbar-search-icon {
-  color: var(--color-text-muted);
-}
-
-.topbar-search input {
-  border: 0;
-  background: transparent;
-  outline: none;
-  width: 100%;
+.sd-subnav-item {
+  position: relative;
+  padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-14);
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
 }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
+.sd-subnav-item:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-subtle);
+}
+
+.sd-subnav-item.is-active {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sd-subnav-item.is-active::after {
+  content: "";
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: calc(var(--border-width) * -1);
+  height: var(--border-width-strong);
+  background: var(--color-brand);
 }
 
 .icon-button {
@@ -388,6 +220,7 @@ a.sidebar-nav-item:active {
   padding: 0;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
+  cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
@@ -398,33 +231,6 @@ a.sidebar-nav-item:active {
 
 .icon-button:active {
   background: var(--color-border);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-}
-
-.user-avatar {
-  width: var(--size-avatar);
-  height: var(--size-avatar);
-  border-radius: var(--radius-round);
-  background: color-mix(in srgb, var(--color-brand) var(--tint-badge), var(--color-surface));
-  color: var(--color-brand-active);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-}
-
-.content {
-  padding: var(--space-6);
-  flex: 1;
 }
 
 /* ── 페이지 머리 ───────────────────────────────────────────── */
@@ -444,34 +250,6 @@ a.sidebar-nav-item:active {
   margin: 0;
   font-size: var(--font-size-14);
   color: var(--color-text-secondary);
-}
-
-.breadcrumb {
-  font-size: var(--font-size-13);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-  display: flex;
-  gap: var(--space-2);
-}
-
-.breadcrumb a {
-  text-decoration: none;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
-  transition: color var(--duration-fast) var(--ease-out);
-}
-
-.breadcrumb a:hover {
-  color: var(--color-text-primary);
-}
-
-.breadcrumb a:active {
-  color: var(--color-brand);
-}
-
-.breadcrumb [aria-current] {
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
 }
 
 /* ── 버튼 ─────────────────────────────────────────────────── */
@@ -801,41 +579,5 @@ button:disabled,
 
   * {
     transition-duration: 0ms !important;
-  }
-}
-
-/* ── 반응형 ───────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .app-shell {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    padding: var(--space-3) var(--space-4);
-    overflow-x: auto;
-  }
-
-  .sidebar-header {
-    padding: 0 var(--space-3) 0 0;
-  }
-
-  .sidebar-nav {
-    flex-direction: row;
-  }
-
-  .sidebar-footer {
-    display: none;
-  }
-
-  .content {
-    padding: var(--space-5) var(--space-4);
-  }
-
-  .topbar {
-    padding: var(--space-3) var(--space-4);
-    flex-wrap: wrap;
   }
 }

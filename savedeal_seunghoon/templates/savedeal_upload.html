@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}예약 업로드 - SAVEDEAL{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+{% endblock %}
+
+{% block crumbs %}<a href="{{ url_for('pages.savedeal') }}">예약판매 이탈 방지</a>
+<span aria-hidden="true">/</span>
+<strong>예약 업로드</strong>{% endblock %}
+
+{% block page %}
+<div class="page-header">
+  <h1>예약 업로드</h1>
+  <p class="page-subtitle">엑셀(.xlsx)이나 CSV로 사전예약 명단·고객 정보·재고를 한 번에 등록합니다. 저장 전에 행별 검증 결과를 확인할 수 있습니다.</p>
+</div>
+
+<div class="upload-layout">
+  <section class="upload-card" aria-labelledby="step-kind">
+    <h2 class="upload-step" id="step-kind"><span class="step-no">1</span>업로드 종류</h2>
+    <div class="kind-options" role="radiogroup" aria-labelledby="step-kind">
+      {% for kind in kinds %}
+      <label class="kind-option">
+        <input type="radio" name="kind" value="{{ kind.key }}" {% if loop.first %}checked{% endif %}>
+        <span class="kind-option-body">
+          <span class="kind-option-title">{{ kind.label }}</span>
+          <span class="kind-option-desc">{{ kind.description }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% for kind in kinds %}
+    <div class="kind-columns" data-kind="{{ kind.key }}" {% if not loop.first %}hidden{% endif %}>
+      <span class="kind-columns-label">열 구성</span>
+      <span class="chip-list">
+        {% for column in kind.columns %}<span class="chip{% if column.required %} is-required{% endif %}">{{ column.label }}{% if column.required %} *{% endif %}</span>{% endfor %}
+      </span>
+    </div>
+    {% endfor %}
+    <a class="btn-secondary" id="template-link" href="{{ url_for('uploads.download_template', kind=kinds[0].key) }}">{{ icon("download", "icon-sm") }}양식 다운로드 (.xlsx)</a>
+  </section>
+
+  <section class="upload-card" aria-labelledby="step-file">
+    <h2 class="upload-step" id="step-file"><span class="step-no">2</span>파일 선택</h2>
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="upload-file" accept=".xlsx,.csv" class="visually-hidden">
+      {{ icon("file-spreadsheet", "dropzone-icon") }}
+      <span class="dropzone-title" id="dropzone-title">파일을 끌어다 놓거나 눌러서 선택하세요</span>
+      <span class="dropzone-desc">엑셀(.xlsx) 또는 CSV · 최대 5MB · 1,000행</span>
+    </label>
+    <p class="upload-note">{{ icon("info", "icon-sm") }}연락처는 가운데를 가린 형식(010-****-1234)만 받습니다. 교육용 가상 데이터만 올려 주세요. 원본 파일은 저장하지 않습니다.</p>
+    <div id="upload-error" class="form-error" role="alert" hidden></div>
+    <button type="button" class="btn-primary" id="preview-button" disabled>{{ icon("upload", "icon-sm") }}검증하기</button>
+  </section>
+
+  <section class="upload-card upload-result" id="preview-panel" aria-labelledby="step-check" hidden>
+    <h2 class="upload-step" id="step-check"><span class="step-no">3</span>검증 결과</h2>
+    <div id="preview-body" aria-live="polite"></div>
+  </section>
+</div>
+
+<section class="upload-card upload-history" aria-labelledby="history-title">
+  <h2 class="panel-title" id="history-title">최근 업로드</h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th scope="col">시각</th><th scope="col">종류</th><th scope="col">파일</th><th scope="col" class="col-num">정상</th><th scope="col" class="col-num">오류</th><th scope="col">상태</th></tr>
+      </thead>
+      <tbody id="history-rows">
+        <tr><td colspan="6" class="table-state"><span class="state-block">{{ icon("loader-circle", "state-icon is-spinning") }}<span class="state-title">불러오는 중입니다...</span></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script>window.SD_TEMPLATE_URL = "{{ url_for('uploads.download_template', kind='__KIND__') }}";</script>
+<script src="{{ url_for('static', filename='js/upload.js') }}" defer></script>
+{% endblock %}

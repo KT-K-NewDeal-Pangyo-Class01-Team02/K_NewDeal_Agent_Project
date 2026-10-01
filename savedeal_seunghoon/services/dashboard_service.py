@@ -20,6 +20,7 @@ from services.codes import (
     EVENT_LABELS,
     ISSUE_ACTIVATION_REJECTED,
     ISSUE_CUSTOMER_NO_RESPONSE,
+    ISSUE_CUSTOMER_UNKNOWN,
     ISSUE_IDENTITY_FAILED,
     ISSUE_INSTALLMENT_LIMIT,
     ISSUE_LABELS,
@@ -149,6 +150,8 @@ class DashboardService:
         if code == ISSUE_CUSTOMER_NO_RESPONSE:
             last = _format_datetime(detail.get("last_contact_at"))
             return f"마지막 연락 {last} ({detail.get('last_contact_channel', '문자')}) 이후 응답 없음" if last else "응답 없음"
+        if code == ISSUE_CUSTOMER_UNKNOWN:
+            return "본인인증·서류·할부한도 정보 없음"
         if code == ISSUE_OVERDUE_PAYMENT:
             amount = detail.get("amount")
             return f"미납액 {amount:,}원" if amount else "통신요금 미납"
@@ -332,6 +335,8 @@ class DashboardService:
                 "store_id": reservation["store_id"],
                 "desired_activation_date": reservation["desired_activation_date"],
                 "created_at_display": _format_datetime(reservation["created_at"]),
+                "memo": reservation.get("memo"),
+                "memo_insight": reservation.get("memo_insight"),
                 "churn_factors": summary["_churn"]["factors"],
                 "priority_factors": summary["_priority"]["factors"],
                 "actions": current,

@@ -28,7 +28,7 @@ def connect(db_path):
 
 
 # 나중에 추가된 칸. CREATE TABLE IF NOT EXISTS 는 기존 테이블에 칸을 더하지 않으므로 직접 추가한다.
-ADDED_COLUMNS = {"reservations": {"previous_carrier": "TEXT"}}
+ADDED_COLUMNS = {"reservations": {"previous_carrier": "TEXT", "memo": "TEXT", "memo_insight": "TEXT"}}
 
 
 def init_schema(db_path) -> None:
@@ -55,10 +55,13 @@ def ensure_database(db_path) -> None:
     _ensured_paths.add(path)
     init_schema(path)
     with connect(db_path) as conn:
+        customers = conn.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
         count = conn.execute("SELECT COUNT(*) FROM reservations").fetchone()[0]
-    if count == 0:
-        from db.seed import seed_demo_data
+    from db.seed import seed_demo_data, seed_reference_data
 
+    if customers == 0:
+        seed_reference_data(db_path)
+    if count == 0:
         seed_demo_data(db_path)
 
 
@@ -69,7 +72,16 @@ def reset_database(db_path) -> None:
         conn.execute("DELETE FROM action_history")
         conn.execute("DELETE FROM proposed_actions")
         conn.execute("DELETE FROM reservations")
-        conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('action_history', 'proposed_actions')")
-    from db.seed import seed_demo_data
+        conn.execute("DELETE FROM customers")
+        conn.execute("DELETE FROM inventory")
+        conn.execute("DELETE FROM upload_batches")
+        conn.execute("DELETE FROM notifications")
+        conn.execute("DELETE FROM ai_logs")
+        conn.execute(
+            "DELETE FROM sqlite_sequence WHERE name IN "
+            "('action_history', 'proposed_actions', 'upload_batches', 'notifications', 'ai_logs')"
+        )
+    from db.seed import seed_demo_data, seed_reference_data
 
+    seed_reference_data(db_path)
     seed_demo_data(db_path)

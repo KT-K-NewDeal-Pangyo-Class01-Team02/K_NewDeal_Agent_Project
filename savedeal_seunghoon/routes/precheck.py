@@ -24,7 +24,7 @@ def precheck():
             400,
         )
 
-    service = PrecheckService(current_app.config["DATA_DIR"])
+    service = PrecheckService(current_app.config["DATA_DIR"], current_app.config["DB_PATH"])
     result = service.run(payload)
 
     return jsonify({"success": True, "data": result, "error": None}), 200

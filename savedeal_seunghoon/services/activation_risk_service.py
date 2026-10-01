@@ -11,8 +11,8 @@ RISK_HIGH = "high"
 class ActivationRiskService:
     """할부한도, 미납여부, 보유회선, 본인인증, 서류를 확인해 개통반려 위험을 low/medium/high로 분류한다."""
 
-    def __init__(self, data_dir: Path):
-        self.customer_repo = CustomerRepository(data_dir)
+    def __init__(self, data_dir: Path, db_path=None):
+        self.customer_repo = CustomerRepository(data_dir, db_path)
         self.device_repo = DeviceRepository(data_dir)
 
     def check(self, customer_id: str, device: dict) -> dict:
