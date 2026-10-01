@@ -1,72 +1,29 @@
-{% from "_icons.html" import icon, sprite %}
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}SAVEDEAL Command Center{% endblock %}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
-  {% block extra_css %}{% endblock %}
-</head>
-<body>
-  {{ sprite() }}
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-logo"><span class="sidebar-logo-mark" aria-hidden="true">C</span>Command Center</span>
-      </div>
-      <nav class="sidebar-nav" aria-label="주요 메뉴">
-        <a href="{{ config.COMMAND_CENTER_URL }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'home' else '' }}">
-          {{ icon("house", "sidebar-nav-icon") }}
-          <span>홈</span>
-        </a>
-        <a href="{{ url_for('pages.savedeal') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'agents' else '' }}">
-          {{ icon("compass", "sidebar-nav-icon") }}
-          <span>예약 운영</span>
-        </a>
-        <a href="{{ url_for('pages.savedeal_new') }}" class="sidebar-nav-item {{ 'is-active' if active_nav == 'new' else '' }}">
-          {{ icon("circle-plus", "sidebar-nav-icon") }}
-          <span>신규 예약</span>
-        </a>
-        <span class="sidebar-nav-item is-disabled" aria-disabled="true">
-          {{ icon("history", "sidebar-nav-icon") }}
-          <span>활동 내역</span>
-        </span>
-        <span class="sidebar-nav-item is-disabled" aria-disabled="true">
-          {{ icon("settings", "sidebar-nav-icon") }}
-          <span>설정</span>
-        </span>
-      </nav>
-      <div class="sidebar-footer">
-        <p>AI와 함께<br>더 나은 유통의 내일을 만듭니다.</p>
-      </div>
-    </aside>
+{#- SaveDeal 화면 공통 틀. 사이드바·상단 바는 허브와 같은 cc_layout.html 을 쓰고,
+    본문 위에 SaveDeal 하위 메뉴(예약 운영 / 신규 예약 …)를 탭으로 둔다. -#}
+{% extends "cc_layout.html" %}
+{% from "_icons.html" import sprite %}
 
-    <div class="main">
-      <header class="topbar">
-        <label class="topbar-search" for="global-search">
-          {{ icon("search", "topbar-search-icon") }}
-          <span class="visually-hidden">검색</span>
-          <input id="global-search" type="search" placeholder="무엇을 도와드릴까요?">
-        </label>
-        <div class="topbar-actions">
-          <button type="button" class="icon-button" aria-label="알림">
-            {{ icon("bell") }}
-          </button>
-          <div class="user-info">
-            <span class="user-avatar" aria-hidden="true">김</span>
-            <span class="user-name">김지현 매니저</span>
-          </div>
-        </div>
-      </header>
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+{% block extra_css %}{% endblock %}
+{% endblock %}
 
-      <main class="content" id="main-content">
-        {% block content %}{% endblock %}
-      </main>
-    </div>
-  </div>
+{% block breadcrumb %}
+<a href="{{ command_center_url }}">Command Center</a>
+<span aria-hidden="true">/</span>
+{% block crumbs %}{% endblock %}
+{% endblock %}
 
-  {% block scripts %}{% endblock %}
-</body>
-</html>
+{% block content %}
+{{ sprite() }}
+<div class="sd-app">
+  <nav class="sd-subnav" aria-label="예약판매 이탈 방지 메뉴">
+    <a href="{{ url_for('pages.savedeal') }}" class="sd-subnav-item {{ 'is-active' if active_nav == 'agents' else '' }}" {% if active_nav == 'agents' %}aria-current="page"{% endif %}>예약 운영</a>
+    <a href="{{ url_for('pages.savedeal_new') }}" class="sd-subnav-item {{ 'is-active' if active_nav == 'new' else '' }}" {% if active_nav == 'new' %}aria-current="page"{% endif %}>신규 예약</a>
+    <a href="{{ url_for('pages.savedeal_upload') }}" class="sd-subnav-item {{ 'is-active' if active_nav == 'upload' else '' }}" {% if active_nav == 'upload' %}aria-current="page"{% endif %}>예약 업로드</a>
+  </nav>
+  {% block page %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}{% block page_scripts %}{% endblock %}{% endblock %}

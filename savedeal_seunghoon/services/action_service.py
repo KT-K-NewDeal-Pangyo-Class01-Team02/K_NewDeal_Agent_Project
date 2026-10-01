@@ -17,6 +17,7 @@ from services.codes import (
     ACTION_ALTERNATIVE_DEVICE,
     ACTION_APPROVED,
     ACTION_COLOR_STORAGE_CHANGE,
+    ACTION_CUSTOMER_INFO_CHECK,
     ACTION_CUSTOMER_RECONTACT,
     ACTION_DATE_CHANGE,
     ACTION_DISCARDED,
@@ -40,6 +41,7 @@ from services.codes import (
     EVENT_STATUS_CHANGED,
     ISSUE_ACTIVATION_REJECTED,
     ISSUE_CUSTOMER_NO_RESPONSE,
+    ISSUE_CUSTOMER_UNKNOWN,
     ISSUE_IDENTITY_FAILED,
     ISSUE_INSTALLMENT_LIMIT,
     ISSUE_LABELS,
@@ -263,6 +265,18 @@ class ActionService:
                 )
             )
 
+        elif code == ISSUE_CUSTOMER_UNKNOWN:
+            options.append(
+                _option(
+                    ACTION_CUSTOMER_INFO_CHECK,
+                    "lookup",
+                    "고객 정보 전산 조회 후 등록",
+                    "본인인증·제출서류·할부한도 정보가 없어 개통 위험을 판단할 수 없습니다. "
+                    "전산에서 고객 정보를 조회해 등록합니다 (가상 실행).",
+                    {"customer_id": detail.get("customer_id")},
+                )
+            )
+
         elif code == ISSUE_OVERDUE_PAYMENT:
             amount = detail.get("amount")
             amount_text = f" {_won(amount)}" if amount else ""
@@ -276,7 +290,35 @@ class ActionService:
                 )
             )
 
-        return options
+        return self._apply_memo_insight(reservation, options)
+
+    @staticmethod
+    def _apply_memo_insight(reservation: dict, options: list[dict]) -> list[dict]:
+        """고객 메모에서 읽어 낸 의사(대체 색상 가능, 서류 제출 예정일, 연락 방법)를 해결책 순서·설명에 반영한다."""
+        insight = reservation.get("memo_insight") or {}
+        if not insight:
+            return options
+        colors = set(insight.get("flexible_colors") or [])
+        contact = insight.get("contact_preference")
+        eta = insight.get("document_eta")
+
+        def preferred(option: dict) -> bool:
+            detail = option["detail"]
+            if option["action_type"] == ACTION_COLOR_STORAGE_CHANGE:
+                return detail["device"]["color"] in colors
+            if option["action_type"] == ACTION_CUSTOMER_RECONTACT:
+                return detail.get("channel") == contact
+            if option["action_type"] == ACTION_DOCUMENT_REQUEST:
+                return detail.get("channel") == contact
+            return False
+
+        for option in options:
+            if preferred(option):
+                option["title"] += " · 고객 메모 반영"
+            if option["action_type"] == ACTION_DOCUMENT_REQUEST and eta:
+                option["description"] += f" 고객 메모상 서류 제출 예정일: {eta}."
+        # 고객이 원한다고 적은 안을 맨 앞으로 (나머지 순서는 유지)
+        return sorted(options, key=lambda option: not preferred(option))
 
     def propose(self, reservation: dict, issue_codes: list[str] | None = None) -> list[int]:
         """미해결 문제마다 해결책을 만들어 저장한다. 이미 실패한 안은 다시 제안하지 않는다."""

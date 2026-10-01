@@ -27,8 +27,8 @@ def _find_item(items: list[dict], store_id: str, model: str, color: str, storage
 class InventoryService:
     """희망 모델·색상·용량의 재고와 입고 일정을 검증하고 available/conditional/unavailable로 분류한다."""
 
-    def __init__(self, data_dir: Path):
-        self.inventory_repo = InventoryRepository(data_dir)
+    def __init__(self, data_dir: Path, db_path=None):
+        self.inventory_repo = InventoryRepository(data_dir, db_path)
         self.store_repo = StoreRepository(data_dir)
         self.threshold_repo = ThresholdRepository(data_dir)
 

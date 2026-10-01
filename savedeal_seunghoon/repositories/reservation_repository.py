@@ -19,6 +19,8 @@ _COLUMNS = [
     "issues",
     "retry_count",
     "customer_waiting_since",
+    "memo",
+    "memo_insight",
     "created_at",
     "updated_at",
     "completed_at",
@@ -28,6 +30,7 @@ _COLUMNS = [
 def _to_dict(row) -> dict:
     item = dict(row)
     item["issues"] = json.loads(item["issues"] or "[]")
+    item["memo_insight"] = json.loads(item["memo_insight"]) if item.get("memo_insight") else None
     item["device"] = {
         "model": item.pop("device_model"),
         "color": item.pop("device_color"),
@@ -45,6 +48,8 @@ def _to_row(reservation: dict) -> dict:
         row["device_storage"] = device["storage"]
     if "issues" in reservation:
         row["issues"] = json.dumps(reservation["issues"], ensure_ascii=False)
+    if reservation.get("memo_insight") is not None:
+        row["memo_insight"] = json.dumps(reservation["memo_insight"], ensure_ascii=False)
     return {key: value for key, value in row.items() if key in _COLUMNS}
 
 

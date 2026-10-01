@@ -7,14 +7,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/savedeal.css') }}">
 {% endblock %}
 
-{% block content %}
-<nav class="breadcrumb" aria-label="이동 경로">
-  <a href="{{ config.COMMAND_CENTER_URL }}">Command Center</a>
-  <span aria-hidden="true">/</span>
-  <a href="{{ url_for('pages.savedeal') }}">예약판매 이탈 방지</a>
-  <span aria-hidden="true">/</span>
-  <span aria-current="page">신규 예약</span>
-</nav>
+{% block crumbs %}<a href="{{ url_for('pages.savedeal') }}">예약판매 이탈 방지</a>
+<span aria-hidden="true">/</span>
+<strong>신규 예약</strong>{% endblock %}
+
+{% block page %}
 
 <div class="page-header">
   <h1>신규 예약 등록</h1>
@@ -131,6 +128,6 @@
 <script id="device-catalog" type="application/json">{{ devices | tojson }}</script>
 {% endblock %}
 
-{% block scripts %}
+{% block page_scripts %}
 <script src="{{ url_for('static', filename='js/precheck.js') }}" defer></script>
 {% endblock %}

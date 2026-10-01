@@ -6,6 +6,7 @@ from repositories.store_repository import StoreRepository
 from services.carriers import PREVIOUS_CARRIER_CODES, carrier_info
 from services.dashboard_service import FILTERS
 from services.device_images import image_for
+from services.upload_service import KINDS as UPLOAD_KINDS
 
 pages_bp = Blueprint("pages", __name__)
 
@@ -28,12 +29,21 @@ def savedeal():
     return render_template("savedeal.html", active_nav="agents", filters=FILTERS)
 
 
+@pages_bp.route("/savedeal/upload", methods=["GET"])
+def savedeal_upload():
+    """엑셀·CSV 일괄 업로드 (사전예약 명단 · 고객 정보 · 재고 현황)."""
+    kinds = [{"key": key, "label": spec["label"], "description": spec["description"],
+              "columns": [{"label": header, "required": required} for _, header, required, _ in spec["columns"]]}
+             for key, spec in UPLOAD_KINDS.items()]
+    return render_template("savedeal_upload.html", active_nav="upload", kinds=kinds)
+
+
 @pages_bp.route("/savedeal/new", methods=["GET"])
 def savedeal_new():
     """신규 예약 등록과 사전검증."""
     data_dir = current_app.config["DATA_DIR"]
     stores = StoreRepository(data_dir).load_all()
-    customers = CustomerRepository(data_dir).load_all()
+    customers = CustomerRepository(data_dir, current_app.config["DB_PATH"]).load_all()
     devices = DeviceRepository(data_dir).load_all()
     for device in devices:
         image = image_for(device)

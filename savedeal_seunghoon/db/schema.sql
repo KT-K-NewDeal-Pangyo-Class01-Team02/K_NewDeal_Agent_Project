@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS reservations (
     issues                  TEXT NOT NULL DEFAULT '[]',
     retry_count             INTEGER NOT NULL DEFAULT 0,
     customer_waiting_since  TEXT NOT NULL,
+    -- 업로드 명단의 자유 메모와 그 해석 결과(JSON: AI 또는 규칙 기반)
+    memo                    TEXT,
+    memo_insight            TEXT,
     created_at              TEXT NOT NULL,
     updated_at              TEXT NOT NULL,
     completed_at            TEXT
@@ -45,6 +48,79 @@ CREATE TABLE IF NOT EXISTS action_history (
     action_id      INTEGER REFERENCES proposed_actions (action_id),
     event_type     TEXT NOT NULL,
     description    TEXT NOT NULL,
+    created_at     TEXT NOT NULL
+);
+
+-- 고객 기준정보 (교육용 가상 데이터만. 실제 개인정보를 넣지 않는다)
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id          TEXT PRIMARY KEY,
+    name                 TEXT,
+    phone                TEXT,
+    identity_verified    INTEGER,
+    verification_method  TEXT,
+    required_documents   TEXT NOT NULL DEFAULT '[]',
+    submitted_documents  TEXT NOT NULL DEFAULT '[]',
+    overdue_payment      INTEGER,
+    installment_limit    INTEGER,
+    existing_lines_count INTEGER,
+    max_lines_allowed    INTEGER,
+    updated_at           TEXT
+);
+
+-- 매장 재고
+CREATE TABLE IF NOT EXISTS inventory (
+    sku                   TEXT PRIMARY KEY,
+    model                 TEXT NOT NULL,
+    color                 TEXT NOT NULL,
+    storage               TEXT NOT NULL,
+    store_id              TEXT NOT NULL,
+    quantity_on_hand      INTEGER NOT NULL DEFAULT 0,
+    expected_restock_date TEXT,
+    updated_at            TEXT
+);
+
+-- 엑셀·CSV 업로드: 미리보기 → 확정. 원본 파일은 저장하지 않고 검증한 행만 잠시 보관한다
+CREATE TABLE IF NOT EXISTS upload_batches (
+    batch_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind         TEXT NOT NULL,       -- reservations / customers / inventory
+    filename     TEXT,
+    status       TEXT NOT NULL,       -- PREVIEW / COMMITTED / CANCELLED
+    total_rows   INTEGER NOT NULL DEFAULT 0,
+    valid_rows   INTEGER NOT NULL DEFAULT 0,
+    error_rows   INTEGER NOT NULL DEFAULT 0,
+    rows         TEXT NOT NULL DEFAULT '[]',
+    errors       TEXT NOT NULL DEFAULT '[]',
+    result       TEXT,
+    created_at   TEXT NOT NULL,
+    committed_at TEXT
+);
+
+-- 알림 (n8n → Gmail). n8n 주소가 없으면 DEMO 로 기록만 한다
+CREATE TABLE IF NOT EXISTS notifications (
+    notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind            TEXT NOT NULL,    -- UPLOAD_SUMMARY / HIGH_RISK / CUSTOMER_NOTICE / DAILY_REPORT
+    reservation_id  TEXT,
+    action_id       INTEGER,
+    subject         TEXT NOT NULL,
+    body            TEXT NOT NULL,
+    status          TEXT NOT NULL,    -- SENT / FAILED / DEMO
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    created_at      TEXT NOT NULL,
+    sent_at         TEXT
+);
+
+-- AI 사용 기록 (실제 AI 호출인지, 규칙 기반 대체인지 남긴다)
+CREATE TABLE IF NOT EXISTS ai_logs (
+    log_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    feature        TEXT NOT NULL,     -- MEMO_INSIGHT / CUSTOMER_NOTICE / STAFF_BRIEFING
+    reservation_id TEXT,
+    mode           TEXT NOT NULL,     -- ai / rule
+    provider       TEXT,
+    model          TEXT,
+    success        INTEGER NOT NULL,
+    latency_ms     INTEGER,
+    error          TEXT,
     created_at     TEXT NOT NULL
 );
 

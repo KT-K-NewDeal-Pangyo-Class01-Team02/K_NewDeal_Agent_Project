@@ -7,6 +7,8 @@ from datetime import datetime, time, timedelta
 
 from config import Config
 from repositories.action_history_repository import ActionHistoryRepository
+from repositories.customer_repository import CustomerRepository
+from repositories.inventory_repository import InventoryRepository
 from repositories.reservation_repository import ReservationRepository
 from services.action_service import ACTIVATION_DEADLINE_TIME, ActionService
 from services.codes import (
@@ -143,6 +145,43 @@ def _cases(now: datetime) -> list[dict]:
     ]
 
 
+def _demo_phone(index: int) -> str:
+    return f"010-****-{1200 + index * 37:04d}"
+
+
+def _demo_customer(index: int, case: dict) -> dict:
+    """mock 예약의 고객(C101~). 예약의 문제 원인과 맞는 고객 속성을 준다 (서류 미제출이면 서류가 빠져 있는 식)."""
+    codes = {code: detail for code, detail in case["issues"]}
+    required = ["신분증"] + list(codes.get(ISSUE_MISSING_DOCUMENTS, {}).get("documents", []))
+    return {
+        "customer_id": f"C{101 + index}",
+        "name": case["name"],
+        "phone": _demo_phone(index),
+        "identity_verified": ISSUE_IDENTITY_FAILED not in codes,
+        "verification_method": "mobile_ok" if ISSUE_IDENTITY_FAILED not in codes else None,
+        "required_documents": required,
+        "submitted_documents": ["신분증"],
+        "overdue_payment": ISSUE_OVERDUE_PAYMENT in codes,
+        "installment_limit": 1200000 if ISSUE_INSTALLMENT_LIMIT in codes else 3000000,
+        "existing_lines_count": 1,
+        "max_lines_allowed": 5,
+    }
+
+
+def seed_reference_data(db_path, data_dir=None) -> None:
+    """고객·재고 기준정보를 운영 DB에 채운다: data/*.json 의 기본 데이터 + mock 예약 고객(C101~)."""
+    data_dir = data_dir or Config.DATA_DIR
+    now = datetime.now().replace(microsecond=0).isoformat(timespec="seconds")
+    customers = CustomerRepository(data_dir, db_path)
+    for customer in CustomerRepository(data_dir).load_all():
+        customers.upsert({**customer, "updated_at": now})
+    for index, case in enumerate(_cases(datetime.now())):
+        customers.upsert({**_demo_customer(index, case), "updated_at": now})
+    inventory = InventoryRepository(data_dir, db_path)
+    for item in InventoryRepository(data_dir).load_all():
+        inventory.upsert({**item, "updated_at": now})
+
+
 def _deadline(now: datetime, spec: tuple[str, int]) -> datetime:
     kind, amount = spec
     if kind == "days":
@@ -183,7 +222,7 @@ def seed_demo_data(db_path, data_dir=None, now: datetime | None = None) -> None:
                 "reservation_id": case["id"],
                 "customer_id": f"C{101 + index}",
                 "customer_name": case["name"],
-                "customer_phone": f"010-****-{1200 + index * 37:04d}",
+                "customer_phone": _demo_phone(index),
                 "store_id": case["store"],
                 "device": case["device"],
                 "line_type": case["line"],

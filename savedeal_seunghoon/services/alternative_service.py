@@ -7,8 +7,8 @@ from services.inventory_service import STATUS_AVAILABLE
 class AlternativeService:
     """재고·일정 검증과 개통위험 검증 결과를 바탕으로 대체조건을 생성한다."""
 
-    def __init__(self, data_dir: Path):
-        self.inventory_repo = InventoryRepository(data_dir)
+    def __init__(self, data_dir: Path, db_path=None):
+        self.inventory_repo = InventoryRepository(data_dir, db_path)
 
     def generate(
         self,

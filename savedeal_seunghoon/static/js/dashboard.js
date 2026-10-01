@@ -410,6 +410,54 @@
     info.appendChild(dl);
     body.appendChild(info);
 
+    // 고객 메모 (업로드 명단의 자유 메모) + AI·규칙 해석 결과
+    if (detail.memo) {
+      var memoSection = section("고객 메모");
+      var memoBox = el("div", "memo-box");
+      memoBox.appendChild(withIcon(el("p", "memo-text"), "sticky-note", detail.memo));
+      var insight = detail.memo_insight;
+      if (insight) {
+        var facts = el("ul", "insight-list");
+        if (insight.flexible_colors && insight.flexible_colors.length) {
+          facts.appendChild(el("li", null, "대체 가능 색상: " + insight.flexible_colors.join(", ")));
+        }
+        if (insight.document_eta) facts.appendChild(el("li", null, "서류 제출 예정일: " + insight.document_eta));
+        if (insight.contact_preference) facts.appendChild(el("li", null, "선호 연락: " + insight.contact_preference));
+        if (!facts.childNodes.length) facts.appendChild(el("li", null, "해결책에 반영할 정보를 찾지 못했습니다."));
+        memoBox.appendChild(facts);
+        memoBox.appendChild(sourceTag(insight, "메모 해석"));
+      }
+      memoSection.appendChild(memoBox);
+      body.appendChild(memoSection);
+    }
+
+    // AI 브리핑 (누를 때만 생성)
+    if (detail.is_open) {
+      var briefing = section("AI 브리핑");
+      var briefingBody = el("div", "briefing-box");
+      briefingBody.appendChild(el("p", "muted", "이 예약이 왜 급한지 3줄로 요약합니다."));
+      var briefingButton = withIcon(el("button", "btn-secondary btn-small"), "sparkles", "브리핑 생성");
+      briefingButton.type = "button";
+      briefingButton.addEventListener("click", function () {
+        briefingButton.disabled = true;
+        briefingButton.lastChild.textContent = "생성 중...";
+        request("POST", "/api/reservations/" + encodeURIComponent(detail.reservation_id) + "/briefing")
+          .then(function (result) {
+            briefingBody.innerHTML = "";
+            briefingBody.appendChild(el("p", "briefing-text", result.text));
+            briefingBody.appendChild(sourceTag(result, "직원 브리핑"));
+            loadIntegrations();
+          })
+          .catch(function (err) {
+            briefingBody.innerHTML = "";
+            briefingBody.appendChild(stateBlock("error", "브리핑을 만들지 못했습니다.", err.message));
+          });
+      });
+      briefingBody.appendChild(briefingButton);
+      briefing.appendChild(briefingBody);
+      body.appendChild(briefing);
+    }
+
     // 문제 원인
     if (detail.is_open) {
       var issues = section("문제 원인");
@@ -465,6 +513,17 @@
       body.appendChild(factors);
     }
 
+    // 알림 기록 (n8n → Gmail)
+    if (detail.notifications && detail.notifications.length) {
+      var notices = section("알림 기록");
+      var noticeList = el("ul", "notice-list");
+      detail.notifications.forEach(function (item) {
+        noticeList.appendChild(renderNotification(item));
+      });
+      notices.appendChild(noticeList);
+      body.appendChild(notices);
+    }
+
     // 처리이력
     var history = section("처리이력");
     var timeline = el("ul", "timeline");
@@ -476,6 +535,75 @@
     });
     history.appendChild(timeline);
     body.appendChild(history);
+  }
+
+  // AI 결과의 출처 표시: 실제 AI 호출이면 모델·응답 시간, 아니면 규칙 기반
+  function sourceTag(result, label) {
+    var tag = el("span", "source-tag" + (result.source === "ai" ? " is-ai" : ""));
+    tag.appendChild(icon(result.source === "ai" ? "sparkles" : "info", "icon-sm"));
+    var text =
+      result.source === "ai"
+        ? label + " · AI 생성 · " + result.model + " · " + (result.latency_ms / 1000).toFixed(1) + "초"
+        : label + " · 규칙 기반" + (result.ai_error ? " (AI 실패: " + result.ai_error + ")" : " (AI 꺼짐)");
+    tag.appendChild(document.createTextNode(text));
+    return tag;
+  }
+
+  var NOTICE_TONES = { SENT: "tone-success", FAILED: "tone-danger", DEMO: "" };
+
+  function renderNotification(item) {
+    var li = el("li", "notice-item");
+    var top = el("div", "notice-top");
+    top.appendChild(withIcon(el("span", "notice-kind"), "mail", item.kind_label));
+    top.appendChild(badge(item.status_label, NOTICE_TONES[item.status]));
+    li.appendChild(top);
+    var details = el("details", "notice-body");
+    details.appendChild(el("summary", null, item.subject));
+    details.appendChild(el("pre", "notice-text", item.body));
+    li.appendChild(details);
+    if (item.last_error) li.appendChild(el("p", "notice-error", item.last_error));
+    if (item.can_retry) {
+      var retry = el("button", "btn-secondary btn-small", "다시 보내기");
+      retry.type = "button";
+      retry.addEventListener("click", function () {
+        retry.disabled = true;
+        request("POST", "/api/notifications/" + item.notification_id + "/retry")
+          .then(function () {
+            return loadDetail({ kind: "is-info", text: "알림을 다시 보냈습니다." });
+          })
+          .catch(function (err) {
+            return loadDetail({ kind: "is-error", text: err.message });
+          });
+      });
+      li.appendChild(retry);
+    }
+    return li;
+  }
+
+  // 연동 상태: n8n(Gmail) · AI
+  function loadIntegrations() {
+    var box = $("#integration-chips");
+    if (!box) return;
+    request("GET", "/api/integrations")
+      .then(function (data) {
+        box.innerHTML = "";
+        var n8n = el("span", "integration-chip" + (data.n8n.mode === "n8n" ? " is-on" : ""));
+        n8n.appendChild(el("span", "integration-dot"));
+        n8n.appendChild(document.createTextNode(data.n8n.mode === "n8n" ? "n8n 연결됨" : "n8n 데모 모드"));
+        n8n.title = data.n8n.mode === "n8n" ? "알림을 n8n → Gmail 로 보냅니다." : "N8N_WEBHOOK_URL 이 비어 있어 메일을 보내지 않고 기록만 합니다.";
+        var ai = el("span", "integration-chip" + (data.ai.mode === "ai" ? " is-on" : ""));
+        ai.appendChild(el("span", "integration-dot"));
+        ai.appendChild(document.createTextNode(data.ai.mode === "ai" ? "AI " + data.ai.model : "AI 꺼짐 · 규칙 기반"));
+        var last = data.ai_logs[0];
+        ai.title = last
+          ? "최근 AI 기록: " + last.feature_label + " · " + (last.mode === "ai" ? "AI" : "규칙") + " · " + last.created_at.replace("T", " ")
+          : "아직 AI 기록이 없습니다.";
+        box.appendChild(n8n);
+        box.appendChild(ai);
+      })
+      .catch(function () {
+        box.innerHTML = "";
+      });
   }
 
   function factorColumn(title, factors) {
@@ -562,6 +690,21 @@
     $("#drawer-backdrop").addEventListener("click", closePanel);
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape" && state.selectedId) closePanel();
+    });
+    loadIntegrations();
+    $("#send-report").addEventListener("click", function () {
+      var button = $("#send-report");
+      button.disabled = true;
+      request("POST", "/api/notifications/daily-report")
+        .then(function (result) {
+          window.ccToast && window.ccToast("운영 리포트 " + result.status_label + (result.status === "DEMO" ? " (n8n 미연결)" : ""));
+        })
+        .catch(function (err) {
+          window.ccToast && window.ccToast("리포트를 보내지 못했습니다: " + err.message);
+        })
+        .finally(function () {
+          button.disabled = false;
+        });
     });
     $("#reset-demo").addEventListener("click", function () {
       if (!window.confirm("모든 예약·해결책·처리이력을 지우고 데모 데이터로 되돌릴까요?")) return;

@@ -63,7 +63,7 @@
 | `tonghagil_LEESEUNGHYUN/` | **이승현** (EffortLEE1008) | 통하길 스튜디오 (+ 예정: 통하길 QR) |
 | `thejo_project/` | **정주희** (juhee) | 더 줘 (Flask Blueprint, 허브에 내장) |
 | `vicDDory_wooyong/` | **최우용** (crwayon) | 빅또리출동! |
-| `savedeal_seunghoon/` | **장승훈** (stevenwkd-jang) | 예약판매 이탈 방지 (SaveDeal). 자체 UI(허브와 다른 사이드바)를 쓴다. |
+| `savedeal_seunghoon/` | **장승훈** (stevenwkd-jang) | 예약판매 이탈 방지 (SaveDeal). 별도 서버(5001)이며 허브 공통 틀(사이드바·상단 바)의 사본을 쓴다. |
 
 새 폴더를 추가한 팀원은 이 표와 아래 폴더별 규칙에 자기 항목을 추가해 주세요. 이 파일은 공용 파일이라 항목 추가는 팀 공지로 갈음합니다.
 표에 없는 폴더는 **주인이 확인될 때까지 다른 사람의 폴더로 간주**합니다.
