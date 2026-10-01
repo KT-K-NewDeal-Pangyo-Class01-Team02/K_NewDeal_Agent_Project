@@ -32,7 +32,7 @@
   <ol class="q-stamps">
     {% for s in ev.stamps %}
     <li class="q-stamp {% if s.id in done %}is-done{% endif %} {% if got and got.id == s.id %}is-new{% endif %}">
-      <span class="q-stamp-no">{% if s.id in done %}{{ qicon("check", 18) }}{% else %}{{ loop.index }}{% endif %}</span>
+      <span class="q-stamp-no">{{ loop.index }}{% if s.id in done %}<i class="q-done-mark">{{ qicon("check", 11) }}</i>{% endif %}</span>
       <div>
         <strong>{{ s.name }}</strong>
         <small>{{ zone_names[s.zone] }} · {{ s.hint }}</small>

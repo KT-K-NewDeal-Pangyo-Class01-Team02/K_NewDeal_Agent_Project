@@ -36,30 +36,30 @@
 
 <section class="q-card q-map-card" id="svg-map" {% if kakao_key %}hidden{% endif %}>
   <p class="q-foot-note q-svg-note" id="svg-map-note" hidden>{{ qicon("info", 13) }}지도를 불러오지 못해 약도로 보여 드려요.</p>
-  {#- 약도 좌표는 event.json 의 zones(x, y, w, h), booth(x, y), stamps(x, y). viewBox 360×400 기준 -#}
+  {#- 약도 좌표는 event.json 의 zones(x, y, w, h → 타원), booth(x, y), stamps(x, y). viewBox 360×400 기준 -#}
   <svg class="q-map" viewBox="0 0 360 400" role="img" aria-label="{{ ev.name }} 행사장 약도">
-    <rect class="q-river" x="0" y="0" width="360" height="58"/>
-    <path class="q-river-wave" d="M0 40 q 30 -10 60 0 t 60 0 t 60 0 t 60 0 t 60 0 t 60 0"/>
-    <text class="q-river-label" x="16" y="30">한강</text>
     {% for z in ev.zones %}
     {%- set live = net_by_id[z.id] %}
     <g class="q-zone" data-zone="{{ z.id }}" data-level="{{ live.level }}">
-      <rect x="{{ z.x }}" y="{{ z.y }}" width="{{ z.w }}" height="{{ z.h }}" rx="12"/>
-      <text class="q-zone-name" x="{{ z.x + 12 }}" y="{{ z.y + 22 }}">{{ z.name }}</text>
-      <text class="q-zone-status" x="{{ z.x + 12 }}" y="{{ z.y + 40 }}" data-field="label">{{ live.label }}</text>
+      <ellipse cx="{{ z.x + z.w / 2 }}" cy="{{ z.y + z.h / 2 }}" rx="{{ z.w / 2 }}" ry="{{ z.h / 2 }}"/>
+      <text class="q-zone-name" x="{{ z.x + z.w / 2 - 20 }}" y="{{ z.y + z.h / 2 - 4 }}">{{ z.name }}</text>
+      <text class="q-zone-status" x="{{ z.x + z.w / 2 - 20 }}" y="{{ z.y + z.h / 2 + 14 }}" data-field="label">{{ live.label }}</text>
     </g>
     {% endfor %}
     {% for s in ev.stamps %}
     <g class="q-map-stamp {% if s.id in done %}is-done{% endif %}">
       <circle cx="{{ s.x }}" cy="{{ s.y }}" r="11"/>
       <text x="{{ s.x }}" y="{{ s.y + 4 }}">{{ loop.index }}</text>
+      {% if s.id in done %}
+      <circle class="q-map-check" cx="{{ s.x + 9 }}" cy="{{ s.y + 9 }}" r="5.5"/>
+      <path class="q-map-check-mark" d="M{{ s.x + 6.4 }} {{ s.y + 9.2 }} l1.9 1.9 l3.4 -3.7"/>
+      {% endif %}
     </g>
     {% endfor %}
     <g class="q-map-booth">
-      <rect x="{{ ev.booth.x - 20 }}" y="{{ ev.booth.y - 11 }}" width="40" height="22" rx="6"/>
+      <rect x="{{ ev.booth.x - 22 }}" y="{{ ev.booth.y - 12 }}" width="44" height="24" rx="12"/>
       <text x="{{ ev.booth.x }}" y="{{ ev.booth.y + 5 }}">KT</text>
     </g>
-    <text class="q-map-gate" x="266" y="394">▲ 입구</text>
   </svg>
   <ul class="q-legend">
     <li><i class="lv-good"></i>원활</li>
@@ -97,7 +97,7 @@
     {% for s in ev.stamps %}
     <li>
       <{{ focus_tag }} class="q-spot {% if s.id in done %}is-done{% endif %}" {% if kakao_key %}type="button" data-focus-stamp="{{ s.id }}"{% endif %}>
-        <span class="q-spot-no">{% if s.id in done %}{{ qicon("check", 16) }}{% else %}{{ loop.index }}{% endif %}</span>
+        <span class="q-spot-no">{{ loop.index }}{% if s.id in done %}<i class="q-done-mark">{{ qicon("check", 11) }}</i>{% endif %}</span>
         <span class="q-spot-text">
           <strong>{{ s.name }}</strong>
           <small>{{ zone_names[s.zone] }} · {{ s.hint }}</small>
