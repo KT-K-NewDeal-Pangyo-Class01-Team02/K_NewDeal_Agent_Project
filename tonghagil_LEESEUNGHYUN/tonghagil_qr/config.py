@@ -48,3 +48,8 @@ CHAT_WEBHOOK_URL = _get("QR_CHAT_WEBHOOK_URL").strip()
 CHAT_WEBHOOK_SECRET = _get("QR_CHAT_WEBHOOK_SECRET").strip()
 CHAT_SECRET_HEADER = _get("QR_CHAT_SECRET_HEADER").strip() or "X-Tonghagil-Key"
 CHAT_TIMEOUT = float(_get("QR_CHAT_TIMEOUT") or "30")
+
+# 담당자 화면(/qr/staff/)의 관리자 에이전트용 n8n Webhook 운영 주소. 방문객용과 다른 워크플로다.
+# 비워 두면 고정 답변을 돌려준다. 비밀 값을 따로 안 적으면 방문객용 값을 같이 쓴다 (헤더 이름·제한 시간은 공통).
+STAFF_CHAT_WEBHOOK_URL = _get("QR_STAFF_CHAT_WEBHOOK_URL").strip()
+STAFF_CHAT_WEBHOOK_SECRET = _get("QR_STAFF_CHAT_WEBHOOK_SECRET").strip() or CHAT_WEBHOOK_SECRET

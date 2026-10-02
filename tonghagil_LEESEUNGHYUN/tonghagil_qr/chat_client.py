@@ -14,6 +14,9 @@ n8n 워크플로 (예정):
     network     지금 구역별 통신 상태 (모의) → "어디가 잘 터져요?" 같은 질문에 쓴다
     stamps      이 방문객이 찍은 스탬프 이름 목록
     action      "sendMessage" (n8n Chat Trigger 호환용)
+담당자 화면의 관리자 에이전트(QR_STAFF_CHAT_WEBHOOK_URL)는 여기에 두 가지를 더 보낸다 (routes.staff_chat_api):
+    role        "staff"
+    stats       지금 현황 숫자 (방문객 수 · 스탬프 진행 · 쿠폰 발급/지급) → 질문 종류별 분기에서 골라 쓴다
 
 받는 응답: {"reply": "…"} 권장. "output"(n8n AI Agent 기본), "text", "message", "answer" 도 알아듣고,
 배열(n8n 기본 응답)이나 글자만 온 응답도 받는다.
@@ -40,7 +43,9 @@ class ChatReply:
     source: str  # "fixed" (n8n 연결 전) | "n8n"
 
 
-def reply(message, session_id, *, webhook_url, timeout, headers=None, event_id="", context=None, network=None, stamps=None):
+def reply(message, session_id, *, webhook_url, timeout, headers=None, event_id="", context=None, network=None,
+          stamps=None, extra=None):
+    """extra: 위 항목 말고 더 보낼 값. 담당자 화면의 관리자 에이전트가 role·stats(현황 숫자)를 넣는다."""
     if not webhook_url:
         return ChatReply(TEST_REPLY, "fixed")
 
@@ -52,6 +57,7 @@ def reply(message, session_id, *, webhook_url, timeout, headers=None, event_id="
         "context": context or {},
         "network": network or {},
         "stamps": stamps or [],
+        **(extra or {}),
     }
     try:
         resp = requests.post(webhook_url, json=payload, headers=headers or {}, timeout=timeout)

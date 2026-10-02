@@ -7,9 +7,9 @@ Command Center(command_center/app.py)에 Blueprint 로 등록되어 /qr/ 아래�
     /qr/map         지도 · KT 부스 위치 · 구역별 통신 상태(모의)
     /qr/stamps      스탬프 5곳 · 다 모으면 쿠폰
     /qr/s/<token>   스탬프 지점 QR 이 가리키는 주소 → 스탬프 찍고 /qr/stamps 로
-    /qr/chat        안내 챗봇 (지금은 고정 답변, 나중에 n8n)
+    /qr/chat        채팅 에이전트 (QR_CHAT_WEBHOOK_URL 이 없으면 고정 답변)
 부스 담당자 화면 (허브 사이드바 · PIN)
-    /qr/staff/      현황 · 쿠폰 지급 · QR 인쇄 · 시연 초기화
+    /qr/staff/      현황 · 관리자 에이전트 채팅 · 쿠폰 지급 · QR 인쇄 · 시연 초기화
 
 주소는 모두 url_for 로 만든다. ngrok 같은 공개 주소로 들어와도 localhost 로 새지 않는다.
 QR 코드에 넣는 주소만 QR_PUBLIC_BASE_URL(없으면 지금 접속한 주소) 기준의 전체 주소다.
@@ -237,8 +237,11 @@ def staff():
         code=normalize_code(request.args.get("code")),
         targets=_qr_targets(base),
         public_base=base,
+        visitor_url=base + url_for(".home"),
         base_is_local=_is_local(base),
         chat_connected=bool(config.CHAT_WEBHOOK_URL),
+        staff_chat_connected=bool(config.STAFF_CHAT_WEBHOOK_URL),
+        max_chat=MAX_CHAT,
         kakao_connected=bool(config.KAKAO_MAP_KEY),
         pin_is_default=config.STAFF_PIN_IS_DEFAULT,
         required=event.required_stamps,
@@ -286,6 +289,78 @@ def staff_reset():
     return redirect(url_for(".staff", result="reset"))
 
 
+@qr_bp.post("/staff/api/chat")
+def staff_chat_api():
+    """담당자 화면의 관리자 에이전트. 방문객용과 다른 n8n 워크플로(QR_STAFF_CHAT_WEBHOOK_URL)로 간다.
+
+    n8n 은 이 PC 의 DB 를 직접 못 읽으므로, 질문과 함께 지금 현황 숫자(stats)를 보낸다.
+    n8n 에서 질문 종류(방문객 수 · 스탬프 진행 · 사은품)로 나눈 뒤 가지마다 필요한 숫자만 골라 쓰면 된다.
+    """
+    if not _is_staff():
+        return jsonify(error="잠금이 풀렸어요. 화면을 새로고침하고 PIN을 다시 입력해 주세요."), 403
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    if not message:
+        return jsonify(error="궁금한 내용을 입력해 주세요."), 400
+    if len(message) > MAX_CHAT:
+        return jsonify(error=f"질문은 {MAX_CHAT}자까지 입력할 수 있어요."), 400
+
+    # 담당자는 모두 같은 PIN 쿠키를 쓰므로, 대화 기억은 브라우저 탭이 만든 ID 로 나눈다
+    session = str(data.get("session") or "")
+    session_id = "staff-" + (session if _VISITOR_ID.match(session) else "shared")
+    secret = config.STAFF_CHAT_WEBHOOK_SECRET
+    try:
+        answer = chat_client.reply(
+            message, session_id,
+            webhook_url=config.STAFF_CHAT_WEBHOOK_URL,
+            timeout=config.CHAT_TIMEOUT,
+            headers={config.CHAT_SECRET_HEADER: secret} if secret else None,
+            event_id=event.data["id"],
+            context=event.context(),
+            network=_network_summary(),
+            extra={"role": "staff", "stats": _staff_stats()},
+        )
+    except chat_client.ChatError as exc:
+        return jsonify(error=str(exc)), 502
+    return jsonify(reply=answer.text, source=answer.source)
+
+
+def _staff_stats():
+    """관리자 에이전트에 보내는 현황 숫자. 담당자 화면에 보이는 숫자와 같은 DB 에서 센다."""
+    spots = event.data["stamps"]
+    ids = [s["id"] for s in spots]
+    stats = store.stats(ids)
+    required = event.required_stamps
+    by_count = store.stamp_counts(ids)
+    return {
+        "visitors": stats["visitors"],            # QR 로 들어온 방문객 수
+        "from_poster": stats["from_poster"],      # 그중 포스터 QR 로 들어온 수
+        "map_viewers": stats["map_viewers"],      # 지도·부스 안내를 본 방문객 수
+        "chat_messages": stats["chat_messages"],  # 방문객이 채팅 에이전트에 보낸 질문 수
+        "stamp": {
+            "required": required,
+            "joiners": stats["stamp_joiners"],    # 1개 이상 찍은 방문객
+            "in_progress": sum(n for count, n in by_count.items() if count < required),   # 진행 중 (아직 다 못 모음)
+            "completed": sum(n for count, n in by_count.items() if count >= required),    # 다 모음
+            "by_count": {str(count): n for count, n in by_count.items()},                 # {"찍은 개수": 방문객 수}
+            "per_spot": [{"name": s["name"], "count": stats["per_stamp"][s["id"]]} for s in spots],
+            # 곧 다 모을 사람부터 최대 10명. 방문객은 이름이 없어서 쿠키 ID 를 줄인 별칭으로 부른다 (ID 자체는 안 보낸다)
+            "closest": [{
+                "visitor": "방문객 " + hashlib.sha256(v["visitor_id"].encode()).hexdigest()[:4].upper(),
+                "count": len(v["stamp_ids"]),
+                "left": required - len(v["stamp_ids"]),
+                "remaining_spots": [s["name"] for s in spots if s["id"] not in v["stamp_ids"]],
+                "last_stamp_at": v["last_at"][11:16],
+            } for v in store.in_progress(ids, required)],
+        },
+        "coupon": {
+            "issued": stats["coupons"],                         # 발급된 쿠폰 (= 사은품 받을 자격이 생긴 사람)
+            "redeemed": stats["redeemed"],                      # 부스에서 사은품을 지급한 수
+            "waiting": stats["coupons"] - stats["redeemed"],    # 발급됐지만 아직 안 받아 간 수
+        },
+    }
+
+
 @qr_bp.get("/staff/qr/<kind>.svg")
 def staff_qr(kind):
     """포스터·스탬프 지점에 붙일 QR 이미지. 스탬프 토큰이 들어 있어 담당자만 볼 수 있다."""
@@ -311,7 +386,14 @@ def staff_print():
 
 
 def _public_base():
-    return config.PUBLIC_BASE_URL or request.host_url.rstrip("/")
+    if config.PUBLIC_BASE_URL:
+        return config.PUBLIC_BASE_URL
+    base = request.host_url.rstrip("/")
+    # ngrok 같은 중계 서버 뒤에서는 Flask 가 접속 방식을 http 로 안다. 중계 서버가 알려 준 원래 방식(https)을 쓴다.
+    proto = request.headers.get("X-Forwarded-Proto", "").split(",")[0].strip()
+    if proto in ("http", "https") and not _is_local(base):
+        base = f"{proto}://{base.split('://', 1)[1]}"
+    return base
 
 
 def _is_local(base):

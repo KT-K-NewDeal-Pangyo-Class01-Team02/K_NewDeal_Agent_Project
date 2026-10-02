@@ -132,6 +132,27 @@ class QrStore:
             "chat_messages": one("SELECT COUNT(*) FROM views WHERE page = 'chat_message'"),
         }
 
+    def stamp_counts(self, stamp_ids):
+        """{찍은 개수: 그 개수만큼 찍은 방문객 수}. 예) {1: 3, 2: 1} = 1개 찍은 사람 3명, 2개 찍은 사람 1명."""
+        if not stamp_ids:
+            return {}
+        marks = ",".join("?" * len(stamp_ids))
+        rows = self._rows(
+            f"SELECT n, COUNT(*) AS visitors FROM (SELECT COUNT(*) AS n FROM stamps WHERE stamp_id IN ({marks}) "
+            "GROUP BY visitor_id) GROUP BY n ORDER BY n", tuple(stamp_ids))
+        return {r["n"]: r["visitors"] for r in rows}
+
+    def in_progress(self, stamp_ids, required, limit=10):
+        """아직 다 못 모은 방문객을 많이 찍은 순서로. → [{visitor_id, stamp_ids(찍은 것), last_at(마지막 인증 시각)}]"""
+        if not stamp_ids:
+            return []
+        marks = ",".join("?" * len(stamp_ids))
+        rows = self._rows(
+            f"SELECT visitor_id, COUNT(*) AS n, MAX(created_at) AS last_at, GROUP_CONCAT(stamp_id) AS ids FROM stamps "
+            f"WHERE stamp_id IN ({marks}) GROUP BY visitor_id HAVING n < ? ORDER BY n DESC, last_at DESC LIMIT ?",
+            (*stamp_ids, required, limit))
+        return [{"visitor_id": r["visitor_id"], "stamp_ids": set(r["ids"].split(",")), "last_at": r["last_at"]} for r in rows]
+
     def recent_redemptions(self, limit=8):
         return [dict(r) for r in self._rows(
             "SELECT code, issued_at, redeemed_at FROM coupons WHERE redeemed_at IS NOT NULL ORDER BY redeemed_at DESC LIMIT ?",

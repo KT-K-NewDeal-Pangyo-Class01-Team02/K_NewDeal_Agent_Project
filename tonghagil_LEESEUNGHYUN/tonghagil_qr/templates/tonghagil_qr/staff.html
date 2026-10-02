@@ -1,4 +1,4 @@
-{#- 통하길 QR 부스 담당자 화면: 현황 · 쿠폰 지급 · QR 인쇄 · 시연 초기화. Command Center 의 cc_layout.html 을 쓴다. -#}
+{#- 통하길 QR 부스 담당자 화면: 현황 · 관리자 에이전트 · 쿠폰 지급 · QR 인쇄 · 시연 초기화. Command Center 의 cc_layout.html 을 쓴다. -#}
 {% extends "cc_layout.html" %}
 
 {% block title %}통하길 QR · Command Center{% endblock %}
@@ -33,6 +33,31 @@
   <div class="cc-card s-kpi is-accent"><small>혜택 지급 (부스 방문)</small><strong>{{ stats.redeemed }}</strong><span>쿠폰 {{ stats.coupons }}장 중</span></div>
 </section>
 
+{#- 관리자 에이전트: 질문과 함께 지금 현황 숫자를 n8n 으로 보낸다 (routes.staff_chat_api, static/staff.js) #}
+<section class="cc-card s-panel" id="agent" data-api="{{ url_for('tonghagil_qr.staff_chat_api') }}">
+  <div class="s-panel-head">
+    <h2>관리자 에이전트</h2>
+    {% if staff_chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}
+  </div>
+  <p class="s-desc">방문객 수, 스탬프 진행 현황, 사은품 수량을 물어보세요. 질문할 때마다 이 화면의 최신 숫자를 함께 보내요.</p>
+  <div class="s-chat-log" id="agent-log" aria-live="polite">
+    <div class="s-msg s-msg-bot">
+      <p>안녕하세요! {{ ev.booth.name }} 운영을 돕는 관리자 에이전트예요.</p>
+      {% if not staff_chat_connected %}<p class="s-msg-note">아직 n8n에 연결하지 않아 같은 답변만 드려요. <code>.env</code>의 <code>QR_STAFF_CHAT_WEBHOOK_URL</code>에 주소를 넣어 주세요.</p>{% endif %}
+    </div>
+  </div>
+  <div class="s-suggest" id="agent-suggest">
+    <button type="button" data-ask="지금까지 방문객이 몇 명 왔어?">방문객 수</button>
+    <button type="button" data-ask="스탬프를 모으고 있는 고객이 몇 명이야?">스탬프 진행 중인 고객</button>
+    <button type="button" data-ask="사은품이 몇 개 남았어?">사은품 남은 수량</button>
+  </div>
+  <form class="s-chat-form" id="agent-form">
+    <label class="sr-only" for="agent-input">질문</label>
+    <input class="cc-input" id="agent-input" maxlength="{{ max_chat }}" placeholder="궁금한 내용을 입력하세요" autocomplete="off">
+    <button type="submit" class="cc-btn cc-btn-primary" id="agent-send">보내기</button>
+  </form>
+</section>
+
 <div class="s-grid">
   <section class="cc-card s-panel" id="redeem">
     <h2>쿠폰 지급</h2>
@@ -63,14 +88,15 @@
       </li>
       {% endfor %}
     </ul>
-    <p class="s-desc">스탬프 {{ required }}개를 모두 모으면 쿠폰이 자동 발급돼요. 채팅 에이전트 질문{{ stats.chat_messages }}건.</p>
+    <p class="s-desc">스탬프 {{ required }}개를 모두 모으면 쿠폰이 자동 발급돼요. 채팅 에이전트 질문 {{ stats.chat_messages }}건.</p>
 
     <h3>설정</h3>
     <dl class="s-settings">
-      <div><dt>채팅 에이전트</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
+      <div><dt>채팅 에이전트 (방문객)</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
+      <div><dt>관리자 에이전트</dt><dd>{% if staff_chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
       <div><dt>지도</dt><dd>{% if kakao_connected %}<span class="cc-badge is-live">카카오맵 키 있음</span>{% else %}<span class="cc-badge">그림 약도 (QR_KAKAO_MAP_KEY 없음)</span>{% endif %}</dd></div>
       <div><dt>담당자 PIN</dt><dd>{% if pin_is_default %}<span class="cc-badge">기본값 1234</span>{% else %}<span class="cc-badge is-live">설정됨</span>{% endif %}</dd></div>
-      <div><dt>QR 주소</dt><dd><code>{{ public_base }}</code></dd></div>
+      <div><dt>방문객 주소 (QR)</dt><dd><code>{{ visitor_url }}</code></dd></div>
     </dl>
   </section>
 </div>
@@ -103,4 +129,8 @@
     <button type="submit" class="cc-btn s-btn-danger">{{ icon("trash", 16) }}기록 모두 지우기</button>
   </form>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('tonghagil_qr.static', filename='staff.js') }}"></script>
 {% endblock %}
