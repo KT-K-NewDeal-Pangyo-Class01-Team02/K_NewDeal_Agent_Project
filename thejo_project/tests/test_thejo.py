@@ -22,6 +22,22 @@ from thejo_project.services.opportunity_service import get_dashboard_summary, ge
 
 TX_ID = "TX-202609-018"
 
+# 이 모듈은 **데모 데이터 화면**을 검증한다. .env 에 인사이트 URL 이 들어 있으면
+# 화면이 n8n 카드로 바뀌어 버리므로, 모듈 전체에서 인사이트를 꺼 둔다.
+# (인사이트 화면은 test_insights.py 가 따로 검증한다.)
+_insight_off = None
+
+
+def setUpModule():
+    global _insight_off
+    _insight_off = mock.patch.object(config, "N8N_INSIGHTS_WEBHOOK_URL", "")
+    _insight_off.start()
+
+
+def tearDownModule():
+    if _insight_off is not None:
+        _insight_off.stop()
+
 
 class IncentiveTierTest(unittest.TestCase):
     """인센티브 구간 계산."""

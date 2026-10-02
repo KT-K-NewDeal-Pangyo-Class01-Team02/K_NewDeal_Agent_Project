@@ -50,8 +50,11 @@ def _insight_context():
     """인사이트를 쓸 수 있으면 화면에 넘길 값들, 아니면 demo 표시만.
 
     n8n 조회가 실패해도 여기서 None 이 돌아오므로 화면은 기존 데모 데이터로 그려진다.
+    주소에 ?refresh=1 을 붙이면 5분 캐시를 건너뛰고 n8n 에서 다시 받아 온다.
     """
-    data = insight_service.get_view_data()
+    data = insight_service.get_view_data(
+        force_refresh=request.args.get("refresh") == "1"
+    )
     if not data:
         return {"insights_source": "demo", "insights_date": None,
                 "insight_opportunities": [], "insight_warnings": []}
