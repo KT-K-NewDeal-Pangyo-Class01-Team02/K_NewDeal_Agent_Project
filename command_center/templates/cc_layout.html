@@ -47,11 +47,6 @@
   <div class="cc-main">
     <header class="cc-topbar">
       <div class="cc-breadcrumb">{% block breadcrumb %}{% endblock %}</div>
-      <label class="cc-search">
-        {{ icon("search", 16) }}
-        <input type="search" placeholder="무엇을 도와드릴까요?" aria-label="검색">
-      </label>
-      <button type="button" class="cc-icon-btn" aria-label="알림" data-coming-soon>{{ icon("bell") }}</button>
     </header>
     <main class="cc-content">
       {% block content %}{% endblock %}

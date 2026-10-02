@@ -78,6 +78,55 @@ function Test-PortInUse($port) {
     return [bool](Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
 }
 
+# ── 다른 start_all 창이 이미 서버를 돌리고 있는지 (그 창의 서버는 건드리지 않는다) ──
+#    ① 실행 중인 창이 남긴 표시 파일(logs\start_all.pid)의 프로세스가 살아 있거나
+#    ② start_all.bat 처럼 'powershell -File …start_all.ps1' 로 떠 있는 창이 있으면 "다른 창이 실행 중"으로 본다.
+$LockFile = Join-Path $LogDir "start_all.pid"
+function Get-OtherStartAll {
+    $found = @()
+    if (Test-Path $LockFile) {
+        $lockPid = 0
+        if ([int]::TryParse((Get-Content $LockFile -Raw -ErrorAction SilentlyContinue).Trim(), [ref]$lockPid) -and $lockPid -ne $PID) {
+            $p = Get-Process -Id $lockPid -ErrorAction SilentlyContinue
+            if ($p -and $p.ProcessName -match '^(powershell|pwsh)$') { $found += $lockPid }
+        }
+    }
+    $found += Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -match '-File\s+"?[^"]*start_all\.ps1' -and $_.CommandLine -notmatch '-DryRun' } |
+        ForEach-Object { $_.ProcessId }
+    return @($found | Select-Object -Unique)
+}
+
+# ── 이 프로젝트에서 띄웠다가 남은 서버 (창이 비정상 종료됐거나, 디버그 재시작 프로세스가 남은 경우) ──
+#    우리 포트를 잡고 있는 프로세스 중, 그 서버의 'python -m <모듈>' 또는 그 서버 폴더의 node 인 것만 고른다.
+#    디버그 모드는 부모·자식 2개로 뜨므로 같은 서버의 맨 위 프로세스까지 올라가서 반환한다(taskkill /T 로 통째로 끈다).
+function Test-OurServer($proc, $s) {
+    if (-not $proc) { return $false }
+    $cmd = [string]$proc.CommandLine
+    if ($s.Python) { return $proc.Name -match '^pythonw?\.exe$' -and $cmd -match ("\s-m\s+" + [regex]::Escape($s.Python) + "(\s|$)") }
+    if ($s.Npm) { return $proc.Name -match '^(node|cmd)\.exe$' -and $cmd.IndexOf($s.Dir, [StringComparison]::OrdinalIgnoreCase) -ge 0 }
+    return $false
+}
+function Get-LeftoverServers($servers) {
+    $all = @{}
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object { $all[[int]$_.ProcessId] = $_ }
+    $found = @()
+    foreach ($s in $servers) {
+        $owners = Get-NetTCPConnection -State Listen -LocalPort $s.Port -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.OwningProcess }
+        foreach ($o in ($owners | Select-Object -Unique)) {
+            $cur = $all[$o]
+            if (-not (Test-OurServer $cur $s)) { continue }
+            while ($true) {
+                $parent = $all[[int]$cur.ParentProcessId]
+                if (-not (Test-OurServer $parent $s)) { break }
+                $cur = $parent
+            }
+            $found += [pscustomobject]@{ Name = $s.Name; ProcessId = [int]$cur.ProcessId }
+        }
+    }
+    return @($found | Sort-Object ProcessId -Unique)
+}
+
 # ── 안전장치: 이 창(스크립트)이 어떤 식으로 끝나든 여기서 띄운 모든 프로세스를 같이 끈다 ──
 #    Windows "작업 개체(Job Object)" 에 KILL_ON_JOB_CLOSE 를 걸고 이 스크립트를 넣는다.
 #    이후 띄우는 서버(와 그 자식 프로세스)는 자동으로 같은 작업에 들어간다.
@@ -147,11 +196,30 @@ New-Item -ItemType Directory -Force $LogDir | Out-Null
 $env:PYTHONUNBUFFERED = "1"      # 로그가 바로바로 파일에 쓰이게
 $env:PYTHONIOENCODING = "utf-8"  # 한글 로그 깨짐 방지
 
+# ── 시작 전 정리 ──
+$other = @(Get-OtherStartAll)
+if ($other.Count -gt 0) {
+    Write-Host "다른 start_all 창이 이미 서버를 실행 중이에요. 그 창을 그대로 쓰거나, 그 창을 닫은 뒤 다시 실행해 주세요." -ForegroundColor Yellow
+    exit 1   # start_all.bat 이 창을 바로 닫지 않고 멈춰서 메시지를 보여 준다
+}
+if ($servers | Where-Object { Test-PortInUse $_.Port }) {
+    $leftover = @(Get-LeftoverServers $servers)
+    if ($leftover.Count -gt 0) {
+        $names = ($leftover | ForEach-Object { $_.Name } | Select-Object -Unique) -join ", "
+        Write-Host "이전에 실행하고 남은 서버를 정리합니다: $names" -ForegroundColor DarkGray
+        foreach ($p in $leftover) { & taskkill.exe /PID $p.ProcessId /T /F 2>$null | Out-Null }
+        $free = (Get-Date).AddSeconds(10)
+        while ((Get-Date) -lt $free -and ($servers | Where-Object { Test-PortInUse $_.Port })) { Start-Sleep -Milliseconds 300 }
+    }
+}
+
+Set-Content -Path $LockFile -Value $PID -Encoding ASCII
+
 $running = @()
 foreach ($s in $servers) {
     $label = "$($s.Name) (localhost:$($s.Port))"
     if (-not (Test-Path $s.Dir)) { Write-Host "[건너뜀] $label - 폴더 없음: $($s.Dir)" -ForegroundColor Yellow; continue }
-    if (Test-PortInUse $s.Port) { Write-Host "[건너뜀] $label - 이미 다른 곳에서 실행 중 (이 창으로는 끌 수 없어요)" -ForegroundColor Yellow; continue }
+    if (Test-PortInUse $s.Port) { Write-Host "[건너뜀] $label - 다른 프로그램이 이 포트를 쓰고 있어요 (이 창으로는 끌 수 없어요)" -ForegroundColor Yellow; continue }
 
     $out = Join-Path $LogDir "$($s.Id).log"
     $err = Join-Path $LogDir "$($s.Id).err.log"
@@ -170,6 +238,7 @@ foreach ($s in $servers) {
 }
 
 if (-not $running) {
+    Remove-Item $LockFile -ErrorAction SilentlyContinue
     Write-Host "`n새로 띄운 서버가 없어요." -ForegroundColor Yellow
     exit 1   # start_all.bat 이 창을 바로 닫지 않고 멈춰서 메시지를 보여 준다
 }
@@ -207,6 +276,7 @@ try {
         Start-Sleep -Seconds 2
     }
 } finally {
+    Remove-Item $LockFile -ErrorAction SilentlyContinue
     Write-Host "`n서버를 끄는 중..." -ForegroundColor DarkGray
     foreach ($r in $running) {
         if (-not $r.Process.HasExited) { & taskkill.exe /PID $r.Process.Id /T /F 2>$null | Out-Null }
