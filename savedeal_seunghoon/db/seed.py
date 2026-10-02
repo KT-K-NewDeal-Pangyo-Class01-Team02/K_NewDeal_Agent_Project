@@ -191,6 +191,9 @@ def _deadline(now: datetime, spec: tuple[str, int]) -> datetime:
 
 
 def seed_demo_data(db_path, data_dir=None, now: datetime | None = None) -> None:
+    from db.demo_migrations import set_version
+
+    set_version(db_path)  # 새로 만드는 mock 데이터는 항상 최신 버전이다
     data_dir = data_dir or Config.DATA_DIR
     now = (now or datetime.now()).replace(microsecond=0)
     reservation_repo = ReservationRepository(db_path)

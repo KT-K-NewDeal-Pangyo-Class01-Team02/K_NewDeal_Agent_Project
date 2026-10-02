@@ -81,7 +81,9 @@ copy .env.example .env      (n8n·OpenAI 설정은 docs/n8n_openai_setup.md)
 python -m app
 ```
 
-`http://localhost:5001/savedeal`. 처음 실행하면 `data/savedeal.db`가 mock 데이터로 만들어진다. 날이 지나 "오늘 마감"이 맞지 않으면 "데모 데이터 초기화" 버튼이나 `python -m db.seed`로 다시 채운다.
+`http://localhost:5001/savedeal`. 처음 실행하면 `data/savedeal.db`가 mock 데이터로 만들어진다.
+
+DB는 git에 올라가지 않으므로, **mock 데이터를 바꿀 때는** `db/demo_migrations.py`의 `DEMO_DATA_VERSION`을 올리고 `MIGRATIONS`에 단계를 추가한다. 이미 만들어진 DB는 앱이 켜질 때 바뀐 부분만 자동으로 고쳐진다 (예전 값을 그대로 가진 mock 예약만, 업로드·직접 등록한 데이터는 건드리지 않음). 날이 지나 "오늘 마감"이 맞지 않으면 "데모 데이터 초기화" 버튼이나 `python -m db.seed`로 다시 채운다.
 
 ## 테스트 방법
 

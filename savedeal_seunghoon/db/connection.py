@@ -63,6 +63,11 @@ def ensure_database(db_path) -> None:
         seed_reference_data(db_path)
     if count == 0:
         seed_demo_data(db_path)
+    else:
+        # 이미 만들어진 DB: 코드에서 바뀐 mock 데이터가 있으면 해당 부분만 고친다 (db/demo_migrations.py)
+        from db.demo_migrations import upgrade
+
+        upgrade(db_path)
 
 
 def reset_database(db_path) -> None:
