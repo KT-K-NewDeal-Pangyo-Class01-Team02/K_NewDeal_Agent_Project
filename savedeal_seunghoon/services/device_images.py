@@ -15,8 +15,6 @@ COLOR_IMAGES = {
     ("iPhone 18 Pro", "Light Blue"): "iphone-18-pro-light-blue.png",
     ("iPhone 18 Pro", "Burgundy"): "iphone-18-pro-burgundy.png",
     ("iPhone 16", "Blue"): "iphone-16-blue.png",
-    ("iPhone 16 Pro", "Desert Titanium"): "iphone-16-pro-desert-titanium.png",
-    ("Galaxy S25 Ultra", "Titanium Gray"): "galaxy-s25-ultra-titanium-gray.png",
 }
 
 # 모델 → 대표 파일 (색상별 사진이 없을 때)
@@ -25,8 +23,6 @@ MODEL_IMAGES = {
     "iPhone 18 Pro": "iphone-18-pro-silver.png",
     "GalaxyZ Fold6": "galaxy-z-fold6.png",
     "iPhone 16": "iphone-16-blue.png",
-    "iPhone 16 Pro": "iphone-16-pro-desert-titanium.png",
-    "Galaxy S25 Ultra": "galaxy-s25-ultra-titanium-gray.png",
 }
 
 

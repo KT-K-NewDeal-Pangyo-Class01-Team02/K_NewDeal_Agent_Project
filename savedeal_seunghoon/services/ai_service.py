@@ -29,7 +29,6 @@ COLOR_ALIASES = {
     "라이트블루": "Light Blue", "하늘색": "Light Blue",
     "라벤더": "Lavender", "보라": "Lavender", "lavender": "Lavender",
     "버건디": "Burgundy", "와인": "Burgundy", "burgundy": "Burgundy",
-    "그레이": "Titanium Gray", "회색": "Titanium Gray",
 }
 WEEKDAYS = {"월요일": 0, "화요일": 1, "수요일": 2, "목요일": 3, "금요일": 4, "토요일": 5, "일요일": 6}
 CONTACT_WORDS = {"전화": "전화", "통화": "전화", "문자": "문자", "알림톡": "알림톡", "카톡": "알림톡", "카카오": "알림톡"}
@@ -105,8 +104,8 @@ class AIService:
                 "너는 통신 매장 예약 메모를 구조화하는 도우미다. 메모에 있는 사실만 뽑고 추측하지 마라. "
                 "JSON 객체로만 답한다: {\"flexible_colors\": [영문 색상명], \"document_eta\": \"YYYY-MM-DD\" 또는 null, "
                 "\"contact_preference\": \"전화\"|\"문자\"|\"알림톡\"|null, \"summary\": \"한 문장 요약\"}. "
-                f"오늘은 {today.isoformat()} 이다. 색상명은 Black, Silver, White, Blue, Light Blue, Lavender, Burgundy, "
-                "Titanium Gray 중에서 고른다."
+                f"오늘은 {today.isoformat()} 이다. 색상명은 Black, Silver, White, Blue, Light Blue, Lavender, Burgundy "
+                "중에서 고른다."
             )
             text, latency = self.client.chat(system, f"메모: {memo}", json_mode=True)
             return self._normalize_insight(json.loads(text)), latency
@@ -130,9 +129,18 @@ class AIService:
 
     def _rule_memo(self, memo: str, today: date) -> dict:
         lowered = memo.lower()
-        found = sorted((lowered.find(word), color) for word, color in COLOR_ALIASES.items() if word in lowered)
+        found, taken = [], []
+        # 긴 말부터 찾고(라이트블루), 이미 찾은 자리 안의 짧은 말(블루)은 건너뛴다
+        for word, color in sorted(COLOR_ALIASES.items(), key=lambda item: -len(item[0])):
+            start = lowered.find(word)
+            while start != -1:
+                end = start + len(word)
+                if not any(s <= start and end <= e for s, e in taken):
+                    taken.append((start, end))
+                    found.append((start, color))
+                start = lowered.find(word, end)
         colors = []
-        for _, color in found:  # 메모에 나온 순서대로
+        for _, color in sorted(found):  # 메모에 나온 순서대로
             if color not in colors:
                 colors.append(color)
         eta = None

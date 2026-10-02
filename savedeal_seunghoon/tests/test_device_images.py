@@ -32,3 +32,10 @@ def test_list_api_includes_device_image(client):
     assert fold8["device_image"]["url"].startswith("/static/img/devices/galaxy-z-fold8-")
     assert fold8["device_option"]
     assert client.get(fold8["device_image"]["url"]).status_code == 200
+
+
+def test_every_demo_reservation_has_a_photo(client):
+    """mock 예약에는 사진이 있는 기종만 쓴다 (사진이 없거나 품질이 나쁜 기종은 데이터에서 뺐다)."""
+    items = client.get("/api/reservations").get_json()["data"]["items"]
+    missing = [item["device_label"] for item in items if not item["device_image"]]
+    assert missing == []

@@ -56,5 +56,4 @@ def init_layout(app) -> None:
             "agents": load_agents(),
             "active_agent_id": AGENT_ID,
             "command_center_url": app.config["COMMAND_CENTER_URL"],
-            "user_name": os.getenv("CC_USER_NAME", "김지현 매니저"),
         }

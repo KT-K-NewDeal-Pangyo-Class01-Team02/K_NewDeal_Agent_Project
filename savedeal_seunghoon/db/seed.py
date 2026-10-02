@@ -32,11 +32,10 @@ from services.codes import (
 
 FOLD_BLACK = {"model": "GalaxyZ Fold6", "color": "Black", "storage": "256GB"}
 IPHONE_BLUE = {"model": "iPhone 16", "color": "Blue", "storage": "128GB"}
-IPHONE_PRO = {"model": "iPhone 16 Pro", "color": "Desert Titanium", "storage": "256GB"}
-S25_ULTRA = {"model": "Galaxy S25 Ultra", "color": "Titanium Gray", "storage": "256GB"}
 # 예약판매 신모델 (색상명은 임시 이름)
 FOLD8_SILVER = {"model": "Galaxy Z Fold8", "color": "Silver", "storage": "512GB"}
 FOLD8_LAVENDER = {"model": "Galaxy Z Fold8", "color": "Lavender", "storage": "256GB"}
+FOLD8_BLACK = {"model": "Galaxy Z Fold8", "color": "Black", "storage": "256GB"}
 IPHONE18_SILVER = {"model": "iPhone 18 Pro", "color": "Silver", "storage": "256GB"}
 IPHONE18_BURGUNDY = {"model": "iPhone 18 Pro", "color": "Burgundy", "storage": "256GB"}
 IPHONE18_LIGHT_BLUE = {"model": "iPhone 18 Pro", "color": "Light Blue", "storage": "512GB"}
@@ -77,7 +76,7 @@ def _cases(now: datetime) -> list[dict]:
             ],
         },
         {
-            "id": "R2005", "name": "정하늘", "store": "S001", "device": S25_ULTRA, "line": "MNP", "carrier": "SKT",
+            "id": "R2005", "name": "정하늘", "store": "S001", "device": IPHONE18_BURGUNDY, "line": "MNP", "carrier": "SKT",
             "deadline": ("hours", 3), "waited": 26,
             "issues": [(ISSUE_ACTIVATION_REJECTED, {"reason": "가입자 생년월일 불일치", "field_label": "생년월일"})],
         },
@@ -126,7 +125,7 @@ def _cases(now: datetime) -> list[dict]:
             ],
         },
         {
-            "id": "R2012", "name": "신동현", "store": "S002", "device": S25_ULTRA, "line": "CHANGE",
+            "id": "R2012", "name": "신동현", "store": "S002", "device": FOLD8_BLACK, "line": "CHANGE",
             "deadline": ("days", 6), "waited": 3,
             "issues": [(ISSUE_ACTIVATION_REJECTED, {"reason": "요금제 코드 오류", "field_label": "요금제 코드"})],
         },
@@ -138,10 +137,10 @@ def _cases(now: datetime) -> list[dict]:
                 (ISSUE_IDENTITY_FAILED, {"method": "휴대폰 본인인증", "reason": "인증번호 시간 초과"}),
             ],
         },
-        {"id": "R2014", "name": "권나연", "store": "S001", "device": IPHONE_PRO, "line": "CHANGE", "completed": 3, "issues": []},
+        {"id": "R2014", "name": "권나연", "store": "S001", "device": FOLD_BLACK, "line": "CHANGE", "completed": 3, "issues": []},
         {"id": "R2015", "name": "황민재", "store": "S002", "device": IPHONE_BLUE, "line": "NEW", "completed": 26, "issues": []},
         {"id": "R2016", "name": "송지우", "store": "S002", "device": IPHONE18_LIGHT_BLUE, "line": "MNP", "carrier": "SKT", "completed": 50, "issues": []},
-        {"id": "R2017", "name": "조은비", "store": "S001", "device": S25_ULTRA, "line": "CHANGE", "cancelled": 20, "issues": []},
+        {"id": "R2017", "name": "조은비", "store": "S001", "device": IPHONE18_SILVER, "line": "CHANGE", "cancelled": 20, "issues": []},
     ]
 
 

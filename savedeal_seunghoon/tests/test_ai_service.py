@@ -91,3 +91,9 @@ def test_notice_and_briefing_rule_mode(db_path, client):
 
 def test_mask_text():
     assert mask_text("연락처 010-9876-5432 입니다") == "연락처 010-****-**** 입니다"
+
+
+def test_rule_mode_does_not_double_count_overlapping_color_words(db_path):
+    service = AIService(db_path, {"OPENAI_API_KEY": ""})
+    insight = service.interpret_memo("라이트블루로 바꿔도 된대요", "R1", TODAY)
+    assert insight["flexible_colors"] == ["Light Blue"]
