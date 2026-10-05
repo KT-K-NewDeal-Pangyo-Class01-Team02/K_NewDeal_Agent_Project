@@ -63,6 +63,28 @@
 .s-list li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #eef0f3; font-size: 14px; }
 .s-list li:first-child { border-top: 0; }
 .s-list span { color: var(--cc-muted); }
+.s-list li { align-items: center; gap: 10px; }
+.s-gift { flex: 1; font-style: normal; }
+.s-gift.is-wait { color: var(--cc-muted); font-weight: 400; }
+.s-list li.s-empty { color: var(--cc-muted); }
+
+/* ---------- 사은품 증정 목록 ---------- */
+.s-coupons { margin-top: 14px; max-height: 330px; overflow-y: auto; }
+.s-coupons li { min-height: 46px; }
+.s-coupons li[hidden] { display: none; }  /* 찾기에서 걸러진 줄 (.s-list li 의 display:flex 가 hidden 을 덮지 않게) */
+.s-coupons code { font-size: 15px; font-weight: 700; letter-spacing: .08em; }
+.s-coupons form { margin: 0; }
+.s-coupons .s-give { height: 34px; padding: 0 16px; }
+.s-coupons li.is-ready { background: #fffbe6; margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 8px; }
+.s-coupons li.is-done code, .s-coupons li.is-done .s-gift { color: var(--cc-muted); font-weight: 400; }
+#coupon-empty, #coupon-nomatch { margin-top: 14px; }
+.s-test { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 12px 14px; border: 1px dashed #e6c229; border-radius: 10px; background: #fffbe6; font-size: 14px; }
+.s-test strong { display: block; }
+.s-test small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--cc-text-sub); line-height: 1.5; }
+.s-test .cc-btn { flex-shrink: 0; white-space: nowrap; }
+.s-test-result { margin: 6px 0 0; font-weight: 700; }
+.s-test-result:empty { display: none; }
+.s-test-result.is-error { color: #a11d28; }
 .s-empty { margin: 0; font-size: 14px; color: var(--cc-muted); }
 
 .s-bars { margin: 8px 0 14px; padding: 0; list-style: none; }
@@ -82,6 +104,7 @@
 .s-qrs { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
 .s-qr { margin: 0; padding: 14px; border: 1px solid var(--cc-border); border-radius: 12px; text-align: center; }
 .s-qr img { display: block; margin: 0 auto 10px; }
+.s-qr.is-test { border-style: dashed; border-color: #e6c229; background: #fffbe6; }  /* 테스트용 QR: 행사장에 붙이는 것과 구분 */
 .s-qr strong { display: block; font-size: 14px; }
 .s-qr small { display: block; margin-top: 4px; font-size: 12px; color: var(--cc-muted); line-height: 1.4; }
 

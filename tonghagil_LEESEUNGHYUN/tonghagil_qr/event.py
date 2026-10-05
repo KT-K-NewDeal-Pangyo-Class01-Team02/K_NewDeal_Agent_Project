@@ -79,7 +79,9 @@ class Event:
             "venue": d["venue"],
             "notices": d.get("notices", []),
             "booth": {k: d["booth"][k] for k in ("name", "location", "hours", "services")} | {"zone": zones.get(d["booth"]["zone"], "")},
-            "benefit": d["benefit"],
+            # 사은품은 이름만 보낸다. event.json 의 수량은 처음 준비한 값이라, 남은 수량처럼 답하면 틀린다
+            "benefit": {k: v for k, v in d["benefit"].items() if k != "gifts"}
+                       | {"gifts": [g["name"] for g in d["benefit"].get("gifts", [])]},
             "zones": [{"name": z["name"], "desc": z.get("desc", "")} for z in d["zones"]],
             "stamps": [{"name": s["name"], "zone": zones.get(s["zone"], ""), "hint": s["hint"]} for s in d["stamps"]],
         }

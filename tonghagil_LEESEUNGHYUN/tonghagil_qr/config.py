@@ -31,6 +31,18 @@ EVENT_FILE = _path("QR_EVENT_FILE", DATA_DIR / "event.json")
 # 방문객·스탬프·쿠폰 기록 (SQLite). git 에 올라가지 않는다.
 DB_FILE = _path("QR_DB_FILE", DATA_DIR / "qr.db")
 
+# 방문객 기록(접속·스탬프·쿠폰)을 보관하는 시간. 마지막 활동 뒤 이 시간이 지나면 자동으로 지운다.
+# 비워 두면 24시간, 0 이면 지우지 않는다.
+RETENTION_HOURS = float(_get("QR_RETENTION_HOURS").strip() or "24")
+
+# 사은품 뽑기를 처리할 n8n Webhook 운영 주소(구글 시트를 읽어 뽑고 수량을 1 줄이는 워크플로).
+# 비워 두면 시트 없이 event.json 의 benefit.gifts 수량으로 뽑는다. 비밀 값을 안 적으면 채팅용 값을 같이 쓴다.
+GIFT_WEBHOOK_URL = _get("QR_GIFT_WEBHOOK_URL").strip()
+GIFT_WEBHOOK_SECRET = _get("QR_GIFT_WEBHOOK_SECRET").strip() or _get("QR_CHAT_WEBHOOK_SECRET").strip()
+
+# 테스트용 QR(스탬프를 한 번에 모두 찍기)을 담당자 화면에 보여 줄지. 실제 행사에서는 0 으로 끈다.
+TEST_QR = _get("QR_TEST_QR").strip() not in ("0", "false", "off", "no")
+
 # QR 코드에 넣을 공개 주소. 비워 두면 지금 접속한 주소를 쓴다.
 # ngrok 을 연결하면 https://<내 도메인>.ngrok-free.app 처럼 넣는다 (휴대폰은 localhost 를 못 연다).
 PUBLIC_BASE_URL = _get("QR_PUBLIC_BASE_URL").strip().rstrip("/")

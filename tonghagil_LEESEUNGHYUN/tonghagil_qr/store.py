@@ -7,7 +7,7 @@ import secrets
 import sqlite3
 import threading
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # 쿠폰 코드: 헷갈리는 글자(0/O, 1/I/L)를 뺀 6자리
@@ -29,7 +29,10 @@ CREATE TABLE IF NOT EXISTS coupons (
     visitor_id TEXT PRIMARY KEY,
     code TEXT NOT NULL UNIQUE,
     issued_at TEXT NOT NULL,
-    redeemed_at TEXT
+    redeemed_at TEXT,
+    gift_id TEXT,
+    gift_name TEXT,
+    drawn_at TEXT
 );
 CREATE TABLE IF NOT EXISTS views (
     visitor_id TEXT NOT NULL,
@@ -48,8 +51,13 @@ class QrStore:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        with self._connect() as db:
+        with self._connect() as db, db:
             db.executescript(_SCHEMA)
+            # 예전에 만든 DB 에는 사은품 뽑기 열이 없다. 있는 기록은 그대로 두고 열만 더한다.
+            have = {row["name"] for row in db.execute("PRAGMA table_info(coupons)")}
+            for column in ("gift_id", "gift_name", "drawn_at"):
+                if column not in have:
+                    db.execute(f"ALTER TABLE coupons ADD COLUMN {column} TEXT")
 
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=10)
@@ -102,7 +110,8 @@ class QrStore:
         return dict(rows[0]) if rows else None
 
     def redeem(self, code):
-        """쿠폰 사용 처리. → ('ok' | 'already' | 'not_found', 쿠폰 또는 None)"""
+        """사은품 증정 처리. 방문객이 뽑기를 마친 쿠폰만 증정할 수 있다(무엇을 줄지 정해져야 하므로).
+        → ('ok' | 'already' | 'not_drawn' | 'not_found', 쿠폰 또는 None)"""
         code = normalize_code(code)
         with self._lock, self._connect() as db, db:
             row = db.execute("SELECT * FROM coupons WHERE code = ?", (code,)).fetchone()
@@ -110,8 +119,28 @@ class QrStore:
                 return "not_found", None
             if row["redeemed_at"]:
                 return "already", dict(row)
+            if not row["gift_name"]:
+                return "not_drawn", dict(row)
             db.execute("UPDATE coupons SET redeemed_at = ? WHERE code = ?", (_now(), code))
             return "ok", dict(db.execute("SELECT * FROM coupons WHERE code = ?", (code,)).fetchone())
+
+    def set_gift(self, visitor_id, gift_id, gift_name):
+        """뽑기 결과를 쿠폰에 남긴다. 아직 뽑지 않은 쿠폰에만 기록된다(한 사람 한 번). → 기록했으면 True"""
+        return self._write(
+            "UPDATE coupons SET gift_id = ?, gift_name = ?, drawn_at = ? WHERE visitor_id = ? AND gift_name IS NULL",
+            (str(gift_id), gift_name, _now(), visitor_id)) == 1
+
+    def coupon_list(self, limit=200):
+        """담당자 화면의 쿠폰 목록. 증정을 기다리는 것(뽑기 완료) → 아직 안 뽑은 것 → 증정 끝난 것 순서."""
+        return [dict(r) for r in self._rows(
+            "SELECT code, issued_at, drawn_at, redeemed_at, gift_name FROM coupons ORDER BY "
+            "CASE WHEN redeemed_at IS NOT NULL THEN 2 WHEN gift_name IS NULL THEN 1 ELSE 0 END, "
+            "CASE WHEN redeemed_at IS NOT NULL THEN redeemed_at END DESC, COALESCE(drawn_at, issued_at) LIMIT ?", (limit,))]
+
+    def gift_counts(self):
+        """{사은품 이름: 지금까지 뽑힌 수}"""
+        return {r["gift_name"]: r["n"] for r in self._rows(
+            "SELECT gift_name, COUNT(*) AS n FROM coupons WHERE gift_name IS NOT NULL GROUP BY gift_name")}
 
     # ── 담당자 화면 ──
     def stats(self, stamp_ids):
@@ -148,15 +177,34 @@ class QrStore:
             return []
         marks = ",".join("?" * len(stamp_ids))
         rows = self._rows(
-            f"SELECT visitor_id, COUNT(*) AS n, MAX(created_at) AS last_at, GROUP_CONCAT(stamp_id) AS ids FROM stamps "
+            f"SELECT visitor_id, COUNT(*) AS n, MIN(created_at) AS first_at, MAX(created_at) AS last_at, "
+            f"GROUP_CONCAT(stamp_id) AS ids FROM stamps "
             f"WHERE stamp_id IN ({marks}) GROUP BY visitor_id HAVING n < ? ORDER BY n DESC, last_at DESC LIMIT ?",
             (*stamp_ids, required, limit))
-        return [{"visitor_id": r["visitor_id"], "stamp_ids": set(r["ids"].split(",")), "last_at": r["last_at"]} for r in rows]
+        return [{"visitor_id": r["visitor_id"], "stamp_ids": set(r["ids"].split(",")),
+                 "first_at": r["first_at"], "last_at": r["last_at"]} for r in rows]
 
-    def recent_redemptions(self, limit=8):
+    def waiting_coupons(self, limit=10):
+        """쿠폰은 발급됐지만 아직 부스에서 받아 가지 않은 방문객. 먼저 완료한 순서. → [{visitor_id, issued_at}]"""
         return [dict(r) for r in self._rows(
-            "SELECT code, issued_at, redeemed_at FROM coupons WHERE redeemed_at IS NOT NULL ORDER BY redeemed_at DESC LIMIT ?",
-            (limit,))]
+            "SELECT visitor_id, issued_at FROM coupons WHERE redeemed_at IS NULL ORDER BY issued_at LIMIT ?", (limit,))]
+
+    def purge_inactive(self, hours):
+        """마지막 활동(접속·화면 조회·스탬프·쿠폰)이 hours 시간보다 오래된 방문객의 기록을 모두 지운다. → 지운 방문객 수
+
+        처음 접속한 시각이 아니라 마지막 활동 기준이다. 스탬프를 모으는 중인 사람의 기록이 중간에 사라지지 않게 하려는 것이다.
+        """
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat(timespec="seconds")
+        with self._lock, self._connect() as db, db:
+            ids = [(r[0],) for r in db.execute(
+                "SELECT v.id FROM visitors v WHERE v.created_at < ? "
+                "AND NOT EXISTS (SELECT 1 FROM views w WHERE w.visitor_id = v.id AND w.created_at >= ?) "
+                "AND NOT EXISTS (SELECT 1 FROM stamps s WHERE s.visitor_id = v.id AND s.created_at >= ?) "
+                "AND NOT EXISTS (SELECT 1 FROM coupons c WHERE c.visitor_id = v.id AND (c.issued_at >= ? OR c.redeemed_at >= ?))",
+                (cutoff,) * 5)]
+            for table, column in (("views", "visitor_id"), ("stamps", "visitor_id"), ("coupons", "visitor_id"), ("visitors", "id")):
+                db.executemany(f"DELETE FROM {table} WHERE {column} = ?", ids)
+            return len(ids)
 
     def reset(self):
         """시연 리허설용: 모든 방문객·스탬프·쿠폰·조회 기록을 지운다."""

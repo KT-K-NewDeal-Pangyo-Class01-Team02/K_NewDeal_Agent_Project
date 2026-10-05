@@ -10,7 +10,7 @@
   <div class="q-banner is-good" role="status">
     {{ qicon("stamp", 22) }}
     <p><strong>'{{ got.name }}' 스탬프를 찍었어요!</strong>
-      {% if count >= required %}{{ required }}개를 모두 모았어요. 아래 쿠폰을 KT 부스에 보여 주세요.{% else %}{{ required - count }}개 남았어요.{% endif %}</p>
+      {% if count >= required %}{{ required }}개를 모두 모았어요. 아래에서 사은품을 뽑아 보세요.{% else %}{{ required - count }}개 남았어요.{% endif %}</p>
   </div>
 {% elif got and again %}
   <div class="q-banner" role="status">{{ qicon("check", 22) }}<p>'{{ got.name }}' 스탬프는 이미 찍었어요.</p></div>
@@ -45,16 +45,24 @@
 </section>
 
 {% if coupon %}
-{#- data-coupon-pending: 지급 전이면 qr.js 가 5초마다 확인해서, 부스에서 지급하면 '지급 완료'로 바꾼다 -#}
-<section class="q-coupon {% if coupon.redeemed_at %}is-used{% endif %}" {% if not coupon.redeemed_at %}data-coupon-pending{% endif %}>
-  <p class="q-coupon-label">{{ qicon("gift", 18) }}KT 부스 혜택 쿠폰</p>
-  <h2>{{ ev.benefit.title }}</h2>
-  <p class="q-coupon-code" aria-label="쿠폰 코드">{{ coupon.code }}</p>
-  {% if coupon.redeemed_at %}
-    <p class="q-coupon-state">{{ qicon("check", 16) }}지급 완료 · {{ coupon.redeemed_at[11:16] }}</p>
-  {% else %}
-    <p class="q-coupon-state">KT 부스 직원에게 이 화면을 보여 주세요.</p>
+{#- 사은품 뽑기. 쿠폰이 나오면 바로 뽑을 수 있다 → 부스에서 코드를 보여 주고 받는다 → 담당자가 '증정'을 누르면 수령 완료.
+    결과는 서버가 정하고(api/draw), 화면은 그 결과를 연출해 보여 준다 (qr.js).
+    data-coupon-pending: 뽑았지만 아직 받지 않은 상태. qr.js 가 5초마다 확인해서 증정되면 '수령 완료'로 바꾼다. -#}
+<section class="q-draw {% if coupon.gift_name %}is-done{% endif %} {% if coupon.redeemed_at %}is-used{% endif %}" id="draw"
+         data-api="{{ url_for('tonghagil_qr.draw_api') }}" data-items='{{ gift_names|tojson }}'
+         {% if coupon.gift_name and not coupon.redeemed_at %}data-coupon-pending{% endif %}>
+  <p class="q-coupon-label">{{ qicon("gift", 18) }}{{ ev.benefit.title }}</p>
+  <div class="q-draw-reel" id="draw-reel" aria-live="polite">{% if coupon.gift_name %}{{ coupon.gift_name }}{% else %}?{% endif %}</div>
+  <p class="q-draw-msg" id="draw-msg">
+    {%- if coupon.redeemed_at %}{{ qicon("check", 16) }}수령 완료 · {{ coupon.redeemed_at[11:16] }}
+    {%- elif coupon.gift_name %}축하해요! KT 부스 직원에게 이 화면을 보여 주고 사은품을 받으세요.
+    {%- else %}스탬프를 모두 모았어요. 버튼을 누르면 사은품이 정해져요.{% endif -%}
+  </p>
+  {% if not coupon.gift_name %}
+  <button type="button" class="q-btn q-draw-btn" id="draw-btn">{{ qicon("gift", 18) }}뽑기 시작</button>
   {% endif %}
+  <p class="q-draw-code-label">쿠폰 코드</p>
+  <p class="q-coupon-code" aria-label="쿠폰 코드">{{ coupon.code }}</p>
   <p class="q-coupon-where">{{ qicon("pin", 14) }}{{ ev.booth.location }}</p>
 </section>
 {% else %}

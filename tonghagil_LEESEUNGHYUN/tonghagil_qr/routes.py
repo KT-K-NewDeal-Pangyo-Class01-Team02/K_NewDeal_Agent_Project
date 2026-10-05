@@ -18,13 +18,15 @@ import hashlib
 import hmac
 import re
 import secrets
+import sys
 import threading
 import time
+from datetime import datetime
 from urllib.parse import urlsplit
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, render_template, request, url_for
 
-from . import chat_client, config, network, qr_image
+from . import chat_client, config, gift_client, network, qr_image
 from .event import Event
 from .store import QrStore, normalize_code
 
@@ -49,6 +51,23 @@ _VISITOR_ID = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 
 event = Event(config.EVENT_FILE)
 store = QrStore(config.DB_FILE)
+
+PURGE_EVERY = 600  # 초. 보관 기간이 지난 기록을 이 간격으로 확인한다
+_purge = {"next": 0.0}
+
+
+@qr_bp.before_request
+def _purge_old_records():
+    """보관 기간(QR_RETENTION_HOURS, 기본 24시간)이 지난 방문객 기록을 지운다.
+
+    따로 도는 예약 작업이 없어서, /qr/ 로 요청이 올 때 10분에 한 번만 확인한다. 서버를 켠 뒤 첫 요청에서도 확인한다.
+    """
+    if config.RETENTION_HOURS <= 0 or time.monotonic() < _purge["next"]:
+        return
+    _purge["next"] = time.monotonic() + PURGE_EVERY
+    removed = store.purge_inactive(config.RETENTION_HOURS)
+    if removed:
+        print(f"[통하길 QR] {config.RETENTION_HOURS:g}시간 넘게 활동이 없는 방문객 {removed}명의 기록을 지웠어요.", file=sys.stderr)
 
 
 # ───────────────────────────── 방문객 ─────────────────────────────
@@ -116,7 +135,8 @@ def stamps():
     got = event.stamp(request.args.get("got", ""))
     return _visitor_page("stamps.html", "stamps", got=got, again=request.args.get("again") == "1",
                          bad=request.args.get("bad") == "1",
-                         zone_names={z["id"]: z["name"] for z in event.data["zones"]})
+                         zone_names={z["id"]: z["name"] for z in event.data["zones"]},
+                         gift_names=[g["name"] for g in _gift_items()])
 
 
 @qr_bp.get("/s/<token>")
@@ -176,7 +196,53 @@ def me_api():
     return jsonify(
         stamps=sorted(done),
         required=required,
-        coupon={"code": coupon["code"], "redeemed": bool(coupon["redeemed_at"])} if coupon else None,
+        coupon={"code": coupon["code"], "redeemed": bool(coupon["redeemed_at"]), "gift": coupon["gift_name"]} if coupon else None,
+    )
+
+
+_draw_lock = threading.Lock()  # 뽑기는 한 번에 하나씩: 두 사람이 같은 남은 수량을 보고 뽑지 않게
+
+
+def _gift_items():
+    return event.data["benefit"].get("gifts", [])
+
+
+@qr_bp.post("/api/draw")
+def draw_api():
+    """사은품 뽑기. 스탬프를 다 모아 쿠폰을 받은 방문객이 바로, 한 번만 뽑을 수 있다.
+
+    흐름: 쿠폰 발급 → 방문객이 뽑기 → 담당자 화면에 코드와 사은품이 뜸 → 담당자가 건네고 '증정'.
+    결과는 서버가 정한다(남은 수량에 비례한 확률). 화면의 뽑기 연출은 이 결과를 보여 주는 것뿐이다.
+    이미 뽑았으면 같은 결과를 다시 돌려준다 → 새로고침하거나 여러 번 눌러도 사은품이 바뀌거나 수량이 더 줄지 않는다.
+    """
+    vid = _visitor_id()
+    coupon = _progress(vid)[2]
+    if not coupon:
+        return jsonify(error=f"스탬프 {event.required_stamps}개를 모두 모으면 뽑을 수 있어요."), 403
+    with _draw_lock:
+        coupon = store.coupon_of(vid)
+        if coupon["gift_name"]:
+            return jsonify(gift=coupon["gift_name"], again=True)
+        try:
+            gift = _draw_gift(_alias(vid), coupon["code"])
+        except gift_client.GiftError as exc:
+            return jsonify(error=str(exc)), 502
+        store.set_gift(vid, gift.id, gift.name)
+    return jsonify(gift=gift.name, again=False)
+
+
+def _draw_gift(visitor, coupon_code):
+    """사은품 하나를 뽑는다. 주소가 있으면 n8n(구글 시트, 수량 −1), 없으면 앱 내부 목록. _draw_lock 을 잡고 부른다."""
+    secret = config.GIFT_WEBHOOK_SECRET
+    return gift_client.draw(
+        webhook_url=config.GIFT_WEBHOOK_URL,
+        timeout=config.CHAT_TIMEOUT,
+        headers={config.CHAT_SECRET_HEADER: secret} if secret else None,
+        event_id=event.data["id"],
+        visitor=visitor,
+        coupon_code=coupon_code,
+        items=_gift_items(),
+        drawn=store.gift_counts(),
     )
 
 
@@ -232,7 +298,8 @@ def staff():
         "staff.html",
         stats=stats,
         rate=lambda part, whole: f"{part / whole * 100:.0f}%" if whole else "-",
-        recent=store.recent_redemptions(),
+        coupons=_coupon_rows(),
+        test_tools=config.TEST_QR,
         result=request.args.get("result"),
         code=normalize_code(request.args.get("code")),
         targets=_qr_targets(base),
@@ -241,6 +308,8 @@ def staff():
         base_is_local=_is_local(base),
         chat_connected=bool(config.CHAT_WEBHOOK_URL),
         staff_chat_connected=bool(config.STAFF_CHAT_WEBHOOK_URL),
+        gift_connected=bool(config.GIFT_WEBHOOK_URL),
+        retention_hours=config.RETENTION_HOURS,
         max_chat=MAX_CHAT,
         kakao_connected=bool(config.KAKAO_MAP_KEY),
         pin_is_default=config.STAFF_PIN_IS_DEFAULT,
@@ -279,6 +348,42 @@ def staff_redeem():
     code = request.form.get("code", "")
     status, _ = store.redeem(code)
     return redirect(url_for(".staff", result=status, code=normalize_code(code)) + "#redeem")
+
+
+def _coupon_rows():
+    """담당자 화면 쿠폰 목록의 한 줄씩. state: ready(뽑기 완료, 증정 대기) · waiting(아직 안 뽑음) · done(증정 끝)"""
+    rows = []
+    for c in store.coupon_list():
+        state = "done" if c["redeemed_at"] else "ready" if c["gift_name"] else "waiting"
+        when = c["redeemed_at"] or c["drawn_at"] or c["issued_at"]
+        rows.append({"code": c["code"], "gift": c["gift_name"], "state": state, "time": when[11:16]})
+    return rows
+
+
+@qr_bp.get("/staff/api/coupons")
+def staff_coupons_api():
+    """쿠폰 목록. 방문객이 뽑기를 마치면 담당자 화면에 코드와 사은품이 바로 보이게 staff.js 가 주기적으로 부른다."""
+    if not _is_staff():
+        return jsonify(error="잠금이 풀렸어요."), 403
+    return jsonify(coupons=_coupon_rows())
+
+
+@qr_bp.post("/staff/api/gift-test")
+def staff_gift_test_api():
+    """사은품 뽑기 시험. 쿠폰 없이 뽑기를 한 번 실행해서 n8n·구글 시트 연결을 확인한다.
+
+    시트가 연결돼 있으면 **실제로 수량이 1 줄어든다**(그걸 확인하려는 버튼이다). 앱의 방문객·쿠폰 기록에는 남기지 않는다.
+    """
+    if not _is_staff():
+        return jsonify(error="잠금이 풀렸어요. 화면을 새로고침하고 PIN을 다시 입력해 주세요."), 403
+    if not config.TEST_QR:
+        abort(404)
+    with _draw_lock:
+        try:
+            gift = _draw_gift("담당자 테스트", "TEST")
+        except gift_client.GiftError as exc:
+            return jsonify(error=str(exc)), 502
+    return jsonify(gift=gift.name, remaining=gift.remaining, source=gift.source)
 
 
 @qr_bp.post("/staff/reset")
@@ -332,6 +437,8 @@ def _staff_stats():
     stats = store.stats(ids)
     required = event.required_stamps
     by_count = store.stamp_counts(ids)
+    closest, waiting, avg_pace, pace_basis, etas = _forecast(spots, required)
+    drawn = store.gift_counts()
     return {
         "visitors": stats["visitors"],            # QR 로 들어온 방문객 수
         "from_poster": stats["from_poster"],      # 그중 포스터 QR 로 들어온 수
@@ -345,20 +452,92 @@ def _staff_stats():
             "by_count": {str(count): n for count, n in by_count.items()},                 # {"찍은 개수": 방문객 수}
             "per_spot": [{"name": s["name"], "count": stats["per_stamp"][s["id"]]} for s in spots],
             # 곧 다 모을 사람부터 최대 10명. 방문객은 이름이 없어서 쿠키 ID 를 줄인 별칭으로 부른다 (ID 자체는 안 보낸다)
-            "closest": [{
-                "visitor": "방문객 " + hashlib.sha256(v["visitor_id"].encode()).hexdigest()[:4].upper(),
-                "count": len(v["stamp_ids"]),
-                "left": required - len(v["stamp_ids"]),
-                "remaining_spots": [s["name"] for s in spots if s["id"] not in v["stamp_ids"]],
-                "last_stamp_at": v["last_at"][11:16],
-            } for v in store.in_progress(ids, required)],
+            "closest": closest,
         },
         "coupon": {
             "issued": stats["coupons"],                         # 발급된 쿠폰 (= 사은품 받을 자격이 생긴 사람)
             "redeemed": stats["redeemed"],                      # 부스에서 사은품을 지급한 수
             "waiting": stats["coupons"] - stats["redeemed"],    # 발급됐지만 아직 안 받아 간 수
+            "waiting_list": waiting,                            # 그 사람들 (먼저 완료한 순서)
+        },
+        "gifts": {
+            "drawn": sum(drawn.values()),                                   # 뽑기로 나간 사은품 수
+            "waiting_draw": stats["coupons"] - sum(drawn.values()),         # 쿠폰은 받았지만 아직 뽑지 않은 사람
+            "waiting_pickup": sum(drawn.values()) - stats["redeemed"],      # 뽑았지만 아직 부스에서 받아 가지 않은 사람
+            "drawn_by_item": drawn,                                         # {사은품 이름: 나간 수} (앱 기록 기준)
+            "stock_source": "구글 스프레드시트" if config.GIFT_WEBHOOK_URL else "앱 내부 목록(시트 미연결)",
+        },
+        "forecast": {
+            "method": "남은 지점 수와 부스까지 이동 1구간에 방문객의 스탬프 간격(분)을 곱하고, 마지막 인증 뒤 지난 시간을 뺀 추정값",
+            "avg_pace_min": round(avg_pace, 1),                 # 스탬프 하나를 찍는 데 걸리는 평균 시간(분)
+            "pace_basis": pace_basis,                           # 평균을 무엇으로 냈는지
+            "arriving_within_10_min": sum(1 for e in etas if e <= 10),   # 쿠폰 대기자 포함
+            "arriving_within_30_min": sum(1 for e in etas if e <= 30),
+            "stalled": sum(1 for c in closest if c["status"] == "멈춤"),  # 오래 움직임이 없어 올지 알 수 없는 사람
         },
     }
+
+
+DEFAULT_PACE_MIN = 6   # 스탬프 간격을 아직 알 수 없을 때 쓰는 값(분)
+STALL_AFTER_MIN = 30   # 마지막 인증 뒤 이만큼(또는 자기 간격의 4배) 지나면 '멈춤'으로 본다
+
+
+def _alias(visitor_id):
+    return "방문객 " + hashlib.sha256(visitor_id.encode()).hexdigest()[:4].upper()
+
+
+def _minutes_between(start, end):
+    return (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() / 60
+
+
+def _forecast(spots, required, now=None):
+    """완료에 가까운 방문객과 쿠폰 대기자의 부스 예상 도착 시간(분)을 추정한다.
+
+    계산은 여기(코드)에서 하고, 에이전트는 결과를 읽어 설명만 한다. 실제 이동 경로를 아는 것이 아니라
+    '지금까지 스탬프를 찍은 간격'으로 미루어 본 값이라, 응답에 추정 방법(method)을 함께 보낸다.
+    → (closest 목록, waiting 목록, 평균 간격, 평균 근거, 예상 도착 시간 목록)
+    """
+    now = (now or datetime.now()).isoformat(timespec="seconds")
+    people = store.in_progress([s["id"] for s in spots], required)
+
+    # 방문객별 간격: 스탬프를 2개 이상 찍은 사람만 알 수 있다
+    own = {v["visitor_id"]: _minutes_between(v["first_at"], v["last_at"]) / (len(v["stamp_ids"]) - 1)
+           for v in people if len(v["stamp_ids"]) >= 2}
+    known = [p for p in own.values() if p > 0]
+    avg_pace = sum(known) / len(known) if known else DEFAULT_PACE_MIN
+    pace_basis = f"스탬프를 2개 이상 찍은 방문객 {len(known)}명의 평균" if known else f"자료가 없어 기본값 {DEFAULT_PACE_MIN}분"
+
+    closest, etas = [], []
+    for v in people:
+        count = len(v["stamp_ids"])
+        left = required - count
+        pace = own.get(v["visitor_id"]) or avg_pace
+        idle = _minutes_between(v["last_at"], now)
+        stalled = idle > max(STALL_AFTER_MIN, pace * 4)
+        eta = None if stalled else max(1, round((left + 1) * pace - idle))  # +1 = 마지막 지점에서 부스까지
+        if eta is not None:
+            etas.append(eta)
+        closest.append({
+            "visitor": _alias(v["visitor_id"]),
+            "count": count,
+            "left": left,
+            "remaining_spots": [s["name"] for s in spots if s["id"] not in v["stamp_ids"]],
+            "last_stamp_at": v["last_at"][11:16],
+            "idle_min": round(idle),                                   # 마지막 인증 뒤 지난 시간(분)
+            "pace_min": round(pace, 1),                                # 스탬프 하나당 걸린 시간(분)
+            "pace_from": "본인 기록" if v["visitor_id"] in own else "평균값",
+            "eta_min": eta,                                            # 부스 예상 도착까지 남은 시간(분). 멈춤이면 null
+            "status": "멈춤" if stalled else "진행 중",
+        })
+
+    waiting = []
+    for c in store.waiting_coupons():
+        waited = _minutes_between(c["issued_at"], now)
+        eta = max(1, round(avg_pace - waited))  # 마지막 지점에서 부스까지 1구간
+        etas.append(eta)
+        waiting.append({"visitor": _alias(c["visitor_id"]), "completed_at": c["issued_at"][11:16],
+                        "waited_min": round(waited), "eta_min": eta})
+    return closest, waiting, avg_pace, pace_basis, etas
 
 
 @qr_bp.get("/staff/qr/<kind>.svg")
@@ -381,7 +560,8 @@ def staff_print():
     if not _is_staff():
         return redirect(url_for(".staff"))
     base = _public_base()
-    return render_template("tonghagil_qr/staff_print.html", ev=event.data, targets=_qr_targets(base),
+    return render_template("tonghagil_qr/staff_print.html", ev=event.data,
+                           targets=[t for t in _qr_targets(base) if not t.get("test")],
                            public_base=base, base_is_local=_is_local(base))
 
 
@@ -416,4 +596,29 @@ def _qr_targets(base):
             "sub": spot["hint"],
             "url": base + url_for("tonghagil_qr.stamp", token=spot["token"]),
         })
+    if config.TEST_QR:
+        targets.append({
+            "kind": "all",
+            "test": True,  # 인쇄 페이지에는 넣지 않는다
+            "label": f"테스트용 · 스탬프 {len(event.data['stamps'])}개 한 번에",
+            "sub": "점검·시연용. 찍으면 모든 지점이 적립되고 쿠폰이 발급돼요. 행사장에는 붙이지 마세요.",
+            "url": base + url_for("tonghagil_qr.stamp_all", token=_all_token()),
+        })
     return targets
+
+
+def _all_token():
+    """테스트용 QR 의 인증값. 이 PC 의 비밀 값(data/.secret)에서 만들어 추측할 수 없고, 담당자 화면에서만 보인다."""
+    return hmac.new(_secret(), b"stamp-all", hashlib.sha256).hexdigest()[:16]
+
+
+@qr_bp.get("/s-all/<token>")
+def stamp_all(token):
+    """테스트용: 스탬프를 한 번에 모두 찍는다. 쿠폰 발급 → 부스 지급 흐름을 빨리 확인하려고 둔다 (QR_TEST_QR=0 이면 끔)."""
+    vid = _visitor_id()
+    if not config.TEST_QR or not hmac.compare_digest(token, _all_token()):
+        return redirect(url_for(".stamps", bad=1))
+    for spot in event.data["stamps"]:
+        store.add_stamp(vid, spot["id"])
+    _progress(vid)  # 쿠폰 발급
+    return redirect(url_for(".stamps", got=event.data["stamps"][-1]["id"]))

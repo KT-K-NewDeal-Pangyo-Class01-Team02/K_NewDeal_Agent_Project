@@ -27,10 +27,21 @@
     "geo": [37.40656, 127.09082]
   },
   "benefit": {
-    "title": "KT 기념품 + 보조배터리 무료 대여",
-    "description": "스탬프 5개를 모두 모으고 KT 홍보부스에 쿠폰 화면을 보여 주세요.",
+    "title": "KT 사은품 뽑기",
+    "description": "스탬프 5개를 모두 모으고 KT 홍보부스에 쿠폰 화면을 보여 주면 사은품 뽑기를 할 수 있어요.",
     "required_stamps": 5,
-    "notice": "1인 1회 · 준비 수량이 떨어지면 조기 종료될 수 있어요."
+    "notice": "1인 1회 · 사은품은 남은 수량에 따라 정해져요.",
+    "gifts": [
+      {"id": 1, "name": "KT 키링", "quantity": 100},
+      {"id": 2, "name": "KT 그립톡", "quantity": 100},
+      {"id": 3, "name": "KT 스티커", "quantity": 100},
+      {"id": 4, "name": "물티슈", "quantity": 200},
+      {"id": 5, "name": "티니핑 사탕", "quantity": 500},
+      {"id": 6, "name": "락앤락 텀블러", "quantity": 50},
+      {"id": 7, "name": "KT 보조배터리", "quantity": 50},
+      {"id": 8, "name": "KT 손선풍기", "quantity": 50},
+      {"id": 9, "name": "5성급 호텔 식사권(2매)", "quantity": 1}
+    ]
   },
   "zones": [
     {"id": "z3", "name": "금토 산책로", "desc": "공공주택지구 방면 산책로", "x": 20, "y": 64, "w": 150, "h": 92, "capacity": 260, "base": 0.3,

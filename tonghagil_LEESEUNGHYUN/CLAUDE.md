@@ -98,6 +98,15 @@ tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
 - **2026-10-02 관리자 에이전트 채팅을 담당자 화면에 붙였다** (`POST /qr/staff/api/chat`, `static/staff.js`, PIN 로그인 필요). 방문객용과 **다른 n8n 워크플로**이고 주소는 `QR_STAFF_CHAT_WEBHOOK_URL`(비우면 고정 답변, 비밀 값은 없으면 방문객용 것을 같이 씀)이다. 방문객용 payload에 `role: "staff"`와 `stats`(방문객 수 · `stamp.in_progress/completed/by_count/per_spot` · `coupon.issued/redeemed/waiting`)를 더 보낸다(`routes._staff_stats`). n8n은 이 PC의 DB를 못 읽어서 숫자를 같이 보내는 방식이다. `sessionId`는 `staff-<브라우저 탭이 만든 ID>`다. 사용자 계획: n8n에서 질문을 분류(Text Classifier)해 가지별로 처리하고, **사은품 재고는 구글 스프레드시트**에서 읽는다(앱에는 재고 표가 없다).
 - 2026-10-02: ngrok 뒤에서는 Flask가 `http`로 알아서 QR 주소가 `http://`로 나왔다. `_public_base()`가 `X-Forwarded-Proto`를 보게 고쳤고, 담당자 화면의 주소 표시는 `/qr/`까지 보이게 했다. `.env`에 `QR_PUBLIC_BASE_URL`과 `QR_STAFF_PIN`은 아직 없다.
 - **2026-10-02 ngrok Hobbyist 결제 후 공개 주소:** 허브 `https://command-center.ngrok.app`(5000, 예전 `fasting-transpose-earthling.ngrok-free.dev`에서 변경), SaveDeal `https://savedeal.ngrok.dev/savedeal`(5001), 빅또리 `https://vicddory.ngrok.app`(5500). `ngrok start --all`로 3개를 연다(설정 파일의 `endpoints`). 화면 안 링크는 루트의 `start_all.local.ps1`(이 PC 전용, git 제외)의 `$PublicMode`/`$PublicHub`/`$PublicUrls`가 공개 주소로 바꾼다. 주소를 바꾸면 ngrok 설정 파일, `start_all.local.ps1`, 카카오 JS 키 도메인을 같이 고치고 QR을 다시 인쇄한다.
+- **2026-10-05 추가한 것들:**
+  - **방문객 기록 자동 삭제**: 마지막 활동 뒤 `QR_RETENTION_HOURS`(기본 24, 0이면 끔)가 지나면 그 방문객의 접속·조회·스탬프·쿠폰을 지운다(`store.purge_inactive`). 예약 작업이 없어 `/qr/` 요청 때 10분에 한 번 확인한다.
+  - **부스 도착 예측**: `_forecast()`가 방문객별 스탬프 간격으로 예상 도착 시간(분)을 계산해 관리자 에이전트에 보낸다(`stats.stamp.closest[].eta_min/pace_min/status`, `stats.coupon.waiting_list`, `stats.forecast`). 추정값이고 계산은 코드가 한다.
+  - **테스트용 QR**(`/qr/s-all/<인증값>`): 스탬프를 한 번에 모두 찍는다. 담당자 화면에만 보이고 인쇄 페이지에는 없다. `QR_TEST_QR=0`이면 끈다(뽑기 테스트 버튼도 같이 꺼짐).
+  - **사은품 뽑기**(사용자 요청): 흐름은 **쿠폰 발급 → 방문객이 바로 뽑기(`POST /qr/api/draw`) → 담당자 화면 목록에 코드와 사은품 표시 → 건네고 [증정](`/qr/staff/redeem`) → 방문객 화면 '수령 완료'**. 담당자는 코드를 입력하지 않고, 입력칸은 목록을 거르는 찾기 칸이다. 확률은 남은 수량 비례이고 결과는 서버가 정한다(한 사람 한 번, 다시 눌러도 같은 결과).
+    - 재고 기준은 구글 시트 `K-festival_quantity`(열 `id`, `item`, `quantity `: **quantity 뒤에 공백이 있다. 지금 n8n 노드들이 이 이름에 맞춰져 있으니 건드리지 않는다**). `QR_GIFT_WEBHOOK_URL=…/webhook/tonghagil_gift`(밑줄) → n8n: Webhook → Get rows → Code(뽑기, 열 이름 공백·대소문자 무시) → If(soldOut) → Update row(id 매칭, quantity −1) → Respond. 응답 Body는 `{{ JSON.stringify({...}) }}`로 써야 한다(`{{ {…} }}`는 Invalid JSON 오류). 2026-10-05에 실제 연동을 확인했다.
+    - 주소가 없으면 `event.json`의 `benefit.gifts`(9종 1,151개)에서 앱 기록의 뽑힌 수를 빼고 뽑는다. `coupons`에 `gift_id/gift_name/drawn_at` 열을 더했다(기존 DB는 자동으로 열 추가).
+    - 담당자 화면 **[뽑기 테스트]**(`POST /qr/staff/api/gift-test`): 쿠폰 없이 한 번 뽑는다. 시트가 연결돼 있으면 **실제로 수량이 1 줄어든다.** 앱 기록에는 안 남긴다.
+  - 혜택 문구를 "KT 사은품 뽑기"로 바꿨다. 채팅 에이전트에는 사은품 이름만 보내고 수량은 보내지 않는다.
 - 실제 n8n 주소가 `.env`에 있으므로 **테스트 스크립트는 웹훅 주소를 비우고 돌린다**(2026-10-01에 스모크 테스트가 실제 n8n을 한 번 호출한 일이 있었다).
 - `data/.gitignore`(이 폴더 안)가 `qr.db`와 `.secret`을 막는다. 루트 `.gitignore`는 공용 파일이라 건드리지 않았다.
 - 검증(2026-09-30): 임시 DB로 방문객·스탬프·쿠폰·챗봇(가짜 n8n 응답 포함)·담당자 PIN·지급·초기화 57개 항목을 확인했고 모두 통과했다. 실제 서버에서도 `/qr/` 전 화면이 200이었다. **브라우저·휴대폰 화면은 아직 눈으로 확인하지 않았다.**
