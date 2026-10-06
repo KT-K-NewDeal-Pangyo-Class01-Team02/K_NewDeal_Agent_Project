@@ -98,9 +98,10 @@ def _current_event():
         data = Event(qr_config.EVENT_FILE).data
         gifts = data.get("benefit", {}).get("gifts", [])
         top = min(gifts, key=lambda g: int(g["quantity"]))["name"] if gifts else ""
-        return {"event_name": str(data.get("name", ""))[:MAX_FIELD], "top_gift": str(top)[:MAX_FIELD]}
+        return {"event_name": str(data.get("name", ""))[:MAX_FIELD], "top_gift": str(top)[:MAX_FIELD],
+                "gifts": [str(g["name"]) for g in gifts]}
     except Exception:  # noqa: BLE001  (QR 모듈·파일이 없거나 형식이 달라도 스튜디오 화면은 떠야 한다)
-        return {"event_name": "", "top_gift": ""}
+        return {"event_name": "", "top_gift": "", "gifts": []}
 
 
 @studio_bp.get("/api/posters")
@@ -186,12 +187,15 @@ def create_poster():
     event_type = data.get("event_type") if data.get("event_type") in EVENT_TYPES else "기타"
     title = event_name or _title_from(message)
     goal = _goal_sentence(event_name, top_gift)
+    # 포스터에 그려 넣을 사은품들: 통하길 QR 에 등록된 목록에서 최고 사은품을 뺀 나머지 (그림으로만 쓰고 글자로는 안 넣는다)
+    gifts = [g for g in _current_event()["gifts"] if g != top_gift]
 
     if config.N8N_WEBHOOK_URL:
         # chatInput 한 덩어리만 써도 되고, n8n 에서 eventName·topGift 를 따로 꺼내 써도 된다
         lines = [goal, message, "",
                  f"[행사 이름] {event_name}" if event_name else "",
                  f"[최고 사은품] {top_gift}" if top_gift else "",
+                 f"[그 밖의 사은품] {', '.join(gifts)}" if gifts else "",
                  f"[포스터 스타일] {style['label']} - {style['hint']}",
                  f"[행사 유형] {event_type}"]
         prompt = "\n".join(line for i, line in enumerate(lines) if line or i == 2).strip()
@@ -210,6 +214,8 @@ def create_poster():
                     "message": message,
                     "eventName": event_name,
                     "topGift": top_gift,
+                    "gifts": gifts,
+                    "giftList": ", ".join(gifts),
                 },
                 headers=headers,
             )
