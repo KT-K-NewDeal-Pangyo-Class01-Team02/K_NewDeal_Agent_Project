@@ -45,19 +45,6 @@
     return Date.now() + clock.offset;
   }
 
-  // 서버 dashboard_service._duration_label 과 같은 규칙
-  function durationText(ms, withSeconds) {
-    var total = Math.floor(Math.abs(ms) / 1000);
-    var days = Math.floor(total / 86400);
-    var hours = Math.floor((total % 86400) / 3600);
-    var minutes = Math.floor((total % 3600) / 60);
-    var seconds = total % 60;
-    if (days) return days + "일 " + hours + "시간";
-    if (hours) return hours + "시간 " + minutes + "분";
-    if (withSeconds) return minutes ? minutes + "분 " + seconds + "초" : seconds + "초";
-    return minutes ? minutes + "분" : "1분 미만";
-  }
-
   // data-deadline: 남은 시간 / data-since: 지난 시간. data-overdue-class: 마감이 지나면 붙일 클래스
   function liveDeadline(node, deadlineIso, overdueClass, withIcon) {
     node.dataset.deadline = deadlineIso;
@@ -76,20 +63,89 @@
   function renderLive(node) {
     if (node.dataset.since) {
       var since = parseLocal(node.dataset.since);
-      if (!isNaN(since)) node.textContent = durationText(nowMs() - since, false);
+      if (!isNaN(since)) renderTicker(node, timeParts(nowMs() - since), "", false);
       return;
     }
     var deadline = parseLocal(node.dataset.deadline);
     if (isNaN(deadline)) return;
     var left = deadline - nowMs();
     var overdue = left < 0;
-    var text = durationText(left, true) + (overdue ? " 초과" : " 남음");
     if (node.dataset.overdueClass) node.classList.toggle(node.dataset.overdueClass, overdue);
     var row = node.closest(".reservation-row");
     if (row) row.classList.toggle("is-overdue", overdue);
-    node.textContent = "";
-    if (overdue && node.dataset.overdueIcon) node.appendChild(icon("alarm-clock"));
-    node.appendChild(document.createTextNode(text));
+    renderTicker(node, timeParts(left), overdue ? "초과" : "남음", overdue && !!node.dataset.overdueIcon);
+  }
+
+  // ── 초 단위 숫자 애니메이션 ──────────────────────────────────────
+  // 화면의 시간은 초까지 보여 주고, 바뀐 숫자 한 자리만 아래에서 위로 부드럽게 올라온다 (주행거리계처럼).
+  // 앞 단위가 있으면 두 자리로 채워(05분 09초) 숫자가 바뀌어도 글자 폭이 흔들리지 않게 한다.
+  var REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  function pad2(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  // 예: [{num: "3", unit: "시간"}, {num: "05", unit: "분"}, {num: "09", unit: "초"}]
+  function timeParts(ms) {
+    var total = Math.floor(Math.abs(ms) / 1000);
+    var values = [
+      [Math.floor(total / 86400), "일"],
+      [Math.floor((total % 86400) / 3600), "시간"],
+      [Math.floor((total % 3600) / 60), "분"],
+      [total % 60, "초"],
+    ];
+    var parts = [];
+    values.forEach(function (pair, index) {
+      if (!parts.length && pair[0] === 0 && index < values.length - 1) return;
+      parts.push({ num: parts.length ? pad2(pair[0]) : String(pair[0]), unit: pair[1] });
+    });
+    return parts;
+  }
+
+  function renderTicker(node, parts, suffix, withIcon) {
+    // 자릿수·단위·아이콘이 그대로면 바뀐 숫자만 굴리고, 달라졌을 때만 새로 그린다
+    var signature =
+      parts.map(function (p) { return p.num.length + p.unit; }).join(" ") + "|" + suffix + "|" + (withIcon ? "icon" : "");
+    var digits = parts.map(function (p) { return p.num; }).join("");
+    if (node.dataset.tickerSig !== signature) {
+      node.dataset.tickerSig = signature;
+      node.textContent = "";
+      if (withIcon) node.appendChild(icon("alarm-clock"));
+      var ticker = el("span", "ticker");
+      parts.forEach(function (part) {
+        for (var i = 0; i < part.num.length; i++) {
+          var slot = el("span", "tick-digit");
+          slot.appendChild(el("span", "tick-face", part.num.charAt(i)));
+          ticker.appendChild(slot);
+        }
+        ticker.appendChild(el("span", "tick-unit", part.unit));
+      });
+      if (suffix) ticker.appendChild(el("span", "tick-suffix", suffix));
+      node.appendChild(ticker);
+      return;
+    }
+    node.querySelectorAll(".tick-digit").forEach(function (slot, index) {
+      if (slot.lastElementChild.textContent !== digits.charAt(index)) rollDigit(slot, digits.charAt(index));
+    });
+  }
+
+  function rollDigit(slot, next) {
+    if (REDUCED_MOTION) {
+      slot.lastElementChild.textContent = next;
+      return;
+    }
+    // 아직 사라지는 중인 숫자가 있으면 먼저 치운다 (탭을 오래 비웠다 돌아온 경우 등)
+    while (slot.children.length > 1) slot.removeChild(slot.firstElementChild);
+    var old = slot.firstElementChild;
+    old.className = "tick-face is-leaving";
+    var face = el("span", "tick-face is-entering", next);
+    slot.appendChild(face);
+    old.addEventListener("animationend", function () {
+      if (old.parentNode) old.parentNode.removeChild(old);
+    });
+    face.addEventListener("animationend", function () {
+      face.classList.remove("is-entering");
+    });
   }
 
   function tickTimes() {
@@ -455,6 +511,7 @@
       scores.appendChild(scoreTile("이탈위험 점수", detail.churn_risk_score, detail.risk_label, riskClass));
       scores.appendChild(scoreTile("우선순위", detail.priority_score + "점", null));
       var deadlineTile = scoreTile("처리 마감", detail.deadline_label, detail.deadline_display, null);
+      deadlineTile.classList.add("is-countdown");
       liveDeadline($(".score-tile-value", deadlineTile), detail.activation_deadline, "tone-danger", false);
       scores.appendChild(deadlineTile);
     } else {

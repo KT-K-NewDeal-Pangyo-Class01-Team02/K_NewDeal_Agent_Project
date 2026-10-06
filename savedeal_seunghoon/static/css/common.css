@@ -105,6 +105,7 @@
   --duration-base: 160ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --duration-spin: 900ms;
+  --duration-tick: 420ms;
 
   /* 겹침 순서 */
   --z-overlay: 10;
