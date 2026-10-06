@@ -193,6 +193,14 @@ def test_sync_pulls_events_from_n8n(app, monkeypatch):
     assert first["scan"]["new_alerts"] and second["scan"]["new_alerts"] == []
 
 
+def test_sync_ignores_empty_sheet_items(app, monkeypatch):
+    app.config["N8N_EVENTS_URL"] = "https://example.n8n.cloud/webhook/savedeal-events"
+    monkeypatch.setattr(n8n_client, "send", lambda *args, **kwargs: [{}, {"json": {}}])
+    data = app.test_client().post("/api/events/sync").get_json()["data"]
+    assert data["received"] == 0
+    assert data["notification"] is None
+
+
 def test_sync_reports_n8n_error(app, monkeypatch):
     app.config["N8N_EVENTS_URL"] = "https://example.n8n.cloud/webhook/savedeal-events"
 

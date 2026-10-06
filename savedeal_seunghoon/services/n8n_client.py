@@ -19,8 +19,9 @@ def fetch_events(events_url: str, timeout: float, secret: str = "", secret_heade
         body = body.get("events", body.get("data", []))
     if not isinstance(body, list):
         raise N8nError("n8n 응답에서 이벤트 목록을 찾지 못했습니다. 'Respond to Webhook' 노드가 목록(JSON)을 돌려주는지 확인해 주세요.")
-    # n8n 항목 형식({"json": {...}})이 그대로 오면 풀어 준다
-    return [item.get("json", item) if isinstance(item, dict) else item for item in body]
+    # n8n 항목 형식({"json": {...}})이 그대로 오면 풀어 준다. 시트가 비어 있을 때 오는 빈 항목({})은 버린다.
+    items = [item.get("json", item) if isinstance(item, dict) else item for item in body]
+    return [item for item in items if item not in ({}, None, "")]
 
 
 def send(webhook_url: str, payload: dict, timeout: float, secret: str = "", secret_header: str = ""):
