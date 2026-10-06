@@ -90,7 +90,7 @@ def _run_action(reservation_id: str, operation):
 def approve_action(reservation_id, action_id):
     def approve_and_notify(service: ActionService):
         service.approve(reservation_id, action_id)
-        # 고객에게 안내가 필요한 해결책이면 AI(또는 규칙)로 안내문을 쓰고 n8n → Gmail 로 (가상) 발송한다
+        # 고객에게 안내가 필요한 해결책이면 AI(또는 규칙)로 안내문을 쓰고 n8n → Gmail 로 담당자에게 사본을 보낸다
         action = service.action_repo.find_by_id(action_id)
         notifier = _notifier()
         if action["action_type"] in notifier_customer_actions():

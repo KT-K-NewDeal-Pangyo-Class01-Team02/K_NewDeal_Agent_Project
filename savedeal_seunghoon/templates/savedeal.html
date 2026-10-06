@@ -18,8 +18,9 @@
   </div>
   <div class="header-actions">
     <span class="integration-chips" id="integration-chips" aria-label="연동 상태"></span>
+    <button type="button" class="btn-text" id="refresh-now" title="외부 이벤트(개통 반려·입고 지연 등)를 지금 바로 가져오고, 고위험 예약을 점검한 뒤 화면을 새로 고칩니다.">{{ icon("refresh-cw", "icon-sm") }}최신화</button>
     <button type="button" class="btn-text" id="send-report">{{ icon("mail", "icon-sm") }}리포트 메일 보내기</button>
-    <button type="button" class="btn-text" id="reset-demo">{{ icon("rotate-ccw", "icon-sm") }}데모 데이터 초기화</button>
+    <button type="button" class="btn-text" id="reset-demo">{{ icon("rotate-ccw", "icon-sm") }}데이터 초기화</button>
     <a class="btn-primary" href="{{ url_for('pages.savedeal_new') }}">{{ icon("plus", "icon-sm") }}신규 예약 등록</a>
   </div>
 </div>
