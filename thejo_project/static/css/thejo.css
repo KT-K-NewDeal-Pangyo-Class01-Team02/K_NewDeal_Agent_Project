@@ -188,6 +188,63 @@
 .tj-sim-out .is-highlight { border-color: #1d7a4b; background: #e4f5ec; }
 .tj-sim-out .is-highlight dd { color: #1d7a4b; }
 
+/* 시뮬레이션: 선택한 기회 → 계산 흐름 → 설명 → 상세 */
+.tj-sim [hidden] { display: none !important; }
+.tj-insight.is-selected { outline: 2px solid #1d7a4b; outline-offset: -2px; }
+
+.tj-sim-step { margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--cc-muted); }
+.tj-sim-pick {
+  margin: 14px 0 16px; padding: 14px 16px;
+  border: 1px solid var(--cc-border); border-radius: 12px; background: #f6f7f9;
+}
+.tj-sim-pick-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tj-sim-pick-head .tj-sim-step { margin: 0; }
+.tj-sim-pick-head strong { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.tj-sim-basis { margin-left: auto; font-size: 12px; color: var(--cc-muted); }
+.tj-sim-path { margin: 8px 0 0; font-size: 15px; color: var(--cc-text-sub); }
+.tj-sim-path b { color: var(--cc-text); font-size: 17px; }
+.tj-sim-arrow { margin: 0 6px; color: #1d7a4b; font-weight: 700; }
+
+.tj-sim-form + .form-error { margin-bottom: 14px; }
+
+.tj-flow {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.2fr);
+  align-items: stretch; gap: 10px; margin: 0 0 10px;
+}
+.tj-flow-box {
+  display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0;
+  padding: 14px 16px; border: 1px solid var(--cc-border); border-radius: 12px; background: #fbfcfd;
+}
+.tj-flow-box span { font-size: 12px; font-weight: 600; color: var(--cc-muted); }
+.tj-flow-box strong { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; word-break: keep-all; }
+.tj-flow-op { align-self: center; font-size: 26px; font-weight: 700; color: var(--cc-muted); }
+.tj-flow-box.is-result { border: 2px solid #1d7a4b; background: #e4f5ec; }
+.tj-flow-box.is-result span { color: #1d7a4b; }
+.tj-flow-box.is-result strong { font-size: 28px; color: #1d7a4b; }
+.tj-flow-box.is-result.is-zero { border-color: var(--cc-border); background: #f6f7f9; }
+.tj-flow-box.is-result.is-zero span, .tj-flow-box.is-result.is-zero strong { color: var(--cc-muted); }
+.tj-flow-warn {
+  margin: 0 0 10px; padding: 10px 12px; border-radius: 10px;
+  background: var(--cc-accent-soft); color: var(--cc-accent); font-size: 13px; font-weight: 600;
+}
+
+.tj-sim-explain { margin: 4px 0 10px; font-size: 15px; line-height: 1.7; color: var(--cc-text); }
+.tj-sim-note {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 8px;
+  background: #fff1e3; color: #b25a0e; font-size: 13px; line-height: 1.6;
+}
+
+.tj-sim-detail { margin-top: 6px; border-top: 1px solid var(--cc-border); padding-top: 10px; }
+.tj-sim-detail summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--cc-text-sub); }
+.tj-sim-detail dl {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px 16px; margin: 10px 0 0;
+}
+.tj-sim-detail dl div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tj-sim-detail dt { font-size: 11px; color: var(--cc-muted); }
+.tj-sim-detail dd { margin: 0; font-size: 13px; font-weight: 600; color: var(--cc-text-sub); word-break: break-all; }
+.tj-sim-missing { margin: 8px 0 0; font-size: 11px; color: var(--cc-muted); }
+
 .form-error { min-height: 18px; margin: 10px 0 0; font-size: 13px; color: var(--cc-accent); }
 
 /* ---------- 빈 상태 ---------- */
@@ -201,6 +258,12 @@
 @media (max-width: 900px) {
   .tj-columns { grid-template-columns: 1fr; }
   .tj-head { flex-direction: column; }
+}
+/* 좁은 화면: 계산 흐름을 세로로 쌓고 −, = 를 가운데에 둔다 */
+@media (max-width: 760px) {
+  .tj-flow { grid-template-columns: 1fr; gap: 4px; }
+  .tj-flow-op { justify-self: center; line-height: 1; font-size: 22px; }
+  .tj-sim-basis { margin-left: 0; width: 100%; }
 }
 @media (max-width: 640px) {
   .tj-stat-value { font-size: 24px; }

@@ -25,7 +25,7 @@
 
   <section class="tj-list">
     {% for o in insight_opportunities %}
-      {{ insight_opportunity_card(o) }}
+      {{ insight_opportunity_card(o, selected=(o.insight_id == sim.insight_id)) }}
     {% else %}
       <p class="tj-empty cc-card">오늘 올라온 추가 수익 기회가 없습니다.</p>
     {% endfor %}
@@ -46,28 +46,93 @@
   </section>
 {% endif %}
 
-<section class="tj-sim cc-card" id="simulator" aria-labelledby="tj-sim-title">
-  <h2 id="tj-sim-title">{{ icon("sparkles", 22) }} 혜택 시뮬레이션</h2>
-  <p class="tj-sim-lead">판매 건수를 바꿔 보세요. 금액은 서버에서 다시 계산합니다.</p>
+{#- 혜택 시뮬레이션. 첫 화면 값은 서버(sim)가 채우고, 이후에는 JS 가 같은 data-sim 칸을 서버 응답으로 바꾼다.
+    값이 없으면(None) "—" 로 보이고, data-sim-row 칸은 숨긴다. 숫자를 여기 직접 쓰지 않는다. -#}
+{% macro sv(key, money=False) -%}
+  {%- set v = sim[key] -%}
+  {%- if v is none or v == '' -%}—{%- elif money -%}{{ v | won }}{%- else -%}{{ v }}{%- endif -%}
+{%- endmacro %}
 
-  <form class="tj-sim-form" data-sim-form data-sim-url="{{ url_for('thejo.simulate') }}">
+<section class="tj-sim cc-card" id="simulator" aria-labelledby="tj-sim-title"
+         data-sim-url="{{ url_for('thejo.simulate') }}">
+  <h2 id="tj-sim-title">{{ icon("sparkles", 22) }} 혜택 시뮬레이션</h2>
+  {% if sim_notice %}<p class="tj-sim-note">{{ sim_notice }}</p>{% endif %}
+
+  {#- ① 선택한 기회 -#}
+  <div class="tj-sim-pick" data-sim-pick-box
+       data-insight-id="{{ sim.insight_id or '' }}"
+       data-device="{{ sim.device_model_name or '' }}"
+       data-plan="{{ sim.plan_code or '' }}">
+    <div class="tj-sim-pick-head">
+      <span class="tj-sim-step">① 선택한 기회</span>
+      <strong data-sim="title">{{ sv('title') }}</strong>
+      <span class="tj-sim-basis" data-sim="basis_label">{{ sv('basis_label') }}</span>
+    </div>
+    <p class="tj-sim-path">
+      현재 <b data-sim="units">{{ sv('units') }}</b>건
+      <span class="tj-sim-arrow">→</span>
+      <b data-sim="units_needed">{{ sv('units_needed') }}</b>건 추가 판매
+      <span class="tj-sim-arrow">→</span>
+      목표 <b data-sim="target_units">{{ sv('target_units') }}</b>건
+    </p>
+  </div>
+
+  <form class="tj-sim-form" data-sim-form>
     <label class="cc-field">
       <span class="cc-label">이번 달 판매 건수</span>
-      <input class="cc-input" type="number" name="units" min="0" max="999"
-             value="{{ summary.units_sold }}" data-sim-input required>
+      <input class="cc-input" type="number" name="units" value="{{ sim.units }}" min="0" max="999"
+             data-sim-input required>
     </label>
     <button type="submit" class="cc-btn cc-btn-primary">계산하기</button>
   </form>
-
   <p class="form-error" role="alert" data-sim-error></p>
 
-  <dl class="tj-sim-out" data-sim-out hidden>
-    <div><dt>건당 인센티브</dt><dd data-sim="per_unit"></dd></div>
-    <div><dt>총인센티브</dt><dd data-sim="monthly_incentive"></dd></div>
-    <div><dt>다음 구간까지</dt><dd data-sim="units_needed"></dd></div>
-    <div><dt>구간 달성 시 증가액</dt><dd data-sim="tier_gain"></dd></div>
-    <div><dt>최소 확보 수익</dt><dd data-sim="minimum_secured_profit"></dd></div>
-    <div class="is-highlight"><dt>고객 혜택 활용 가능</dt><dd data-sim="benefit_budget"></dd></div>
-  </dl>
+  {#- ② 금액 계산 흐름: 증가 수익 − 최소 확보 수익 = 고객 혜택 활용 가능 금액 -#}
+  <p class="tj-sim-step">② 금액 계산 흐름</p>
+  <div class="tj-flow" aria-label="고객 혜택 활용 가능 금액 계산">
+    <div class="tj-flow-box">
+      <span>구간 달성 시 증가하는 수익</span>
+      <strong data-sim="tier_gain">{{ sv('tier_gain', True) }}</strong>
+    </div>
+    <span class="tj-flow-op" aria-label="빼기">−</span>
+    <div class="tj-flow-box">
+      <span>사장님 최소 확보 수익</span>
+      <strong data-sim="minimum_secured_profit">{{ sv('minimum_secured_profit', True) }}</strong>
+    </div>
+    <span class="tj-flow-op" aria-label="는">=</span>
+    <div class="tj-flow-box is-result{% if not sim.benefit_budget %} is-zero{% endif %}" data-sim-result>
+      <span>고객 혜택 활용 가능 금액</span>
+      <strong data-sim="benefit_budget">{{ sv('benefit_budget', True) }}</strong>
+    </div>
+  </div>
+  <p class="tj-flow-warn" role="status" data-sim-warn {% if not sim.shortfall %}hidden{% endif %}>
+    최소 확보 수익을 충족하지 못해 고객 혜택으로 활용할 수 있는 금액이 없습니다.
+  </p>
+
+  {#- ③ 설명 문구 (서버가 만든다) -#}
+  <p class="tj-sim-explain" data-sim="explanation">{{ sv('explanation') }}</p>
+  <p class="tj-sim-note" data-sim="note" data-sim-note {% if not sim.note %}hidden{% endif %}>{{ sv('note') }}</p>
+
+  {#- ④ 상세 계산 정보 -#}
+  <details class="tj-sim-detail">
+    <summary>상세 계산 정보</summary>
+    <dl>
+      <div data-sim-row="per_unit" {% if sim.per_unit is none %}hidden{% endif %}>
+        <dt>건당 인센티브 (현재)</dt><dd data-sim="per_unit">{{ sv('per_unit', True) }}</dd></div>
+      <div data-sim-row="next_per_unit" {% if sim.next_per_unit is none %}hidden{% endif %}>
+        <dt>건당 인센티브 (목표 구간)</dt><dd data-sim="next_per_unit">{{ sv('next_per_unit', True) }}</dd></div>
+      <div data-sim-row="monthly_incentive" {% if sim.monthly_incentive is none %}hidden{% endif %}>
+        <dt>총 인센티브 (현재)</dt><dd data-sim="monthly_incentive">{{ sv('monthly_incentive', True) }}</dd></div>
+      <div><dt>다음 구간까지</dt><dd data-sim="units_needed_text">{{ sv('units_needed_text') }}</dd></div>
+      <div><dt>구간 달성 시 증가액</dt><dd data-sim="tier_gain">{{ sv('tier_gain', True) }}</dd></div>
+      <div><dt>최소 확보 수익</dt><dd data-sim="minimum_secured_profit">{{ sv('minimum_secured_profit', True) }}</dd></div>
+      <div data-sim-row="reason" {% if not sim.reason %}hidden{% endif %}>
+        <dt>판단 근거</dt><dd data-sim="reason">{{ sv('reason') }}</dd></div>
+      <div><dt>계산 기준</dt><dd data-sim="basis_label">{{ sv('basis_label') }}</dd></div>
+    </dl>
+    <p class="tj-sim-missing" data-sim-missing {% if sim.basis != 'insight' %}hidden{% endif %}>
+      건당·총 인센티브는 Google Sheets 인사이트에 없어 표시하지 않습니다.
+    </p>
+  </details>
 </section>
 {% endblock %}

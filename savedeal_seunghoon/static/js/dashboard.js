@@ -24,6 +24,134 @@
   var ACTION_STATUS_TONES = { APPROVED: "tone-info", SUCCEEDED: "tone-success", FAILED: "tone-danger" };
   var SVG_NS = "http://www.w3.org/2000/svg";
 
+  // ── 흐르는 시간 ─────────────────────────────────────────────────
+  // 남은 시간·대기 시간은 서버가 준 원래 시각(마감, 대기 시작)으로 1초마다 다시 계산한다.
+  // 서버 시계를 기준으로 하기 위해 응답의 generated_at 과 이 컴퓨터 시계의 차이를 기억해 둔다.
+  // 시간에 따라 바뀌는 점수·우선순위·건수는 서버가 계산하므로 1분마다 목록을 다시 받는다.
+  var clock = { offset: 0 };
+
+  function parseLocal(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(iso || "");
+    if (!m) return NaN;
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime();
+  }
+
+  function syncClock(serverIso) {
+    var server = parseLocal(serverIso);
+    if (!isNaN(server)) clock.offset = server - Date.now();
+  }
+
+  function nowMs() {
+    return Date.now() + clock.offset;
+  }
+
+  // data-deadline: 남은 시간 / data-since: 지난 시간. data-overdue-class: 마감이 지나면 붙일 클래스
+  function liveDeadline(node, deadlineIso, overdueClass, withIcon) {
+    node.dataset.deadline = deadlineIso;
+    if (overdueClass) node.dataset.overdueClass = overdueClass;
+    if (withIcon) node.dataset.overdueIcon = "1";
+    renderLive(node);
+    return node;
+  }
+
+  function liveSince(node, sinceIso) {
+    node.dataset.since = sinceIso;
+    renderLive(node);
+    return node;
+  }
+
+  function renderLive(node) {
+    if (node.dataset.since) {
+      var since = parseLocal(node.dataset.since);
+      if (!isNaN(since)) renderTicker(node, timeParts(nowMs() - since), "", false);
+      return;
+    }
+    var deadline = parseLocal(node.dataset.deadline);
+    if (isNaN(deadline)) return;
+    var left = deadline - nowMs();
+    var overdue = left < 0;
+    if (node.dataset.overdueClass) node.classList.toggle(node.dataset.overdueClass, overdue);
+    var row = node.closest(".reservation-row");
+    if (row) row.classList.toggle("is-overdue", overdue);
+    renderTicker(node, timeParts(left), overdue ? "초과" : "남음", overdue && !!node.dataset.overdueIcon);
+  }
+
+  // ── 초 단위 숫자 애니메이션 ──────────────────────────────────────
+  // 화면의 시간은 초까지 보여 주고, 바뀐 숫자 한 자리만 아래에서 위로 부드럽게 올라온다 (주행거리계처럼).
+  // 앞 단위가 있으면 두 자리로 채워(05분 09초) 숫자가 바뀌어도 글자 폭이 흔들리지 않게 한다.
+  var REDUCED_MOTION = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  function pad2(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  // 예: [{num: "3", unit: "시간"}, {num: "05", unit: "분"}, {num: "09", unit: "초"}]
+  function timeParts(ms) {
+    var total = Math.floor(Math.abs(ms) / 1000);
+    var values = [
+      [Math.floor(total / 86400), "일"],
+      [Math.floor((total % 86400) / 3600), "시간"],
+      [Math.floor((total % 3600) / 60), "분"],
+      [total % 60, "초"],
+    ];
+    var parts = [];
+    values.forEach(function (pair, index) {
+      if (!parts.length && pair[0] === 0 && index < values.length - 1) return;
+      parts.push({ num: parts.length ? pad2(pair[0]) : String(pair[0]), unit: pair[1] });
+    });
+    return parts;
+  }
+
+  function renderTicker(node, parts, suffix, withIcon) {
+    // 자릿수·단위·아이콘이 그대로면 바뀐 숫자만 굴리고, 달라졌을 때만 새로 그린다
+    var signature =
+      parts.map(function (p) { return p.num.length + p.unit; }).join(" ") + "|" + suffix + "|" + (withIcon ? "icon" : "");
+    var digits = parts.map(function (p) { return p.num; }).join("");
+    if (node.dataset.tickerSig !== signature) {
+      node.dataset.tickerSig = signature;
+      node.textContent = "";
+      if (withIcon) node.appendChild(icon("alarm-clock"));
+      var ticker = el("span", "ticker");
+      parts.forEach(function (part) {
+        for (var i = 0; i < part.num.length; i++) {
+          var slot = el("span", "tick-digit");
+          slot.appendChild(el("span", "tick-face", part.num.charAt(i)));
+          ticker.appendChild(slot);
+        }
+        ticker.appendChild(el("span", "tick-unit", part.unit));
+      });
+      if (suffix) ticker.appendChild(el("span", "tick-suffix", suffix));
+      node.appendChild(ticker);
+      return;
+    }
+    node.querySelectorAll(".tick-digit").forEach(function (slot, index) {
+      if (slot.lastElementChild.textContent !== digits.charAt(index)) rollDigit(slot, digits.charAt(index));
+    });
+  }
+
+  function rollDigit(slot, next) {
+    if (REDUCED_MOTION) {
+      slot.lastElementChild.textContent = next;
+      return;
+    }
+    // 아직 사라지는 중인 숫자가 있으면 먼저 치운다 (탭을 오래 비웠다 돌아온 경우 등)
+    while (slot.children.length > 1) slot.removeChild(slot.firstElementChild);
+    var old = slot.firstElementChild;
+    old.className = "tick-face is-leaving";
+    var face = el("span", "tick-face is-entering", next);
+    slot.appendChild(face);
+    old.addEventListener("animationend", function () {
+      if (old.parentNode) old.parentNode.removeChild(old);
+    });
+    face.addEventListener("animationend", function () {
+      face.classList.remove("is-entering");
+    });
+  }
+
+  function tickTimes() {
+    document.querySelectorAll("[data-deadline], [data-since]").forEach(renderLive);
+  }
+
   function $(selector, scope) {
     return (scope || document).querySelector(selector);
   }
@@ -159,6 +287,7 @@
   }
 
   function renderList(data) {
+    syncClock(data.generated_at);
     Object.keys(data.summary).forEach(function (key) {
       var target = document.getElementById("summary-" + key);
       if (target) target.textContent = data.summary[key];
@@ -195,10 +324,19 @@
   }
 
   function renderRow(item, rank) {
-    var row = el("tr", "reservation-row" + (item.is_open ? "" : " is-closed") + (item.is_overdue ? " is-overdue" : ""));
+    var row = el(
+      "tr",
+      "reservation-row" +
+        (item.is_open ? "" : " is-closed") +
+        (item.is_overdue ? " is-overdue" : "") +
+        (item.reservation_id === state.selectedId ? " is-selected" : "")
+    );
     row.tabIndex = 0;
     row.dataset.id = item.reservation_id;
     if (item.reservation_id === state.selectedId) row.classList.add("is-selected");
+    // '이벤트 발생'으로 방금 바뀐 예약: 몇 초 동안 줄을 강조하고, 순위 변화와 새 문제를 표시한다
+    var flash = state.flash && state.flash.id === item.reservation_id && Date.now() < state.flash.until ? state.flash : null;
+    if (flash) row.classList.add("is-fresh");
 
     var priority = el("td", "col-num");
     var priorityCell = el("div", "priority-cell");
@@ -207,6 +345,11 @@
       var score = el("span", "priority-score", item.priority_score);
       score.appendChild(el("span", "priority-unit", "점"));
       priorityCell.appendChild(score);
+      if (flash && flash.rankBefore && flash.rankBefore > rank) {
+        var change = el("span", "rank-change", "▲" + (flash.rankBefore - rank));
+        change.title = flash.rankBefore + "위 → " + rank + "위";
+        priorityCell.appendChild(change);
+      }
     } else {
       priorityCell.appendChild(el("span", "cell-sub", "-"));
     }
@@ -242,7 +385,10 @@
       chips.appendChild(el("span", "cell-sub", item.is_open ? "문제 없음" : "-"));
     }
     item.issues.forEach(function (issue) {
-      chips.appendChild(el("span", "chip", issue.label));
+      var isNew = flash && flash.newIssues.indexOf(issue.code) !== -1;
+      var chip = el("span", "chip" + (isNew ? " is-new" : ""), issue.label);
+      if (isNew) chip.title = "방금 발생한 문제";
+      chips.appendChild(chip);
     });
     issues.appendChild(chips);
     row.appendChild(issues);
@@ -257,10 +403,9 @@
 
     var deadline = el("td", "cell-deadline");
     if (item.is_open) {
-      var deadlineLabel = el("span", "cell-main cell-strong" + (item.is_overdue ? " deadline-overdue" : ""));
-      if (item.is_overdue) deadlineLabel.appendChild(icon("alarm-clock"));
+      var deadlineLabel = el("span", "cell-main cell-strong");
       deadlineLabel.appendChild(document.createTextNode(item.deadline_label));
-      deadline.appendChild(deadlineLabel);
+      deadline.appendChild(liveDeadline(deadlineLabel, item.activation_deadline, "deadline-overdue", true));
       deadline.appendChild(el("span", "cell-sub", item.deadline_display));
     } else {
       deadline.appendChild(el("span", "cell-sub", item.completed_at_display ? item.completed_at_display + " 완료" : "-"));
@@ -350,6 +495,7 @@
     eyebrow.appendChild(document.createTextNode(detail.reservation_id));
     eyebrow.appendChild(statusBadge(detail.status, detail.status_label));
     $("#detail-title").textContent = detail.customer_name + " 고객";
+    syncClock(detail.generated_at);
 
     var body = $("#detail-body");
     body.innerHTML = "";
@@ -375,9 +521,10 @@
       var riskClass = detail.risk_level === "high" ? "tone-danger" : detail.risk_level === "medium" ? "tone-warning" : "tone-success";
       scores.appendChild(scoreTile("이탈위험 점수", detail.churn_risk_score, detail.risk_label, riskClass));
       scores.appendChild(scoreTile("우선순위", detail.priority_score + "점", null));
-      scores.appendChild(
-        scoreTile("처리 마감", detail.deadline_label, detail.deadline_display, detail.is_overdue ? "tone-danger" : null)
-      );
+      var deadlineTile = scoreTile("처리 마감", detail.deadline_label, detail.deadline_display, null);
+      deadlineTile.classList.add("is-countdown");
+      liveDeadline($(".score-tile-value", deadlineTile), detail.activation_deadline, "tone-danger", false);
+      scores.appendChild(deadlineTile);
     } else {
       scores.appendChild(scoreTile("진행상태", detail.status_label, detail.completed_at_display));
     }
@@ -405,6 +552,7 @@
         value.textContent = pair[1] + " ";
         value.appendChild(carrierChange(detail.carrier_change, true));
       }
+      if (pair[0] === "고객 대기" && detail.waiting_since) liveSince(value, detail.waiting_since);
       dl.appendChild(value);
     });
     info.appendChild(dl);
@@ -589,7 +737,7 @@
         box.innerHTML = "";
         var n8n = el("span", "integration-chip" + (data.n8n.mode === "n8n" ? " is-on" : ""));
         n8n.appendChild(el("span", "integration-dot"));
-        n8n.appendChild(document.createTextNode(data.n8n.mode === "n8n" ? "n8n 연결됨" : "n8n 데모 모드"));
+        n8n.appendChild(document.createTextNode(data.n8n.mode === "n8n" ? "n8n 연결됨" : "메일 미연결"));
         n8n.title = data.n8n.mode === "n8n" ? "알림을 n8n → Gmail 로 보냅니다." : "N8N_WEBHOOK_URL 이 비어 있어 메일을 보내지 않고 기록만 합니다.";
         var ai = el("span", "integration-chip" + (data.ai.mode === "ai" ? " is-on" : ""));
         ai.appendChild(el("span", "integration-dot"));
@@ -626,6 +774,61 @@
       .catch(function () {
         box.innerHTML = "";
       });
+  }
+
+  // ── 이벤트 발생 결과 배너 ───────────────────────────────────────
+  // 무슨 이벤트로 순위가 바뀌었는지 다음 이벤트가 날 때까지 목록 위에 남겨 둔다
+  var FLASH_MS = 10000;
+
+  function showEventBanner(result) {
+    var banner = $("#event-banner");
+    if (!banner) return;
+    banner.innerHTML = "";
+    banner.appendChild(icon("zap", "event-banner-icon"));
+
+    var body = el("div", "event-banner-body");
+    var title = el("div", "event-banner-title");
+    title.appendChild(el("strong", null, result.customer_name + " (" + result.reservation_id + ")"));
+    var before = result.before.rank;
+    var after = result.after.rank;
+    var move = before && after ? before + "위 → " + after + "위" : "";
+    title.appendChild(
+      el("span", "event-banner-move" + (before && after && after < before ? " is-up" : ""),
+        "우선순위 " + move + " · " + result.before.priority + "점 → " + result.after.priority + "점 · " + result.after.risk)
+    );
+    body.appendChild(title);
+
+    var list = el("ul", "event-banner-events");
+    result.events.forEach(function (event) {
+      var li = el("li");
+      li.appendChild(el("span", "event-banner-label", event.label));
+      if (event.reason) li.appendChild(el("span", "event-banner-reason", event.reason));
+      list.appendChild(li);
+    });
+    body.appendChild(list);
+    banner.appendChild(body);
+
+    var actions = el("div", "event-banner-actions");
+    var open = el("button", "btn-text", "상세 보기");
+    open.type = "button";
+    open.addEventListener("click", function () {
+      selectReservation(result.reservation_id);
+    });
+    var close = el("button", "icon-button");
+    close.type = "button";
+    close.setAttribute("aria-label", "닫기");
+    close.appendChild(icon("x"));
+    close.addEventListener("click", function () {
+      banner.hidden = true;
+    });
+    actions.appendChild(open);
+    actions.appendChild(close);
+    banner.appendChild(actions);
+
+    banner.hidden = false;
+    banner.classList.remove("is-entering");
+    void banner.offsetWidth; // 같은 배너에 애니메이션을 다시 걸기 위해
+    banner.classList.add("is-entering");
   }
 
   // ── 외부 이벤트 ─────────────────────────────────────────────────
@@ -765,12 +968,19 @@
       if (event.key === "Escape" && state.selectedId) closePanel();
     });
     loadIntegrations();
+    // 남은 시간·대기 시간은 1초마다, 점수·우선순위·건수는 1분마다 서버에서 새로 받아 흐르게 한다
+    window.setInterval(function () {
+      if (!document.hidden) tickTimes();
+    }, 1000);
+    window.setInterval(function () {
+      if (!document.hidden) loadList();
+    }, 60000);
     $("#send-report").addEventListener("click", function () {
       var button = $("#send-report");
       button.disabled = true;
       request("POST", "/api/notifications/daily-report")
         .then(function (result) {
-          window.ccToast && window.ccToast("운영 리포트 " + result.status_label + (result.status === "DEMO" ? " (n8n 미연결)" : ""));
+          window.ccToast && window.ccToast("운영 리포트 " + result.status_label + (result.status === "DEMO" ? " (메일 미연결)" : ""));
         })
         .catch(function (err) {
           window.ccToast && window.ccToast("리포트를 보내지 못했습니다: " + err.message);
@@ -779,8 +989,73 @@
           button.disabled = false;
         });
     });
+    // 이벤트 발생: 첫 번째는 정하늘을 1위로, 그다음부터는 무작위 한 명에게 이벤트 하나 (판단은 서버가 한다)
+    $("#trigger-event").addEventListener("click", function () {
+      var button = $("#trigger-event");
+      button.disabled = true;
+      request("POST", "/api/events/trigger")
+        .then(function (result) {
+          state.flash = {
+            id: result.reservation_id,
+            rankBefore: result.before.rank,
+            newIssues: result.new_issue_codes,
+            until: Date.now() + FLASH_MS,
+          };
+          showEventBanner(result);
+          // 방금 반영한 이벤트를 자동 확인이 다시 알리지 않게 기준을 맞춘다
+          return request("GET", "/api/events?limit=1").then(function (data) {
+            eventWatch.lastId = data.last_id;
+            return loadList();
+          });
+        })
+        .then(function () {
+          var row = state.flash && document.querySelector('.reservation-row[data-id="' + state.flash.id + '"]');
+          if (row) row.scrollIntoView({ behavior: REDUCED_MOTION ? "auto" : "smooth", block: "center" });
+          if (state.flash && state.selectedId === state.flash.id) loadDetail();
+        })
+        .catch(function (err) {
+          window.ccToast && window.ccToast("이벤트를 발생시키지 못했습니다: " + err.message);
+        })
+        .finally(function () {
+          button.disabled = false;
+        });
+    });
+    // 최신화: 서버가 60초마다 하는 일(외부 이벤트 가져오기 + 고위험 점검)을 지금 바로 하고 화면을 새로 그린다
+    $("#refresh-now").addEventListener("click", function () {
+      var button = $("#refresh-now");
+      var spinner = button.querySelector(".icon");
+      button.disabled = true;
+      spinner && spinner.classList.add("is-spinning");
+      request("POST", "/api/events/sync")
+        .then(function (result) {
+          var applied = (result.counts && result.counts.APPLIED) || 0;
+          var alerts = result.scan ? result.scan.new_alerts.length : 0;
+          var message = !result.enabled
+            ? "최신 상태로 새로 고쳤습니다."
+            : applied
+              ? "외부 이벤트 " + applied + "건을 반영했습니다."
+              : "새로 들어온 외부 이벤트가 없습니다.";
+          if (alerts) message += " 새 고위험 예약 " + alerts + "건을 알렸습니다.";
+          window.ccToast && window.ccToast(message);
+          // 방금 반영한 이벤트를 자동 확인이 다시 알리지 않게 기준을 맞춘다
+          return request("GET", "/api/events?limit=1").then(function (data) {
+            eventWatch.lastId = data.last_id;
+          });
+        })
+        .catch(function (err) {
+          window.ccToast && window.ccToast("외부 이벤트를 가져오지 못했습니다: " + err.message);
+        })
+        .then(function () {
+          loadIntegrations();
+          return Promise.all([loadList(), loadDetail()]);
+        })
+        .finally(function () {
+          button.disabled = false;
+          spinner && spinner.classList.remove("is-spinning");
+        });
+    });
     $("#reset-demo").addEventListener("click", function () {
-      if (!window.confirm("모든 예약·해결책·처리이력을 지우고 데모 데이터로 되돌릴까요?")) return;
+      if (!window.confirm("모든 예약·해결책·처리이력을 지우고 초기 데이터로 되돌릴까요?")) return;
       request("POST", "/api/demo/reset").then(function () {
         closePanel();
         loadList();

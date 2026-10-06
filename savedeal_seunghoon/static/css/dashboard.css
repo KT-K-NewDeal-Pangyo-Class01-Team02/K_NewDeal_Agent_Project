@@ -669,6 +669,88 @@
   gap: var(--space-2);
 }
 
+/* 초 단위로 흐르는 처리 마감은 글자가 길어 아래 줄 전체를 쓴다 (점수 두 칸은 위에 나란히) */
+.score-grid:has(.is-countdown) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.score-tile.is-countdown {
+  grid-column: 1 / -1;
+}
+
+/* ── 흐르는 시간: 바뀐 숫자만 아래에서 위로 부드럽게 올라온다 ── */
+.ticker {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tick-digit {
+  position: relative;
+  display: inline-block;
+  height: 1.3em;
+  line-height: 1.3em;
+  overflow: hidden;
+}
+
+.tick-face {
+  display: block;
+}
+
+.tick-face.is-entering {
+  animation: tick-enter var(--duration-tick) var(--ease-out) both;
+}
+
+.tick-face.is-leaving {
+  position: absolute;
+  inset: 0;
+  animation: tick-leave var(--duration-tick) var(--ease-out) both;
+}
+
+.tick-unit {
+  line-height: 1.3em;
+  margin-left: 0.08em;
+}
+
+.tick-unit + .tick-digit {
+  margin-left: 0.3em;
+}
+
+.tick-suffix {
+  line-height: 1.3em;
+  margin-left: 0.3em;
+}
+
+@keyframes tick-enter {
+  from {
+    transform: translateY(80%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes tick-leave {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-80%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tick-face.is-entering,
+  .tick-face.is-leaving {
+    animation: none;
+  }
+}
+
 /* 완료·취소 예약은 타일이 하나뿐이라 한 줄 전체를 쓴다 */
 .score-tile:only-child {
   grid-column: 1 / -1;
@@ -996,5 +1078,148 @@
   .score-grid,
   .factor-columns {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── '이벤트 발생' 결과: 바뀐 예약을 몇 초 동안 강조한다 ── */
+.reservation-row.is-fresh td {
+  animation: row-fresh var(--duration-fresh) var(--ease-out) both;
+}
+
+@keyframes row-fresh {
+  0%,
+  35% {
+    background: color-mix(in srgb, var(--color-warning) 18%, var(--color-surface));
+  }
+  100% {
+    background: color-mix(in srgb, var(--color-warning) 6%, var(--color-surface));
+  }
+}
+
+.rank-change {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger-strong);
+  white-space: nowrap;
+  animation: tick-enter var(--duration-tick) var(--ease-out) both;
+}
+
+.chip.is-new {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+  color: var(--color-danger-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.chip.is-new::after {
+  content: "new";
+  margin-left: var(--space-1);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.event-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-warning) 7%, var(--color-surface));
+}
+
+.event-banner.is-entering {
+  animation: banner-enter var(--duration-tick) var(--ease-out) both;
+}
+
+@keyframes banner-enter {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.event-banner-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-warning-strong);
+}
+
+.event-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-banner-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-primary);
+}
+
+.event-banner-move {
+  font-size: var(--font-size-13);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-banner-move.is-up {
+  color: var(--color-danger-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.event-banner-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-banner-events li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-13);
+}
+
+.event-banner-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-danger-strong);
+}
+
+.event-banner-reason {
+  color: var(--color-text-muted);
+}
+
+.event-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reservation-row.is-fresh td,
+  .rank-change,
+  .event-banner.is-entering {
+    animation: none;
+  }
+
+  .reservation-row.is-fresh td {
+    background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface));
   }
 }

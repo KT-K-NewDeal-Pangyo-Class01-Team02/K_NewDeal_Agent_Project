@@ -271,8 +271,14 @@ class EventService:
                     self.action_repo.update_status(action["action_id"], ACTION_DISCARDED, now)
             if existing is None:
                 self.history_repo.add(rid, EVENT_ISSUE_DETECTED, f"외부 이벤트로 문제를 감지했습니다: {label}", now)
+                message = f"{label} 문제를 등록하고 해결책을 만들었습니다."
+            else:
+                # 같은 문제가 다시 생겼다 = 그사이 시도한 처리가 통하지 않았다 (예: 재접수 후 재반려) → 재시도 +1
+                retry_count = self.reservation_repo.find_by_id(rid)["retry_count"] + 1
+                self.reservation_repo.update(rid, {"retry_count": retry_count, "updated_at": now})
+                self.history_repo.add(rid, EVENT_ISSUE_DETECTED, f"{label} 문제가 다시 발생했습니다 (재시도 {retry_count}회).", now)
+                message = f"{label} 문제가 다시 발생해 재시도 횟수를 올리고 해결책을 다시 만들었습니다."
             self.action_service.propose(self.reservation_repo.find_by_id(rid), [code])
-            message = f"{label} 문제를 {'등록' if existing is None else '갱신'}하고 해결책을 만들었습니다."
         self.action_service.refresh_status(rid)
         return message
 
