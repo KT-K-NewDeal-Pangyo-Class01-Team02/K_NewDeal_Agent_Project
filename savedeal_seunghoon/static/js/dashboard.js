@@ -602,13 +602,24 @@
         box.appendChild(ai);
 
         var events = data.events;
-        var ev = el("span", "integration-chip" + (events.pull ? " is-on" : ""));
+        var pulling = events.pull && !events.last_error;
+        var ev = el("span", "integration-chip" + (pulling ? " is-on" : ""));
         ev.appendChild(el("span", "integration-dot"));
-        ev.appendChild(document.createTextNode(events.pull ? "외부 이벤트 가져오는 중" : "외부 이벤트 받는 중"));
-        ev.title = events.pull
-          ? events.sync_seconds + "초마다 n8n 에서 개통 반려·입고 지연 같은 외부 이벤트를 가져와 반영합니다."
-          : "n8n 이 POST /api/events 로 보내 주는 외부 이벤트를 반영합니다" +
-            (events.inbound_auth === "secret" ? " (비밀 헤더 인증)." : " (이 컴퓨터에서 온 요청만).");
+        var text = "외부 이벤트 받는 중";
+        var title =
+          "n8n 이 POST /api/events 로 보내 주는 외부 이벤트를 반영합니다" +
+          (events.inbound_auth === "secret" ? " (비밀 헤더 인증)." : " (이 컴퓨터에서 온 요청만).");
+        if (events.pull && events.last_error) {
+          text = "외부 이벤트 연결 확인 필요";
+          title = "n8n 에서 이벤트를 가져오지 못했습니다: " + events.last_error;
+        } else if (events.pull) {
+          text = "외부 이벤트 자동 확인" + (events.sync_seconds ? " · " + events.sync_seconds + "초" : "");
+          title =
+            "SaveDeal 서버가 주기적으로 n8n 에서 개통 반려·입고 지연 같은 외부 이벤트를 가져와 반영하고, 새 고위험 예약을 점검합니다." +
+            (events.last_run ? " 마지막 확인: " + events.last_run.replace("T", " ") : "");
+        }
+        ev.appendChild(document.createTextNode(text));
+        ev.title = title;
         box.appendChild(ev);
         startEventWatch(events);
       })
@@ -618,8 +629,8 @@
   }
 
   // ── 외부 이벤트 ─────────────────────────────────────────────────
-  // n8n 이 보낸 이벤트(개통 반려, 서류 도착 등)가 들어오면 화면을 다시 그린다.
-  // 가져오기 모드(N8N_EVENTS_URL)면 정해진 간격마다 서버에 가져오기를 요청한다.
+  // 외부 이벤트(개통 반려, 서류 도착 등)가 반영되면 화면을 다시 그린다.
+  // 가져오기는 보통 서버의 백그라운드 작업이 한다. 그게 꺼져 있을 때만 화면이 대신 가져오기를 요청한다.
   var EVENT_CHECK_MS = 15000;
   var eventWatch = { started: false, lastId: null };
 
@@ -649,10 +660,14 @@
     if (eventWatch.started) return;
     eventWatch.started = true;
     checkEvents().catch(function () {});
+    // 연동 상태 칩(마지막 확인 시각·연결 오류)도 1분마다 새로 그린다
+    window.setInterval(function () {
+      if (!document.hidden) loadIntegrations();
+    }, 60000);
     window.setInterval(function () {
       if (!document.hidden) checkEvents().catch(function () {});
     }, EVENT_CHECK_MS);
-    if (config.pull) {
+    if (config.pull && !config.background) {
       window.setInterval(function () {
         if (document.hidden) return;
         request("POST", "/api/events/sync")
@@ -660,7 +675,7 @@
           .catch(function (err) {
             window.console && console.warn("외부 이벤트 가져오기 실패:", err.message);
           });
-      }, config.sync_seconds * 1000);
+      }, 60000);
     }
   }
 

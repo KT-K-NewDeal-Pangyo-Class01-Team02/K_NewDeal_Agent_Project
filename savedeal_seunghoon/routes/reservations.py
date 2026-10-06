@@ -7,6 +7,7 @@ from schemas.precheck_schema import PrecheckValidationError, validate_precheck_r
 from services.action_service import ActionError, ActionService
 from services.ai_service import AIService
 from services.dashboard_service import FILTER_ALL, DashboardService
+from services.event_sync import STATUS as SYNC_STATUS
 from services.notification_service import NotificationService, mask_name
 from services.reservation_service import ReservationService
 
@@ -154,10 +155,13 @@ def integrations_status():
         "n8n": {"mode": _notifier().mode},
         "ai": {"mode": ai.mode, "model": ai.model},
         "ai_logs": ai.recent_logs(limit=8),
-        # 외부 이벤트: n8n 이 보내 주는 방식(항상 열려 있음)과 SaveDeal 이 가져오는 방식(N8N_EVENTS_URL)
+        # 외부 이벤트: n8n 이 보내 주는 방식(항상 열려 있음)과 서버가 주기적으로 가져오는 방식(N8N_EVENTS_URL)
         "events": {
             "pull": bool(config.get("N8N_EVENTS_URL")),
-            "sync_seconds": max(int(config.get("EVENT_SYNC_SECONDS", 60)), 15),
+            "background": SYNC_STATUS["running"],
+            "sync_seconds": SYNC_STATUS["interval"],
+            "last_run": SYNC_STATUS["last_run"],
+            "last_error": SYNC_STATUS["last_error"],
             "inbound_auth": "secret" if config.get("N8N_WEBHOOK_SECRET") else "local-only",
         },
     })

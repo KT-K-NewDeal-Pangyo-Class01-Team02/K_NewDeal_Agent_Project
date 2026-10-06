@@ -17,7 +17,7 @@
 - 판정·우선순위·해결책 생성은 모두 Python 규칙 기반 서비스에서 한다. 프론트 JavaScript에는 업무 판정 로직을 넣지 않고, API가 준 값(라벨, `can_approve` 같은 플래그)을 그리기만 한다.
 - **AI(OpenAI)는 글을 읽고 쓰는 일만** 한다: 메모 해석, 고객 안내문, 직원 브리핑. 판정에는 개입하지 않는다. 키가 없거나 실패하면 규칙 기반 결과로 대체하고, 모든 호출을 `ai_logs`에 남긴다.
 - **n8n은 전달만** 한다 (SaveDeal → n8n Webhook → Gmail). 메일 문구는 SaveDeal이 만든다. 주소가 없으면 데모 기록만 남긴다.
-- **외부 이벤트**(개통 반려·입고 지연·서류 도착·개통 완료·취소)는 n8n이 `POST /api/events`로 보내거나, SaveDeal이 n8n에서 가져온다(`N8N_EVENTS_URL`). 반영 규칙은 `services/event_service.py`: 문제 발생 → 문제 추가·해결책 생성(진행 중인 안이 있으면 실패 처리 후 재제안), 문제 해소 → 해결 처리, 종료 이벤트 → 예약 종료. 같은 이벤트는 `external_id`로 한 번만 반영한다. 시연에서는 구글시트를 가짜 전산으로 쓴다 (`docs/n8n_events_setup.md`).
+- **외부 이벤트**(개통 반려·입고 지연·서류 도착·개통 완료·취소)는 n8n이 `POST /api/events`로 보내거나, SaveDeal 서버가 백그라운드로 `EVENT_SYNC_SECONDS`마다 n8n에서 가져온다(`N8N_EVENTS_URL`, `services/event_sync.py`, `python -m app`으로 켤 때만 돌고 테스트에서는 돌지 않음). 반영 규칙은 `services/event_service.py`: 문제 발생 → 문제 추가·해결책 생성(진행 중인 안이 있으면 실패 처리 후 재제안), 문제 해소 → 해결 처리, 종료 이벤트 → 예약 종료. 같은 이벤트는 `external_id`로 한 번만 반영한다. 시연에서는 구글시트를 가짜 전산으로 쓴다 (`docs/n8n_events_setup.md`).
 - **정기 점검**(`POST /api/monitor/scan`, `services/monitor_service.py`): 시간이 지나 새로 고위험이 된 예약만 알린다. 알린 예약은 `risk_alerts`에 기록해 반복하지 않는다.
 - `routes`(요청/응답) → `services`(판정·비즈니스 로직) → `repositories`(데이터 I/O) 순으로 계층을 나누고, `schemas`는 요청 검증을 맡는다. 현업 전환 시 repositories 만 실제 DB·전산 API로 바꾸면 된다.
 - API 응답은 `{"success": bool, "data": ..., "error": {"code", "message"} | null}` 형태로 통일한다.
@@ -37,7 +37,7 @@ samples/          사전예약_명단_예시.xlsx (업로드 시연용), 외부�
 routes/           pages(화면), reservations(운영·알림·AI API), uploads(업로드 API), events(외부 이벤트·정기 점검 API), precheck, main,
                   layout(허브 사이드바 값)
 services/         codes, risk_scoring, action, dashboard, reservation, upload, notification, n8n_client, ai_service, ai_client,
-                  event(외부 이벤트 반영), monitor(정기 점검),
+                  event(외부 이벤트 반영), event_sync(가져오기·백그라운드 자동 확인), monitor(정기 점검),
                   device_images, carriers, 사전검증 서비스들
 repositories/     reservation·proposed_action·action_history(SQLite), customer·inventory(SQLite 또는 JSON), store·device(JSON)
 templates/        cc_layout.html·cc_icons.html(허브 사본), base.html, savedeal.html(대시보드), savedeal_new.html, savedeal_upload.html
@@ -47,7 +47,7 @@ tests/            pytest (테스트마다 시드된 임시 DB 사본, 실제 네
 
 ## 화면 (상단 탭)
 
-- `/savedeal` 예약 운영: 요약 카드, 필터, 우선순위 순 예약 테이블, 상세 패널(고객 메모·AI 브리핑·해결책·알림 기록·처리이력). 상단에 n8n·AI·외부 이벤트 연동 상태, 리포트 메일 버튼. 외부 이벤트가 반영되면 15초 안에 목록·상세가 자동으로 다시 그려진다.
+- `/savedeal` 예약 운영: 요약 카드, 필터, 우선순위 순 예약 테이블, 상세 패널(고객 메모·AI 브리핑·해결책·알림 기록·처리이력). 상단에 n8n·AI·외부 이벤트 연동 상태, 리포트 메일 버튼. 외부 이벤트가 반영되면 15초 안에 목록·상세가 자동으로 다시 그려진다 (가져오기는 서버가 하고, 화면은 바뀐 게 있는지만 확인).
 - `/savedeal/new` 신규 예약: 사전검증 → 예약 등록.
 - `/savedeal/upload` 예약 업로드: 사전예약 명단·고객 정보·재고 현황 엑셀/CSV → 행별 검증 미리보기 → 등록.
 

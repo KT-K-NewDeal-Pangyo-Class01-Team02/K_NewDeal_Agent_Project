@@ -250,7 +250,58 @@ def test_reservation_dropping_out_of_high_risk_can_alert_again(client):
 
 def test_integrations_reports_event_mode(client):
     events = client.get("/api/integrations").get_json()["data"]["events"]
-    assert events == {"pull": False, "sync_seconds": 60, "inbound_auth": "local-only"}
+    assert events["pull"] is False
+    assert events["background"] is False  # 테스트에서는 백그라운드 작업이 돌지 않는다
+    assert events["inbound_auth"] == "local-only"
+
+
+# ── 백그라운드 자동 확인 ──────────────────────────────────────────
+
+def test_background_sync_starts_only_as_a_server():
+    from services.event_sync import should_start
+
+    base = {"EVENT_SYNC_SECONDS": 60, "N8N_EVENTS_URL": "https://example.n8n.cloud/webhook/savedeal-events"}
+    assert should_start(base, environ={}) is True
+    assert should_start({**base, "TESTING": True}, environ={}) is False
+    assert should_start({**base, "EVENT_SYNC_SECONDS": 0}, environ={}) is False
+    assert should_start({"EVENT_SYNC_SECONDS": 60}, environ={}) is False  # n8n 주소가 하나도 없음
+    assert should_start({"EVENT_SYNC_SECONDS": 60, "N8N_WEBHOOK_URL": "https://x"}, environ={}) is True  # 점검만
+    # 디버그 자동 재시작: 감시만 하는 부모 프로세스에서는 끄고, 실제 서버(자식)에서만 켠다
+    assert should_start({**base, "DEBUG": True}, environ={}) is False
+    assert should_start({**base, "DEBUG": True}, environ={"WERKZEUG_RUN_MAIN": "true"}) is True
+
+
+def test_background_cycle_pulls_events_and_records_status(app, monkeypatch):
+    from services import event_sync
+
+    app.config["N8N_EVENTS_URL"] = "https://example.n8n.cloud/webhook/savedeal-events"
+    monkeypatch.setattr(
+        n8n_client, "send", lambda *args, **kwargs: [{"예약번호": "R2003", "이벤트": "서류 제출", "발생시각": "09:00"}]
+    )
+    monkeypatch.setattr(event_sync, "STATUS", dict(event_sync.STATUS))
+
+    event_sync.run_cycle(app)
+
+    assert event_sync.STATUS["last_error"] is None
+    assert event_sync.STATUS["last_applied"] == 1
+    assert event_sync.STATUS["last_run"]
+    assert detail(app.test_client(), "R2003")["issues"] == []
+
+
+def test_background_cycle_survives_n8n_errors(app, monkeypatch):
+    from services import event_sync
+
+    app.config["N8N_EVENTS_URL"] = "https://example.n8n.cloud/webhook/savedeal-events"
+
+    def broken(*args, **kwargs):
+        raise n8n_client.N8nError("n8n에 연결하지 못했습니다.")
+
+    monkeypatch.setattr(n8n_client, "send", broken)
+    monkeypatch.setattr(event_sync, "STATUS", dict(event_sync.STATUS))
+
+    event_sync.run_cycle(app)  # 예외가 밖으로 나오지 않는다
+
+    assert event_sync.STATUS["last_error"] == "n8n에 연결하지 못했습니다."
 
 
 def test_demo_reset_clears_event_records(client):

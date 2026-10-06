@@ -64,9 +64,9 @@ n8n은 클라우드에 있어서 **내 컴퓨터의 `localhost`로는 들어올 
 |---|---|---|
 | 방향 | n8n → SaveDeal `POST /api/events` | SaveDeal → n8n Webhook (목록 받기) |
 | 필요한 것 | SaveDeal **공개 주소** (이승현님 서버의 `https://savedeal.ngrok.dev`) | 없음 (내 PC에서 바로 됨) |
-| 언제 반영 | n8n 스케줄 간격 (예: 1분마다) | 대시보드를 열어 둔 동안 `EVENT_SYNC_SECONDS`(기본 60초)마다 |
+| 언제 반영 | n8n 스케줄 간격 (예: 1분마다) | **SaveDeal 서버가 켜져 있는 동안** `EVENT_SYNC_SECONDS`(기본 60초)마다. 브라우저를 닫아도 됨 |
 | 정기 점검 | n8n 스케줄이 `POST /api/monitor/scan` 호출 | 가져올 때마다 같이 점검 |
-| 추천 | 서버(공개 주소)에서 시연할 때 | 내 PC에서 개발·연습할 때 |
+| 추천 | n8n에서 직접 스케줄을 관리하고 싶을 때 | **대부분 이걸로 충분** (내 PC·서버 모두) |
 
 두 방법을 같이 켜도 됩니다 (같은 이벤트는 한 번만 반영).
 
@@ -111,7 +111,13 @@ n8n은 클라우드에 있어서 **내 컴퓨터의 `localhost`로는 들어올 
 N8N_EVENTS_URL=https://<내 n8n 주소>/webhook/savedeal-events
 EVENT_SYNC_SECONDS=60
 ```
-SaveDeal을 다시 켜면 대시보드 상단 칩이 **"외부 이벤트 가져오는 중"**으로 바뀝니다.
+SaveDeal을 다시 켜면 서버가 **스스로 60초마다** n8n에서 이벤트를 가져와 반영하고, 새로 고위험이 된 예약도 점검합니다.
+대시보드 상단 칩이 **"외부 이벤트 자동 확인 · 60초"**로 바뀌고, 칩에 마우스를 올리면 마지막 확인 시각이 보입니다. n8n 주소나 비밀값이 틀리면 칩이 **"외부 이벤트 연결 확인 필요"**로 바뀝니다.
+
+- 대시보드를 열어 두지 않아도 됩니다. SaveDeal 서버(start_all 창)만 켜져 있으면 됩니다.
+- 대시보드를 열어 두면 이벤트가 반영될 때 15초 안에 화면이 자동으로 다시 그려집니다.
+- `N8N_EVENTS_URL`이 없고 `N8N_WEBHOOK_URL`만 있으면, 가져오기 없이 정기 점검(새 고위험 알림)만 주기적으로 합니다.
+- 간격은 최소 15초입니다. `EVENT_SYNC_SECONDS=0`이면 자동 확인을 끕니다 (대시보드가 열려 있을 때 화면이 대신 가져옴).
 
 ---
 
@@ -143,7 +149,7 @@ Invoke-RestMethod -Method Post -Uri http://localhost:5001/api/monitor/scan
 ```
 POST /api/events          이벤트 반영. 한 건 {..}, 목록 [..], {"events": [..]} 모두 가능 (최대 500건)
                           응답: received, counts{APPLIED/SKIPPED/ERROR/DUPLICATE}, results[], notification
-POST /api/events/sync     가져오기 모드 (N8N_EVENTS_URL 이 비어 있으면 아무것도 안 함) + 정기 점검
+POST /api/events/sync     가져오기를 지금 바로 1회 실행 (평소에는 서버가 자동으로 함) + 정기 점검
 GET  /api/events          최근 받은 이벤트와 last_id (대시보드 자동 갱신용)
 POST /api/monitor/scan    정기 점검: 새로 고위험이 된 예약만 알림 (이미 알린 예약은 다시 안 알림)
 ```
