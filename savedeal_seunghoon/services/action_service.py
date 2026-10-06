@@ -121,7 +121,7 @@ class ActionService:
                         nearby["store_id"],
                         f"{nearby_name} 재고 1대 이동",
                         f"{nearby_name}에 보유 중인 {_device_label(device)} {nearby['quantity']}대 중 1대를 "
-                        f"{store_name}으로 이동합니다. 약 {lead_days}일 소요 (가상 실행).",
+                        f"{store_name}으로 이동합니다. 약 {lead_days}일 소요.",
                         {"from_store_id": nearby["store_id"], "lead_days": lead_days},
                     )
                 )
@@ -182,7 +182,7 @@ class ActionService:
                     ACTION_INSTALLMENT_ADJUSTMENT,
                     str(INSTALLMENT_MONTHS_TO),
                     f"할부기간 {INSTALLMENT_MONTHS_FROM}→{INSTALLMENT_MONTHS_TO}개월 조정",
-                    f"할부기간을 늘려 한도 재심사를 요청합니다.{monthly} (가상 실행)",
+                    f"할부기간을 늘려 한도 재심사를 요청합니다.{monthly}",
                     {"from_months": INSTALLMENT_MONTHS_FROM, "to_months": INSTALLMENT_MONTHS_TO},
                 )
             )
@@ -195,7 +195,7 @@ class ActionService:
                     ACTION_DOCUMENT_REQUEST,
                     "message",
                     f"{names} 제출 요청 (문자)",
-                    f"고객에게 {names} 제출 안내 문자를 보냅니다 (가상 발송).",
+                    f"고객에게 {names} 제출 안내 문자를 보냅니다.",
                     {"documents": documents, "channel": "문자"},
                 )
             )
@@ -204,7 +204,7 @@ class ActionService:
                     ACTION_DOCUMENT_REQUEST,
                     "visit",
                     f"{names} 매장 방문 제출 안내",
-                    f"고객에게 전화해 {names}를 매장에서 제출하도록 안내합니다 (가상 연락).",
+                    f"고객에게 전화해 {names}를 매장에서 제출하도록 안내합니다.",
                     {"documents": documents, "channel": "전화"},
                 )
             )
@@ -238,8 +238,7 @@ class ActionService:
                     ACTION_ACTIVATION_INPUT_FIX,
                     "fix",
                     f"{field} 수정 후 재접수",
-                    f"반려 사유 '{reason}'에 해당하는 {field} 값을 고객 정보와 대조해 고친 뒤 개통을 다시 접수합니다 "
-                    "(가상 실행).",
+                    f"반려 사유 '{reason}'에 해당하는 {field} 값을 고객 정보와 대조해 고친 뒤 개통을 다시 접수합니다.",
                     {"reason": reason, "field_label": field},
                 )
             )
@@ -250,8 +249,7 @@ class ActionService:
                     ACTION_CUSTOMER_RECONTACT,
                     "call",
                     "고객에게 전화 재연락",
-                    f"마지막 연락({detail.get('last_contact_channel', '문자')}) 이후 응답이 없어 담당자가 직접 전화합니다 "
-                    "(가상 연락).",
+                    f"마지막 연락({detail.get('last_contact_channel', '문자')}) 이후 응답이 없어 담당자가 직접 전화합니다.",
                     {"channel": "전화"},
                 )
             )
@@ -260,7 +258,7 @@ class ActionService:
                     ACTION_CUSTOMER_RECONTACT,
                     "kakao",
                     "알림톡 재발송 + 수령 일정 확인",
-                    "수령 일정과 준비 상황을 담은 알림톡을 다시 보내고 회신을 요청합니다 (가상 발송).",
+                    "수령 일정과 준비 상황을 담은 알림톡을 다시 보내고 회신을 요청합니다.",
                     {"channel": "알림톡"},
                 )
             )
@@ -272,7 +270,7 @@ class ActionService:
                     "lookup",
                     "고객 정보 전산 조회 후 등록",
                     "본인인증·제출서류·할부한도 정보가 없어 개통 위험을 판단할 수 없습니다. "
-                    "전산에서 고객 정보를 조회해 등록합니다 (가상 실행).",
+                    "전산에서 고객 정보를 조회해 등록합니다.",
                     {"customer_id": detail.get("customer_id")},
                 )
             )
@@ -285,7 +283,7 @@ class ActionService:
                     ACTION_PAYMENT_GUIDE,
                     "guide",
                     f"미납요금{amount_text} 납부 안내",
-                    f"미납요금{amount_text} 납부 방법을 안내하고, 납부 확인 후 개통을 진행합니다 (가상 안내).",
+                    f"미납요금{amount_text} 납부 방법을 안내하고, 납부 확인 후 개통을 진행합니다.",
                     {"amount": amount},
                 )
             )
@@ -428,7 +426,7 @@ class ActionService:
         self.history_repo.add(
             reservation_id,
             EVENT_ACTION_APPROVED,
-            f"[{ACTION_LABELS.get(action['action_type'])}] {action['title']} 승인 · 가상 실행을 시작했습니다.",
+            f"[{ACTION_LABELS.get(action['action_type'])}] {action['title']} 승인 · 실행을 시작했습니다.",
             now,
             action_id,
         )

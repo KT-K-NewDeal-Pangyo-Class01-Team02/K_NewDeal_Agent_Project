@@ -205,7 +205,7 @@ class UploadService:
         lines = [
             f"[{spec['label']}] {spec['description']}",
             "* 표시는 필수 열입니다. 2행은 예시이니 지우고 작성하세요.",
-            "연락처는 가운데 4자리를 가린 형식(010-****-1234)만 받습니다. 교육용 가상 데이터만 입력하세요.",
+            "개인정보 보호를 위해 연락처는 가운데 4자리를 가린 형식(010-****-1234)만 받습니다.",
             "날짜는 2026-10-10 형식으로 입력하세요.",
             "매장코드: " + ", ".join(sorted(self.store_ids)),
         ]
@@ -234,7 +234,7 @@ class UploadService:
 
         phone_key = "customer_phone" if kind == "reservations" else "phone"
         if value.get(phone_key) and not MASKED_PHONE.match(value[phone_key]):
-            errors.append("연락처는 가운데를 가린 형식(010-****-1234)만 받습니다. 교육용 가상 데이터만 입력하세요.")
+            errors.append("개인정보 보호를 위해 연락처는 가운데를 가린 형식(010-****-1234)만 받습니다.")
 
         if kind == "reservations":
             if value["customer_id"] and not re.fullmatch(r"C\d+", value["customer_id"]):

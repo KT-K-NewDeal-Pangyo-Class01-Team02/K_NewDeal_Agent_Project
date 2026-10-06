@@ -31,7 +31,7 @@ KIND_EXTERNAL_EVENTS = "EXTERNAL_EVENTS"
 KIND_LABELS = {
     KIND_UPLOAD_SUMMARY: "업로드 결과",
     KIND_HIGH_RISK: "고위험 경보",
-    KIND_CUSTOMER_NOTICE: "고객 안내 (가상)",
+    KIND_CUSTOMER_NOTICE: "고객 안내",
     KIND_DAILY_REPORT: "운영 리포트",
     KIND_EXTERNAL_EVENTS: "외부 이벤트 반영",
 }
@@ -39,7 +39,7 @@ KIND_LABELS = {
 STATUS_SENT = "SENT"
 STATUS_FAILED = "FAILED"
 STATUS_DEMO = "DEMO"
-STATUS_LABELS = {STATUS_SENT: "발송 완료", STATUS_FAILED: "발송 실패", STATUS_DEMO: "데모 기록"}
+STATUS_LABELS = {STATUS_SENT: "발송 완료", STATUS_FAILED: "발송 실패", STATUS_DEMO: "기록만 (메일 미연결)"}
 
 EVENT_NOTIFICATION = "NOTIFICATION"
 
@@ -57,7 +57,7 @@ CUSTOMER_FACING_ACTIONS = {
 }
 
 SUBJECT_PREFIX = "[SaveDeal]"
-FOOTER = "\n\n— SaveDeal 예약판매 이탈 방지 Agent (교육용 가상 데이터)"
+FOOTER = "\n\n— SaveDeal 예약판매 이탈 방지 Agent"
 
 
 def mask_name(name: str | None) -> str:
@@ -133,7 +133,7 @@ class NotificationService:
         if row["reservation_id"]:
             message = {
                 STATUS_SENT: f"{KIND_LABELS[row['kind']]} 메일을 보냈습니다 (n8n → Gmail).",
-                STATUS_DEMO: f"{KIND_LABELS[row['kind']]} 메일을 데모로 기록했습니다 (n8n 미연결).",
+                STATUS_DEMO: f"{KIND_LABELS[row['kind']]} 메일은 연결된 메일 주소가 없어 발송하지 않고 기록만 남겼습니다.",
                 STATUS_FAILED: f"{KIND_LABELS[row['kind']]} 메일 발송에 실패했습니다: {error}",
             }[status]
             self.history_repo.add(row["reservation_id"], EVENT_NOTIFICATION, message, now, row["action_id"])
@@ -249,13 +249,13 @@ class NotificationService:
         )
 
     def notify_customer(self, reservation_id: str, action: dict, notice_text: str) -> dict | None:
-        """해결책 승인 시 고객 안내 (가상 발송: 실제 고객이 아니라 담당자 메일로 간다)."""
+        """해결책 승인 시 고객 안내문 (고객에게 직접 보내지 않고 담당자 메일로 사본을 보낸다)."""
         if action["action_type"] not in CUSTOMER_FACING_ACTIONS:
             return None
         reservation = self.reservation_repo.find_by_id(reservation_id)
         name = mask_name(reservation["customer_name"])
         body = "\n".join([
-            "[가상 고객 안내] 실제 고객에게 보내지 않고, 시연을 위해 담당자 메일로 받습니다.",
+            "[고객 안내문] 담당자 확인용 사본입니다. 내용을 확인한 뒤 고객에게 전달해 주세요.",
             f"받는 고객: {name} ({reservation.get('customer_phone') or '-'}) · 예약 {reservation_id}",
             "",
             notice_text,

@@ -589,7 +589,7 @@
         box.innerHTML = "";
         var n8n = el("span", "integration-chip" + (data.n8n.mode === "n8n" ? " is-on" : ""));
         n8n.appendChild(el("span", "integration-dot"));
-        n8n.appendChild(document.createTextNode(data.n8n.mode === "n8n" ? "n8n 연결됨" : "n8n 데모 모드"));
+        n8n.appendChild(document.createTextNode(data.n8n.mode === "n8n" ? "n8n 연결됨" : "메일 미연결"));
         n8n.title = data.n8n.mode === "n8n" ? "알림을 n8n → Gmail 로 보냅니다." : "N8N_WEBHOOK_URL 이 비어 있어 메일을 보내지 않고 기록만 합니다.";
         var ai = el("span", "integration-chip" + (data.ai.mode === "ai" ? " is-on" : ""));
         ai.appendChild(el("span", "integration-dot"));
@@ -770,7 +770,7 @@
       button.disabled = true;
       request("POST", "/api/notifications/daily-report")
         .then(function (result) {
-          window.ccToast && window.ccToast("운영 리포트 " + result.status_label + (result.status === "DEMO" ? " (n8n 미연결)" : ""));
+          window.ccToast && window.ccToast("운영 리포트 " + result.status_label + (result.status === "DEMO" ? " (메일 미연결)" : ""));
         })
         .catch(function (err) {
           window.ccToast && window.ccToast("리포트를 보내지 못했습니다: " + err.message);
@@ -779,8 +779,42 @@
           button.disabled = false;
         });
     });
+    // 최신화: 서버가 60초마다 하는 일(외부 이벤트 가져오기 + 고위험 점검)을 지금 바로 하고 화면을 새로 그린다
+    $("#refresh-now").addEventListener("click", function () {
+      var button = $("#refresh-now");
+      var spinner = button.querySelector(".icon");
+      button.disabled = true;
+      spinner && spinner.classList.add("is-spinning");
+      request("POST", "/api/events/sync")
+        .then(function (result) {
+          var applied = (result.counts && result.counts.APPLIED) || 0;
+          var alerts = result.scan ? result.scan.new_alerts.length : 0;
+          var message = !result.enabled
+            ? "최신 상태로 새로 고쳤습니다."
+            : applied
+              ? "외부 이벤트 " + applied + "건을 반영했습니다."
+              : "새로 들어온 외부 이벤트가 없습니다.";
+          if (alerts) message += " 새 고위험 예약 " + alerts + "건을 알렸습니다.";
+          window.ccToast && window.ccToast(message);
+          // 방금 반영한 이벤트를 자동 확인이 다시 알리지 않게 기준을 맞춘다
+          return request("GET", "/api/events?limit=1").then(function (data) {
+            eventWatch.lastId = data.last_id;
+          });
+        })
+        .catch(function (err) {
+          window.ccToast && window.ccToast("외부 이벤트를 가져오지 못했습니다: " + err.message);
+        })
+        .then(function () {
+          loadIntegrations();
+          return Promise.all([loadList(), loadDetail()]);
+        })
+        .finally(function () {
+          button.disabled = false;
+          spinner && spinner.classList.remove("is-spinning");
+        });
+    });
     $("#reset-demo").addEventListener("click", function () {
-      if (!window.confirm("모든 예약·해결책·처리이력을 지우고 데모 데이터로 되돌릴까요?")) return;
+      if (!window.confirm("모든 예약·해결책·처리이력을 지우고 초기 데이터로 되돌릴까요?")) return;
       request("POST", "/api/demo/reset").then(function () {
         closePanel();
         loadList();
