@@ -334,6 +334,9 @@
     row.tabIndex = 0;
     row.dataset.id = item.reservation_id;
     if (item.reservation_id === state.selectedId) row.classList.add("is-selected");
+    // '이벤트 발생'으로 방금 바뀐 예약: 몇 초 동안 줄을 강조하고, 순위 변화와 새 문제를 표시한다
+    var flash = state.flash && state.flash.id === item.reservation_id && Date.now() < state.flash.until ? state.flash : null;
+    if (flash) row.classList.add("is-fresh");
 
     var priority = el("td", "col-num");
     var priorityCell = el("div", "priority-cell");
@@ -342,6 +345,11 @@
       var score = el("span", "priority-score", item.priority_score);
       score.appendChild(el("span", "priority-unit", "점"));
       priorityCell.appendChild(score);
+      if (flash && flash.rankBefore && flash.rankBefore > rank) {
+        var change = el("span", "rank-change", "▲" + (flash.rankBefore - rank));
+        change.title = flash.rankBefore + "위 → " + rank + "위";
+        priorityCell.appendChild(change);
+      }
     } else {
       priorityCell.appendChild(el("span", "cell-sub", "-"));
     }
@@ -377,7 +385,10 @@
       chips.appendChild(el("span", "cell-sub", item.is_open ? "문제 없음" : "-"));
     }
     item.issues.forEach(function (issue) {
-      chips.appendChild(el("span", "chip", issue.label));
+      var isNew = flash && flash.newIssues.indexOf(issue.code) !== -1;
+      var chip = el("span", "chip" + (isNew ? " is-new" : ""), issue.label);
+      if (isNew) chip.title = "방금 발생한 문제";
+      chips.appendChild(chip);
     });
     issues.appendChild(chips);
     row.appendChild(issues);
@@ -765,6 +776,61 @@
       });
   }
 
+  // ── 이벤트 발생 결과 배너 ───────────────────────────────────────
+  // 무슨 이벤트로 순위가 바뀌었는지 다음 이벤트가 날 때까지 목록 위에 남겨 둔다
+  var FLASH_MS = 10000;
+
+  function showEventBanner(result) {
+    var banner = $("#event-banner");
+    if (!banner) return;
+    banner.innerHTML = "";
+    banner.appendChild(icon("zap", "event-banner-icon"));
+
+    var body = el("div", "event-banner-body");
+    var title = el("div", "event-banner-title");
+    title.appendChild(el("strong", null, result.customer_name + " (" + result.reservation_id + ")"));
+    var before = result.before.rank;
+    var after = result.after.rank;
+    var move = before && after ? before + "위 → " + after + "위" : "";
+    title.appendChild(
+      el("span", "event-banner-move" + (before && after && after < before ? " is-up" : ""),
+        "우선순위 " + move + " · " + result.before.priority + "점 → " + result.after.priority + "점 · " + result.after.risk)
+    );
+    body.appendChild(title);
+
+    var list = el("ul", "event-banner-events");
+    result.events.forEach(function (event) {
+      var li = el("li");
+      li.appendChild(el("span", "event-banner-label", event.label));
+      if (event.reason) li.appendChild(el("span", "event-banner-reason", event.reason));
+      list.appendChild(li);
+    });
+    body.appendChild(list);
+    banner.appendChild(body);
+
+    var actions = el("div", "event-banner-actions");
+    var open = el("button", "btn-text", "상세 보기");
+    open.type = "button";
+    open.addEventListener("click", function () {
+      selectReservation(result.reservation_id);
+    });
+    var close = el("button", "icon-button");
+    close.type = "button";
+    close.setAttribute("aria-label", "닫기");
+    close.appendChild(icon("x"));
+    close.addEventListener("click", function () {
+      banner.hidden = true;
+    });
+    actions.appendChild(open);
+    actions.appendChild(close);
+    banner.appendChild(actions);
+
+    banner.hidden = false;
+    banner.classList.remove("is-entering");
+    void banner.offsetWidth; // 같은 배너에 애니메이션을 다시 걸기 위해
+    banner.classList.add("is-entering");
+  }
+
   // ── 외부 이벤트 ─────────────────────────────────────────────────
   // 외부 이벤트(개통 반려, 서류 도착 등)가 반영되면 화면을 다시 그린다.
   // 가져오기는 보통 서버의 백그라운드 작업이 한다. 그게 꺼져 있을 때만 화면이 대신 가져오기를 요청한다.
@@ -918,6 +984,37 @@
         })
         .catch(function (err) {
           window.ccToast && window.ccToast("리포트를 보내지 못했습니다: " + err.message);
+        })
+        .finally(function () {
+          button.disabled = false;
+        });
+    });
+    // 이벤트 발생: 첫 번째는 정하늘을 1위로, 그다음부터는 무작위 한 명에게 이벤트 하나 (판단은 서버가 한다)
+    $("#trigger-event").addEventListener("click", function () {
+      var button = $("#trigger-event");
+      button.disabled = true;
+      request("POST", "/api/events/trigger")
+        .then(function (result) {
+          state.flash = {
+            id: result.reservation_id,
+            rankBefore: result.before.rank,
+            newIssues: result.new_issue_codes,
+            until: Date.now() + FLASH_MS,
+          };
+          showEventBanner(result);
+          // 방금 반영한 이벤트를 자동 확인이 다시 알리지 않게 기준을 맞춘다
+          return request("GET", "/api/events?limit=1").then(function (data) {
+            eventWatch.lastId = data.last_id;
+            return loadList();
+          });
+        })
+        .then(function () {
+          var row = state.flash && document.querySelector('.reservation-row[data-id="' + state.flash.id + '"]');
+          if (row) row.scrollIntoView({ behavior: REDUCED_MOTION ? "auto" : "smooth", block: "center" });
+          if (state.flash && state.selectedId === state.flash.id) loadDetail();
+        })
+        .catch(function (err) {
+          window.ccToast && window.ccToast("이벤트를 발생시키지 못했습니다: " + err.message);
         })
         .finally(function () {
           button.disabled = false;

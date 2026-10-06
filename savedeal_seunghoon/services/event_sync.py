@@ -23,7 +23,7 @@ MIN_INTERVAL_SECONDS = 15
 log = logging.getLogger("savedeal.event_sync")
 
 # 백그라운드 작업과 '최신화' 버튼·n8n 호출이 동시에 같은 이벤트를 반영하지 않도록 한 번에 하나씩만 처리한다
-_lock = threading.RLock()
+EVENT_LOCK = threading.RLock()
 
 # 백그라운드 작업 상태 (연동 상태 칩에 보여 준다)
 STATUS = {"running": False, "interval": None, "last_run": None, "last_error": None, "last_applied": 0}
@@ -35,14 +35,21 @@ def _paths(config):
 
 def apply_and_notify(config, raw_events: list) -> dict:
     """이벤트를 반영하고, 반영된 것이 있으면 담당자에게 한 통으로 알린다."""
-    with _lock:
+    with EVENT_LOCK:
         return _apply_and_notify(config, raw_events)
 
 
 def _apply_and_notify(config, raw_events: list) -> dict:
     results = EventService(*_paths(config)).apply_batch(raw_events)
-    applied = [r for r in results if r["result"] == RESULT_APPLIED]
+    counts = {}
+    for r in results:
+        counts[r["result"]] = counts.get(r["result"], 0) + 1
+    return {"received": len(results), "counts": counts, "results": results, "notification": notify_applied(config, results)}
 
+
+def notify_applied(config, results: list[dict]) -> dict | None:
+    """반영된 이벤트를 담당자에게 메일 한 통으로 알린다. 반영된 게 없으면 보내지 않는다."""
+    applied = [r for r in results if r["result"] == RESULT_APPLIED]
     notification = None
     if applied:
         dashboard = DashboardService(*_paths(config))
@@ -61,18 +68,14 @@ def _apply_and_notify(config, raw_events: list) -> dict:
         notification = notifier.notify_external_events(lines, reservation_id)
         # 이 메일로 고위험 사실을 이미 알렸으므로 정기 점검이 다시 알리지 않게 한다
         notifier.mark_alerted(high)
-
-    counts = {}
-    for r in results:
-        counts[r["result"]] = counts.get(r["result"], 0) + 1
-    return {"received": len(results), "counts": counts, "results": results, "notification": notification}
+    return notification
 
 
 def sync_once(config, scan: bool = True) -> dict:
     """n8n 에서 이벤트를 가져와 반영하고(주소가 있을 때), 정기 점검을 한다. n8n 오류는 N8nError 로 올린다."""
     url = config.get("N8N_EVENTS_URL", "")
     result = {"enabled": bool(url), "received": 0, "counts": {}, "results": [], "notification": None}
-    with _lock:
+    with EVENT_LOCK:
         _sync(config, url, scan, result)
     return result
 
