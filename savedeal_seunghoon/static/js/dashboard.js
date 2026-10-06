@@ -24,6 +24,78 @@
   var ACTION_STATUS_TONES = { APPROVED: "tone-info", SUCCEEDED: "tone-success", FAILED: "tone-danger" };
   var SVG_NS = "http://www.w3.org/2000/svg";
 
+  // ── 흐르는 시간 ─────────────────────────────────────────────────
+  // 남은 시간·대기 시간은 서버가 준 원래 시각(마감, 대기 시작)으로 1초마다 다시 계산한다.
+  // 서버 시계를 기준으로 하기 위해 응답의 generated_at 과 이 컴퓨터 시계의 차이를 기억해 둔다.
+  // 시간에 따라 바뀌는 점수·우선순위·건수는 서버가 계산하므로 1분마다 목록을 다시 받는다.
+  var clock = { offset: 0 };
+
+  function parseLocal(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(iso || "");
+    if (!m) return NaN;
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime();
+  }
+
+  function syncClock(serverIso) {
+    var server = parseLocal(serverIso);
+    if (!isNaN(server)) clock.offset = server - Date.now();
+  }
+
+  function nowMs() {
+    return Date.now() + clock.offset;
+  }
+
+  // 서버 dashboard_service._duration_label 과 같은 규칙
+  function durationText(ms, withSeconds) {
+    var total = Math.floor(Math.abs(ms) / 1000);
+    var days = Math.floor(total / 86400);
+    var hours = Math.floor((total % 86400) / 3600);
+    var minutes = Math.floor((total % 3600) / 60);
+    var seconds = total % 60;
+    if (days) return days + "일 " + hours + "시간";
+    if (hours) return hours + "시간 " + minutes + "분";
+    if (withSeconds) return minutes ? minutes + "분 " + seconds + "초" : seconds + "초";
+    return minutes ? minutes + "분" : "1분 미만";
+  }
+
+  // data-deadline: 남은 시간 / data-since: 지난 시간. data-overdue-class: 마감이 지나면 붙일 클래스
+  function liveDeadline(node, deadlineIso, overdueClass, withIcon) {
+    node.dataset.deadline = deadlineIso;
+    if (overdueClass) node.dataset.overdueClass = overdueClass;
+    if (withIcon) node.dataset.overdueIcon = "1";
+    renderLive(node);
+    return node;
+  }
+
+  function liveSince(node, sinceIso) {
+    node.dataset.since = sinceIso;
+    renderLive(node);
+    return node;
+  }
+
+  function renderLive(node) {
+    if (node.dataset.since) {
+      var since = parseLocal(node.dataset.since);
+      if (!isNaN(since)) node.textContent = durationText(nowMs() - since, false);
+      return;
+    }
+    var deadline = parseLocal(node.dataset.deadline);
+    if (isNaN(deadline)) return;
+    var left = deadline - nowMs();
+    var overdue = left < 0;
+    var text = durationText(left, true) + (overdue ? " 초과" : " 남음");
+    if (node.dataset.overdueClass) node.classList.toggle(node.dataset.overdueClass, overdue);
+    var row = node.closest(".reservation-row");
+    if (row) row.classList.toggle("is-overdue", overdue);
+    node.textContent = "";
+    if (overdue && node.dataset.overdueIcon) node.appendChild(icon("alarm-clock"));
+    node.appendChild(document.createTextNode(text));
+  }
+
+  function tickTimes() {
+    document.querySelectorAll("[data-deadline], [data-since]").forEach(renderLive);
+  }
+
   function $(selector, scope) {
     return (scope || document).querySelector(selector);
   }
@@ -159,6 +231,7 @@
   }
 
   function renderList(data) {
+    syncClock(data.generated_at);
     Object.keys(data.summary).forEach(function (key) {
       var target = document.getElementById("summary-" + key);
       if (target) target.textContent = data.summary[key];
@@ -195,7 +268,13 @@
   }
 
   function renderRow(item, rank) {
-    var row = el("tr", "reservation-row" + (item.is_open ? "" : " is-closed") + (item.is_overdue ? " is-overdue" : ""));
+    var row = el(
+      "tr",
+      "reservation-row" +
+        (item.is_open ? "" : " is-closed") +
+        (item.is_overdue ? " is-overdue" : "") +
+        (item.reservation_id === state.selectedId ? " is-selected" : "")
+    );
     row.tabIndex = 0;
     row.dataset.id = item.reservation_id;
     if (item.reservation_id === state.selectedId) row.classList.add("is-selected");
@@ -257,10 +336,9 @@
 
     var deadline = el("td", "cell-deadline");
     if (item.is_open) {
-      var deadlineLabel = el("span", "cell-main cell-strong" + (item.is_overdue ? " deadline-overdue" : ""));
-      if (item.is_overdue) deadlineLabel.appendChild(icon("alarm-clock"));
+      var deadlineLabel = el("span", "cell-main cell-strong");
       deadlineLabel.appendChild(document.createTextNode(item.deadline_label));
-      deadline.appendChild(deadlineLabel);
+      deadline.appendChild(liveDeadline(deadlineLabel, item.activation_deadline, "deadline-overdue", true));
       deadline.appendChild(el("span", "cell-sub", item.deadline_display));
     } else {
       deadline.appendChild(el("span", "cell-sub", item.completed_at_display ? item.completed_at_display + " 완료" : "-"));
@@ -350,6 +428,7 @@
     eyebrow.appendChild(document.createTextNode(detail.reservation_id));
     eyebrow.appendChild(statusBadge(detail.status, detail.status_label));
     $("#detail-title").textContent = detail.customer_name + " 고객";
+    syncClock(detail.generated_at);
 
     var body = $("#detail-body");
     body.innerHTML = "";
@@ -375,9 +454,9 @@
       var riskClass = detail.risk_level === "high" ? "tone-danger" : detail.risk_level === "medium" ? "tone-warning" : "tone-success";
       scores.appendChild(scoreTile("이탈위험 점수", detail.churn_risk_score, detail.risk_label, riskClass));
       scores.appendChild(scoreTile("우선순위", detail.priority_score + "점", null));
-      scores.appendChild(
-        scoreTile("처리 마감", detail.deadline_label, detail.deadline_display, detail.is_overdue ? "tone-danger" : null)
-      );
+      var deadlineTile = scoreTile("처리 마감", detail.deadline_label, detail.deadline_display, null);
+      liveDeadline($(".score-tile-value", deadlineTile), detail.activation_deadline, "tone-danger", false);
+      scores.appendChild(deadlineTile);
     } else {
       scores.appendChild(scoreTile("진행상태", detail.status_label, detail.completed_at_display));
     }
@@ -405,6 +484,7 @@
         value.textContent = pair[1] + " ";
         value.appendChild(carrierChange(detail.carrier_change, true));
       }
+      if (pair[0] === "고객 대기" && detail.waiting_since) liveSince(value, detail.waiting_since);
       dl.appendChild(value);
     });
     info.appendChild(dl);
@@ -765,6 +845,13 @@
       if (event.key === "Escape" && state.selectedId) closePanel();
     });
     loadIntegrations();
+    // 남은 시간·대기 시간은 1초마다, 점수·우선순위·건수는 1분마다 서버에서 새로 받아 흐르게 한다
+    window.setInterval(function () {
+      if (!document.hidden) tickTimes();
+    }, 1000);
+    window.setInterval(function () {
+      if (!document.hidden) loadList();
+    }, 60000);
     $("#send-report").addEventListener("click", function () {
       var button = $("#send-report");
       button.disabled = true;

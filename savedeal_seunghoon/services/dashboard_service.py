@@ -69,20 +69,27 @@ RISK_PARAMS = {"high", "medium", "low"}
 DUE_SOON_HOURS = 6
 
 
-def _duration_label(hours: float) -> str:
-    hours = abs(hours)
-    if hours >= 24:
-        return f"{int(hours // 24)}일 {int(hours % 24)}시간"
-    if hours >= 1:
-        return f"{int(hours)}시간"
-    return f"{max(1, int(hours * 60))}분"
+def _duration_label(hours: float, seconds: bool = False) -> str:
+    """1일 이상: 'N일 N시간', 1시간 이상: 'N시간 N분', 그 아래: 'N분'(seconds=True 면 'N분 N초').
+    화면(static/js/dashboard.js 의 durationText)도 같은 규칙으로 1초마다 다시 계산한다."""
+    total = int(abs(hours) * 3600)
+    days, rest = divmod(total, 86400)
+    whole_hours, rest = divmod(rest, 3600)
+    minutes, secs = divmod(rest, 60)
+    if days:
+        return f"{days}일 {whole_hours}시간"
+    if whole_hours:
+        return f"{whole_hours}시간 {minutes}분"
+    if seconds:
+        return f"{minutes}분 {secs}초" if minutes else f"{secs}초"
+    return f"{minutes}분" if minutes else "1분 미만"
 
 
 def deadline_label(deadline: str, now: datetime) -> str:
     left = hours_until(deadline, now)
     if left < 0:
-        return f"{_duration_label(left)} 초과"
-    return f"{_duration_label(left)} 남음"
+        return f"{_duration_label(left, seconds=True)} 초과"
+    return f"{_duration_label(left, seconds=True)} 남음"
 
 
 def _format_datetime(value: str | None) -> str | None:
@@ -196,6 +203,8 @@ class DashboardService:
             "waiting_label": _duration_label(hours_since(reservation["customer_waiting_since"], now))
             if is_open
             else "-",
+            # 화면이 1초마다 남은 시간·대기 시간을 다시 계산할 때 쓰는 원래 시각
+            "waiting_since": reservation["customer_waiting_since"] if is_open else None,
             "retry_count": reservation["retry_count"],
             "completed_at_display": _format_datetime(reservation["completed_at"]),
             "_completed_at": reservation["completed_at"] or "",
@@ -343,6 +352,7 @@ class DashboardService:
                 "past_actions": past,
                 "history": history,
                 "can_complete": reservation["status"] == STATUS_READY,
+                "generated_at": now.isoformat(timespec="seconds"),
             }
         )
         return detail
