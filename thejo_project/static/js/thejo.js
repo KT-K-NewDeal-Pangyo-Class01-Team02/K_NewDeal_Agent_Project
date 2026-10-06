@@ -181,40 +181,87 @@
   }
 
   // ── 혜택 시뮬레이션 ────────────────────────────────────────────────────
-  const simForm = document.querySelector('[data-sim-form]');
-  if (!simForm) return;
+  // 첫 화면은 서버가 채운다. 여기서는 (1) 카드 선택 (2) 계산하기 때 서버에 다시 물어 같은 칸을 갈아 끼운다.
+  // 금액은 서버 응답을 그대로 쓰고, 표기(쉼표·원)만 바꾼다.
+  const sim = document.getElementById('simulator');
+  if (!sim) return;
 
-  const input = simForm.querySelector('[data-sim-input]');
-  const out = document.querySelector('[data-sim-out]');
-  const error = document.querySelector('[data-sim-error]');
+  const simForm = sim.querySelector('[data-sim-form]');
+  const input = sim.querySelector('[data-sim-input]');
+  const errorBox = sim.querySelector('[data-sim-error]');
+  const pickBox = sim.querySelector('[data-sim-pick-box]');
+  const warnBox = sim.querySelector('[data-sim-warn]');
+  const resultBox = sim.querySelector('[data-sim-result]');
+  const missingBox = sim.querySelector('[data-sim-missing]');
 
-  const FIELDS = {
-    per_unit: won,
-    monthly_incentive: won,
-    units_needed: (v) => (v > 0 ? `${v}건` : '최상위 구간'),
-    tier_gain: won,
-    minimum_secured_profit: won,
-    benefit_budget: won,
-  };
+  const MONEY = new Set([
+    'tier_gain', 'minimum_secured_profit', 'benefit_budget',
+    'per_unit', 'next_per_unit', 'monthly_incentive',
+  ]);
+  const isEmpty = (v) => v === null || v === undefined || v === '';
 
+  function render(data) {
+    sim.querySelectorAll('[data-sim]').forEach((el) => {
+      const value = data[el.dataset.sim];
+      if (isEmpty(value)) el.textContent = '—';
+      else el.textContent = MONEY.has(el.dataset.sim) ? won(value) : String(value);
+    });
+    // 시트에 없는 값(건당·총 인센티브 등)은 칸째 숨긴다
+    sim.querySelectorAll('[data-sim-row]').forEach((row) => {
+      row.hidden = isEmpty(data[row.dataset.simRow]);
+    });
+    sim.querySelector('[data-sim-note]').hidden = isEmpty(data.note);
+    warnBox.hidden = !data.shortfall;
+    resultBox.classList.toggle('is-zero', !data.benefit_budget);
+    if (missingBox) missingBox.hidden = data.basis !== 'insight';
+  }
+
+  function calculate() {
+    errorBox.textContent = '';
+    const params = new URLSearchParams({ units: input.value });
+    // 선택한 기회를 같이 보낸다. 서버가 최신 인사이트에서 다시 찾아 계산한다.
+    if (pickBox.dataset.insightId) params.set('insight_id', pickBox.dataset.insightId);
+    if (pickBox.dataset.device) params.set('device_model_name', pickBox.dataset.device);
+    if (pickBox.dataset.plan) params.set('plan_code', pickBox.dataset.plan);
+
+    return fetch(`${sim.dataset.simUrl}?${params}`, { headers: { Accept: 'application/json' } })
+      .then((res) => res.json().then((body) => (res.ok ? body : Promise.reject(body))))
+      .then(render)
+      .catch((body) => {
+        errorBox.textContent = (body && body.error) || '계산하지 못했어요. 잠시 후 다시 시도해 주세요.';
+      });
+  }
+
+  // 판매 건수를 직접 바꿔 계산하기 (기존 기능)
   simForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    error.textContent = '';
+    calculate();
+  });
 
-    fetch(`${simForm.dataset.simUrl}?units=${encodeURIComponent(input.value)}`, {
-      headers: { Accept: 'application/json' },
-    })
-      .then((res) => res.json().then((body) => (res.ok ? body : Promise.reject(body))))
-      .then((data) => {
-        Object.entries(FIELDS).forEach(([key, format]) => {
-          const cell = out.querySelector(`[data-sim="${key}"]`);
-          if (cell) cell.textContent = format(data[key]);
-        });
-        out.hidden = false;
-      })
-      .catch((body) => {
-        out.hidden = true;
-        error.textContent = (body && body.error) || '계산하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  // 수익 기회 카드의 '혜택 시뮬레이션' → 그 카드로 바로 교체
+  document.querySelectorAll('[data-sim-pick]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      const id = button.dataset.insightId;
+
+      pickBox.dataset.insightId = id;
+      pickBox.dataset.device = button.dataset.device || '';
+      pickBox.dataset.plan = button.dataset.plan || '';
+      input.value = button.dataset.current;
+      document.querySelectorAll('[data-insight-card]').forEach((card) => {
+        card.classList.toggle('is-selected', card.dataset.insightCard === id);
       });
+
+      // 새로고침해도 같은 카드가 선택되도록 주소에 남긴다
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('insight', id);
+        url.hash = 'simulator';
+        window.history.replaceState(null, '', url);
+      } catch (_) { /* 주소 갱신 실패는 무시 */ }
+
+      sim.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      calculate();
+    });
   });
 })();

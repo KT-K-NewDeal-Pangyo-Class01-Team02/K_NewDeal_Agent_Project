@@ -96,12 +96,32 @@ def warnings():
 
 @thejo_bp.get("/opportunities")
 def opportunities():
+    insight_ctx = _insight_context()
+    summary = opportunity_service.get_dashboard_summary()
+
+    # 시뮬레이터 첫 화면: 카드에서 넘어온 ?insight=<id> 의 기회로 채운다.
+    # 인사이트가 없으면(데모) 기존처럼 기본 정책 + 이번 달 판매량으로 채운다.
+    sim_notice = None
+    rows = insight_ctx["insight_opportunities"]
+    if insight_ctx["insights_source"] == "n8n" and rows:
+        wanted = (request.args.get("insight") or "").strip()
+        row = next((r for r in rows if r["insight_id"] == wanted), None)
+        if row is None:
+            if wanted:
+                sim_notice = "선택한 기회가 최신 데이터에 없어 첫 번째 기회를 보여 드립니다."
+            row = rows[0]
+        sim = opportunity_service.simulate_insight(row, insight_ctx["insights_date"])
+    else:
+        sim = opportunity_service.simulate_benefit(summary["units_sold"])
+
     return render_template(
         "thejo/opportunities.html",
         active_agent_id=AGENT_ID,
         opportunities=opportunity_service.get_profit_opportunities(),
-        summary=opportunity_service.get_dashboard_summary(),
-        **_insight_context(),
+        summary=summary,
+        sim=sim,
+        sim_notice=sim_notice,
+        **insight_ctx,
     )
 
 
@@ -183,4 +203,17 @@ def simulate():
         return jsonify(error="판매 건수를 숫자로 보내 주세요."), 400
     if not 0 <= units <= 999:
         return jsonify(error="판매 건수는 0~999 사이여야 합니다."), 400
-    return jsonify(opportunity_service.simulate_benefit(units))
+
+    # 선택한 기회(카드). 화면이 보낸 금액은 믿지 않고, 서버의 최신 인사이트에서 다시 찾는다.
+    insight_id = (request.args.get("insight_id") or "").strip()
+    device = (request.args.get("device_model_name") or "").strip()
+    plan = (request.args.get("plan_code") or "").strip()
+    row, report_date = None, None
+    if insight_id or device or plan:
+        row, report_date = insight_service.find_opportunity(insight_id, device, plan)
+        if row is None:
+            return jsonify(error="선택한 기회를 최신 데이터에서 찾지 못했습니다. 페이지를 새로고침해 주세요."), 404
+        if (device and device != row["device_model_name"]) or (plan and plan != row["plan_code"]):
+            return jsonify(error="선택한 단말기·요금제가 최신 데이터와 다릅니다. 페이지를 새로고침해 주세요."), 409
+
+    return jsonify(opportunity_service.simulate(units, row, report_date))

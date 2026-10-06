@@ -23,6 +23,26 @@ def get_view_data(force_refresh=False):
     }
 
 
+def find_opportunity(insight_id="", device_model_name="", plan_code=""):
+    """시뮬레이션할 추가 수익 기회 하나를 최신 인사이트에서 찾는다. → (row, report_date)
+
+    insight_id 가 있으면 그것으로, 없으면 단말기 + 요금제 조합으로 찾는다.
+    화면과 같은 캐시를 쓰므로 카드에 보이던 값과 같은 값으로 계산된다. 못 찾으면 row 는 None.
+    """
+    data = get_view_data()
+    if not data:
+        return None, None
+    rows = data["opportunities"]
+    if insight_id:
+        match = next((r for r in rows if r["insight_id"] == insight_id), None)
+    elif device_model_name or plan_code:
+        match = next((r for r in rows
+                      if r["device_model_name"] == device_model_name and r["plan_code"] == plan_code), None)
+    else:
+        match = None
+    return match, data["report_date"]
+
+
 def _attach_transaction(row):
     """거래 ID 가 기존 거래 데이터에서 조회되면 붙인다. 안 되면 transaction=None.
 

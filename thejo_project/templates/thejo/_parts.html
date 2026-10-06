@@ -86,9 +86,11 @@
 <p class="tj-source-note">{{ icon("refresh", 14) }} Google Sheets 최신 데이터 기준 · {{ report_date }}</p>
 {%- endmacro %}
 
-{#- 추가 수익 기회 (category == "추가 수익 기회") -#}
-{% macro insight_opportunity_card(o) -%}
-<article class="tj-chance cc-card tj-insight">
+{#- 추가 수익 기회 (category == "추가 수익 기회")
+    selected=True 면 지금 시뮬레이터가 계산 중인 카드라는 표시를 한다. -#}
+{% macro insight_opportunity_card(o, selected=False) -%}
+<article class="tj-chance cc-card tj-insight{% if selected %} is-selected{% endif %}"
+         data-insight-card="{{ o.insight_id }}">
   <header class="tj-chance-head">
     <span class="tj-chance-tag">{{ icon("coins", 18) }} 추가 수익 기회</span>
     {% if o.severity %}<span class="tj-chance-note">{{ o.severity }}</span>{% endif %}
@@ -113,7 +115,15 @@
   {% endif %}
 
   <footer class="tj-chance-foot">
-    <a class="cc-btn cc-btn-primary" href="{{ url_for('thejo.opportunities') }}#simulator">
+    {#- 어떤 카드인지 주소(?insight=)와 data-* 에 담는다.
+        다른 화면에서 누르면 주소로 넘어가고, 수익 기회 화면 안에서 누르면 JS 가 그 자리에서 바꾼다. -#}
+    <a class="cc-btn cc-btn-primary"
+       href="{{ url_for('thejo.opportunities', insight=o.insight_id) }}#simulator"
+       data-sim-pick
+       data-insight-id="{{ o.insight_id }}"
+       data-device="{{ o.device_model_name }}"
+       data-plan="{{ o.plan_code }}"
+       data-current="{{ o.current_sales }}">
       {{ icon("sparkles", 18) }} 혜택 시뮬레이션
     </a>
   </footer>
