@@ -66,10 +66,23 @@
         </select>
       </label>
 
+      {#- 행사 이름 · 최고 사은품: 직접 고쳐 쓰는 값. 기본값은 통하길 QR 에 등록된 지금 행사에서 온다 (routes._current_event).
+          n8n 에는 chatInput 안의 문장과 eventName · topGift 로 따로 전달된다. -#}
+      <label class="event-row">
+        <span class="composer-label">행사 이름</span>
+        <input class="cc-input" name="event_name" maxlength="{{ max_field }}" value="{{ defaults.event_name }}"
+               placeholder="예) 2026 판교 테크노밸리 페스티벌" autocomplete="off">
+      </label>
+      <label class="event-row">
+        <span class="composer-label">최고 사은품</span>
+        <input class="cc-input" name="top_gift" maxlength="{{ max_field }}" value="{{ defaults.top_gift }}"
+               placeholder="예) 5성급 호텔 식사권" autocomplete="off">
+      </label>
+
       <div class="composer-input">
         <label class="sr-only" for="message">포스터 설명</label>
         <textarea id="message" name="message" rows="3" maxlength="{{ max_message }}"
-                  placeholder="예) 10월 25일 한강 불꽃축제, KT 부스는 A구역. 밤하늘과 불꽃이 가득한 느낌으로"></textarea>
+                  placeholder="더 넣고 싶은 내용 (선택)  예) 10월 24일 KT판교빌딩 앞. 밤하늘과 불꽃이 가득한 느낌으로"></textarea>
         <div class="composer-foot">
           <span>Enter 전송 · Shift+Enter 줄바꿈</span>
           <span id="counter">0/{{ max_message }}</span>

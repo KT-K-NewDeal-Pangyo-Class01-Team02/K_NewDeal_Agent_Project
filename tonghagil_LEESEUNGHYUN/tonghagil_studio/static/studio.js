@@ -247,6 +247,16 @@
     }
   });
 
+  // 행사 이름·최고 사은품 칸에서 Enter 를 치면 바로 생성되지 않고 다음 칸으로 넘어간다 (실수로 이미지가 만들어지지 않게)
+  [form.elements.event_name, form.elements.top_gift].forEach((field, i, fields) => {
+    field.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        (fields[i + 1] || textarea).focus();
+      }
+    });
+  });
+
   textarea.addEventListener('input', updateCounter);
   textarea.addEventListener('keydown', (event) => {
     // 한글 입력 조합 중 Enter 는 무시 (글자가 두 번 전송되는 문제 방지)
@@ -260,19 +270,22 @@
     event.preventDefault();
     if (submitBtn.disabled) return;
     const message = textarea.value.trim();
-    if (!message) {
-      textarea.focus();
+    const data = new FormData(form);
+    const eventName = (data.get('event_name') || '').trim();
+    const topGift = (data.get('top_gift') || '').trim();
+    // 행사 이름만 있어도 만들 수 있다. 둘 다 비어 있으면 무엇을 그릴지 알 수 없다
+    if (!message && !eventName) {
+      form.elements.event_name.focus();
       return;
     }
 
-    const data = new FormData(form);
     const styleInput = form.querySelector('input[name="style"]:checked');
     const styleLabel = styleInput.closest('label').querySelector('.style-label').textContent;
 
-    const userMsg = addMessage('user', message);
+    const userMsg = addMessage('user', message || `${eventName} 포스터를 만들어 주세요.`);
     const tag = document.createElement('span');
     tag.className = 'msg-tag';
-    tag.textContent = `${styleLabel} · ${data.get('event_type')}`;
+    tag.textContent = [styleLabel, data.get('event_type'), eventName, topGift && `최고 사은품: ${topGift}`].filter(Boolean).join(' · ');
     userMsg.append(tag);
 
     textarea.value = '';
@@ -293,6 +306,8 @@
           message,
           style: data.get('style'),
           event_type: data.get('event_type'),
+          event_name: eventName,
+          top_gift: topGift,
           session_id: sessionId,
         }),
       });

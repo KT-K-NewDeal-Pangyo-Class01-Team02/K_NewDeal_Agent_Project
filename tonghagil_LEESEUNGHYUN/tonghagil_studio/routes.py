@@ -31,6 +31,7 @@ studio_bp = Blueprint(
 # 사이드바에서 "통하길 스튜디오" 항목이 켜져 보이게 한다. command_center/agents.json 의 id 와 같아야 한다.
 AGENT_ID = "tonghagil-studio"
 MAX_MESSAGE = 500
+MAX_FIELD = 40  # 행사 이름 · 최고 사은품 글자 수
 
 STYLES = [
     {"id": "vivid", "label": "화려한 축제", "hint": "화려한 불꽃과 네온 조명, 선명하고 강렬한 색감"},
@@ -77,9 +78,29 @@ def studio():
         styles=STYLES,
         event_types=EVENT_TYPES,
         max_message=MAX_MESSAGE,
+        max_field=MAX_FIELD,
+        defaults=_current_event(),
         n8n_connected=bool(config.N8N_WEBHOOK_URL),
         drive_connected=isinstance(store, DriveFolderPosterStore),
     )
+
+
+def _current_event():
+    """'행사 이름'·'최고 사은품' 입력칸의 기본값. 통하길 QR 에 등록된 지금 행사(event.json)에서 가져온다.
+
+    행사가 바뀌면 QR 의 event.json 만 고치면 스튜디오 기본값도 따라 바뀐다. 담당자는 화면에서 얼마든지 고쳐 쓸 수 있다.
+    최고 사은품 = 준비 수량이 가장 적은 사은품. QR 쪽을 못 읽으면 빈칸으로 둔다(스튜디오는 QR 없이도 동작해야 한다).
+    """
+    try:
+        from ..tonghagil_qr import config as qr_config
+        from ..tonghagil_qr.event import Event
+
+        data = Event(qr_config.EVENT_FILE).data
+        gifts = data.get("benefit", {}).get("gifts", [])
+        top = min(gifts, key=lambda g: int(g["quantity"]))["name"] if gifts else ""
+        return {"event_name": str(data.get("name", ""))[:MAX_FIELD], "top_gift": str(top)[:MAX_FIELD]}
+    except Exception:  # noqa: BLE001  (QR 모듈·파일이 없거나 형식이 달라도 스튜디오 화면은 떠야 한다)
+        return {"event_name": "", "top_gift": ""}
 
 
 @studio_bp.get("/api/posters")
@@ -152,17 +173,28 @@ def drive_image(file_id):
 def create_poster():
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
-    if not message:
-        return jsonify(error="만들고 싶은 포스터를 설명해 주세요."), 400
+    event_name = " ".join(str(data.get("event_name") or "").split())
+    top_gift = " ".join(str(data.get("top_gift") or "").split())
+    if not message and not event_name:
+        return jsonify(error="행사 이름을 적거나 만들고 싶은 포스터를 설명해 주세요."), 400
     if len(message) > MAX_MESSAGE:
         return jsonify(error=f"설명은 {MAX_MESSAGE}자까지 입력할 수 있어요."), 400
+    if len(event_name) > MAX_FIELD or len(top_gift) > MAX_FIELD:
+        return jsonify(error=f"행사 이름과 최고 사은품은 {MAX_FIELD}자까지 입력할 수 있어요."), 400
 
     style = next((s for s in STYLES if s["id"] == data.get("style")), STYLES[0])
     event_type = data.get("event_type") if data.get("event_type") in EVENT_TYPES else "기타"
-    title = _title_from(message)
+    title = event_name or _title_from(message)
+    goal = _goal_sentence(event_name, top_gift)
 
     if config.N8N_WEBHOOK_URL:
-        prompt = f"{message}\n\n[포스터 스타일] {style['label']} - {style['hint']}\n[행사 유형] {event_type}"
+        # chatInput 한 덩어리만 써도 되고, n8n 에서 eventName·topGift 를 따로 꺼내 써도 된다
+        lines = [goal, message, "",
+                 f"[행사 이름] {event_name}" if event_name else "",
+                 f"[최고 사은품] {top_gift}" if top_gift else "",
+                 f"[포스터 스타일] {style['label']} - {style['hint']}",
+                 f"[행사 유형] {event_type}"]
+        prompt = "\n".join(line for i, line in enumerate(lines) if line or i == 2).strip()
         headers = {config.N8N_SECRET_HEADER: config.N8N_WEBHOOK_SECRET} if config.N8N_WEBHOOK_SECRET else None
         try:
             image = request_poster(
@@ -176,6 +208,8 @@ def create_poster():
                     "eventType": event_type,
                     "style": style["label"],
                     "message": message,
+                    "eventName": event_name,
+                    "topGift": top_gift,
                 },
                 headers=headers,
             )
@@ -195,8 +229,19 @@ def create_poster():
         url = f"/placeholder.svg?{query}"
         fields = {"image_url": url, "share_url": url, "download_url": url, "source": "demo"}
 
-    poster = store.add(title=title, event_type=event_type, style=style["label"], prompt=message, **fields)
+    poster = store.add(title=title, event_type=event_type, style=style["label"], prompt=message or goal, **fields)
     return jsonify(_localized(poster)), 201
+
+
+def _goal_sentence(event_name, top_gift):
+    """포스터가 무엇을 알려야 하는지 한 문장. 행사 이름·최고 사은품은 화면에서 바꿀 수 있는 값이다."""
+    if event_name and top_gift:
+        return f"'{event_name}'에서 최고 사은품 '{top_gift}'을(를) 받을 수 있는 기회를 알리는 홍보 포스터."
+    if event_name:
+        return f"'{event_name}'을(를) 알리는 홍보 포스터."
+    if top_gift:
+        return f"최고 사은품 '{top_gift}'을(를) 받을 수 있는 기회를 알리는 홍보 포스터."
+    return ""
 
 
 @studio_bp.get("/placeholder.svg")
