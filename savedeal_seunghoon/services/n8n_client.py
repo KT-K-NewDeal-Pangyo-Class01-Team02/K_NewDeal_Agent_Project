@@ -11,7 +11,19 @@ class N8nError(Exception):
     """화면에 그대로 보여 줄 수 있는 메시지를 담은 오류."""
 
 
-def send(webhook_url: str, payload: dict, timeout: float, secret: str = "", secret_header: str = "") -> dict:
+def fetch_events(events_url: str, timeout: float, secret: str = "", secret_header: str = "") -> list[dict]:
+    """가져오기 모드: n8n Webhook 을 불러 외부 이벤트 목록을 받는다 (SaveDeal → n8n 방향이라 ngrok 없이도 된다).
+    n8n 의 'Respond to Webhook'(모든 항목) 응답인 [{...}, ...] 또는 {"events": [...]} 를 받는다."""
+    body = send(events_url, {"action": "fetch_events"}, timeout, secret, secret_header)
+    if isinstance(body, dict):
+        body = body.get("events", body.get("data", []))
+    if not isinstance(body, list):
+        raise N8nError("n8n 응답에서 이벤트 목록을 찾지 못했습니다. 'Respond to Webhook' 노드가 목록(JSON)을 돌려주는지 확인해 주세요.")
+    # n8n 항목 형식({"json": {...}})이 그대로 오면 풀어 준다
+    return [item.get("json", item) if isinstance(item, dict) else item for item in body]
+
+
+def send(webhook_url: str, payload: dict, timeout: float, secret: str = "", secret_header: str = ""):
     headers = {secret_header: secret} if secret and secret_header else {}
     try:
         response = requests.post(webhook_url, json=payload, headers=headers, timeout=timeout)

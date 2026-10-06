@@ -12,6 +12,8 @@ class TestConfig(Config):
     TESTING = True
     # 개발자 .env 에 실제 주소·키가 있어도 테스트에서는 외부로 나가지 않는다
     N8N_WEBHOOK_URL = ""
+    N8N_WEBHOOK_SECRET = ""
+    N8N_EVENTS_URL = ""
     OPENAI_API_KEY = ""
 
 

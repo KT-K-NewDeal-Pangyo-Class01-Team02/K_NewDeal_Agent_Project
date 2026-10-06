@@ -600,10 +600,68 @@
           : "아직 AI 기록이 없습니다.";
         box.appendChild(n8n);
         box.appendChild(ai);
+
+        var events = data.events;
+        var ev = el("span", "integration-chip" + (events.pull ? " is-on" : ""));
+        ev.appendChild(el("span", "integration-dot"));
+        ev.appendChild(document.createTextNode(events.pull ? "외부 이벤트 가져오는 중" : "외부 이벤트 받는 중"));
+        ev.title = events.pull
+          ? events.sync_seconds + "초마다 n8n 에서 개통 반려·입고 지연 같은 외부 이벤트를 가져와 반영합니다."
+          : "n8n 이 POST /api/events 로 보내 주는 외부 이벤트를 반영합니다" +
+            (events.inbound_auth === "secret" ? " (비밀 헤더 인증)." : " (이 컴퓨터에서 온 요청만).");
+        box.appendChild(ev);
+        startEventWatch(events);
       })
       .catch(function () {
         box.innerHTML = "";
       });
+  }
+
+  // ── 외부 이벤트 ─────────────────────────────────────────────────
+  // n8n 이 보낸 이벤트(개통 반려, 서류 도착 등)가 들어오면 화면을 다시 그린다.
+  // 가져오기 모드(N8N_EVENTS_URL)면 정해진 간격마다 서버에 가져오기를 요청한다.
+  var EVENT_CHECK_MS = 15000;
+  var eventWatch = { started: false, lastId: null };
+
+  function checkEvents() {
+    return request("GET", "/api/events?limit=10").then(function (data) {
+      if (eventWatch.lastId === null) {
+        eventWatch.lastId = data.last_id;
+        return;
+      }
+      if (data.last_id <= eventWatch.lastId) return;
+      var fresh = data.items.filter(function (item) {
+        return item.event_id > eventWatch.lastId && item.result === "APPLIED";
+      });
+      eventWatch.lastId = data.last_id;
+      if (!fresh.length) return;
+      var first = fresh[0];
+      window.ccToast &&
+        window.ccToast(
+          "외부 이벤트 반영: " + first.reservation_id + " " + first.event_label + (fresh.length > 1 ? " 외 " + (fresh.length - 1) + "건" : "")
+        );
+      loadList();
+      if (state.selectedId) loadDetail();
+    });
+  }
+
+  function startEventWatch(config) {
+    if (eventWatch.started) return;
+    eventWatch.started = true;
+    checkEvents().catch(function () {});
+    window.setInterval(function () {
+      if (!document.hidden) checkEvents().catch(function () {});
+    }, EVENT_CHECK_MS);
+    if (config.pull) {
+      window.setInterval(function () {
+        if (document.hidden) return;
+        request("POST", "/api/events/sync")
+          .then(checkEvents)
+          .catch(function (err) {
+            window.console && console.warn("외부 이벤트 가져오기 실패:", err.message);
+          });
+      }, config.sync_seconds * 1000);
+    }
   }
 
   function factorColumn(title, factors) {

@@ -26,12 +26,14 @@ KIND_UPLOAD_SUMMARY = "UPLOAD_SUMMARY"
 KIND_HIGH_RISK = "HIGH_RISK"
 KIND_CUSTOMER_NOTICE = "CUSTOMER_NOTICE"
 KIND_DAILY_REPORT = "DAILY_REPORT"
+KIND_EXTERNAL_EVENTS = "EXTERNAL_EVENTS"
 
 KIND_LABELS = {
     KIND_UPLOAD_SUMMARY: "업로드 결과",
     KIND_HIGH_RISK: "고위험 경보",
     KIND_CUSTOMER_NOTICE: "고객 안내 (가상)",
     KIND_DAILY_REPORT: "운영 리포트",
+    KIND_EXTERNAL_EVENTS: "외부 이벤트 반영",
 }
 
 STATUS_SENT = "SENT"
@@ -210,8 +212,40 @@ class NotificationService:
                 f"마감 {d['deadline_label']} · 문제: {issues}"
             )
         reservation_id = targets[0]["reservation_id"] if len(targets) == 1 else None
-        return self._deliver(
+        result = self._deliver(
             self._create(KIND_HIGH_RISK, f"고위험 예약 {len(targets)}건 감지", "\n".join(lines), reservation_id)
+        )
+        self.mark_alerted([d["reservation_id"] for d in targets])
+        return result
+
+    # ── 고위험 알림 기록 (정기 점검이 같은 예약을 반복해서 알리지 않도록) ──
+
+    def alerted_ids(self) -> set[str]:
+        with connect(self.db_path) as conn:
+            return {row[0] for row in conn.execute("SELECT reservation_id FROM risk_alerts")}
+
+    def mark_alerted(self, reservation_ids: list[str]) -> None:
+        now = self._now()
+        with connect(self.db_path) as conn:
+            conn.executemany(
+                "INSERT OR REPLACE INTO risk_alerts (reservation_id, alerted_at) VALUES (?, ?)",
+                [(rid, now) for rid in reservation_ids],
+            )
+
+    def clear_alerts_except(self, reservation_ids: set[str]) -> None:
+        """고위험에서 내려온 예약은 기록을 지운다. 나중에 다시 고위험이 되면 또 알린다."""
+        with connect(self.db_path) as conn:
+            for (rid,) in conn.execute("SELECT reservation_id FROM risk_alerts").fetchall():
+                if rid not in reservation_ids:
+                    conn.execute("DELETE FROM risk_alerts WHERE reservation_id = ?", (rid,))
+
+    def notify_external_events(self, lines: list[str], reservation_id: str | None = None) -> dict | None:
+        """외부 이벤트(개통 반려·입고 지연·서류 도착 등)를 반영한 결과를 담당자에게 알린다 (한 통에 모아서)."""
+        if not lines:
+            return None
+        body = "\n".join([f"외부 이벤트 {len(lines)}건을 반영했습니다.", ""] + lines)
+        return self._deliver(
+            self._create(KIND_EXTERNAL_EVENTS, f"외부 이벤트 {len(lines)}건 반영", body, reservation_id)
         )
 
     def notify_customer(self, reservation_id: str, action: dict, notice_text: str) -> dict | None:

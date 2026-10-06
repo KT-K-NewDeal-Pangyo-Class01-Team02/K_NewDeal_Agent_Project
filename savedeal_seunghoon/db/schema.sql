@@ -124,5 +124,24 @@ CREATE TABLE IF NOT EXISTS ai_logs (
     created_at     TEXT NOT NULL
 );
 
+-- 외부 이벤트 (개통 전산·물류 등 → n8n → SaveDeal). external_id 가 같은 이벤트는 한 번만 반영한다
+CREATE TABLE IF NOT EXISTS inbound_events (
+    event_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    external_id    TEXT NOT NULL UNIQUE,
+    source         TEXT,
+    reservation_id TEXT,
+    event_type     TEXT,
+    payload        TEXT NOT NULL DEFAULT '{}',
+    result         TEXT NOT NULL,     -- APPLIED / SKIPPED / ERROR
+    message        TEXT,
+    received_at    TEXT NOT NULL
+);
+
+-- 고위험 알림을 이미 보낸 예약 (정기 점검이 같은 예약을 반복해서 알리지 않도록)
+CREATE TABLE IF NOT EXISTS risk_alerts (
+    reservation_id TEXT PRIMARY KEY,
+    alerted_at     TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_actions_reservation ON proposed_actions (reservation_id);
 CREATE INDEX IF NOT EXISTS idx_history_reservation ON action_history (reservation_id);

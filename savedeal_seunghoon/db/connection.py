@@ -82,9 +82,11 @@ def reset_database(db_path) -> None:
         conn.execute("DELETE FROM upload_batches")
         conn.execute("DELETE FROM notifications")
         conn.execute("DELETE FROM ai_logs")
+        conn.execute("DELETE FROM inbound_events")
+        conn.execute("DELETE FROM risk_alerts")
         conn.execute(
             "DELETE FROM sqlite_sequence WHERE name IN "
-            "('action_history', 'proposed_actions', 'upload_batches', 'notifications', 'ai_logs')"
+            "('action_history', 'proposed_actions', 'upload_batches', 'notifications', 'ai_logs', 'inbound_events')"
         )
     from db.seed import seed_demo_data, seed_reference_data
 

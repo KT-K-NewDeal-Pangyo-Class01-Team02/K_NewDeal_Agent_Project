@@ -149,10 +149,17 @@ def send_daily_report():
 def integrations_status():
     """연동 상태: n8n(Gmail) 연결 여부, AI 사용 여부와 최근 AI 기록."""
     ai = _ai()
+    config = current_app.config
     return _ok({
         "n8n": {"mode": _notifier().mode},
         "ai": {"mode": ai.mode, "model": ai.model},
         "ai_logs": ai.recent_logs(limit=8),
+        # 외부 이벤트: n8n 이 보내 주는 방식(항상 열려 있음)과 SaveDeal 이 가져오는 방식(N8N_EVENTS_URL)
+        "events": {
+            "pull": bool(config.get("N8N_EVENTS_URL")),
+            "sync_seconds": max(int(config.get("EVENT_SYNC_SECONDS", 60)), 15),
+            "inbound_auth": "secret" if config.get("N8N_WEBHOOK_SECRET") else "local-only",
+        },
     })
 
 

@@ -29,6 +29,9 @@ class Config:
     N8N_SECRET_HEADER = os.getenv("N8N_SECRET_HEADER", "X-SaveDeal-Key").strip()
     N8N_TIMEOUT = float(os.getenv("N8N_TIMEOUT", "8"))
     NOTIFY_EMAIL_TO = os.getenv("NOTIFY_EMAIL_TO", "").strip()
+    # 외부 이벤트 가져오기 모드: n8n 이 이벤트 목록을 돌려주는 Webhook 주소. 비어 있으면 n8n 이 보내 주는 방식만 쓴다.
+    N8N_EVENTS_URL = os.getenv("N8N_EVENTS_URL", "").strip()
+    EVENT_SYNC_SECONDS = int(os.getenv("EVENT_SYNC_SECONDS", "60"))
 
     # OpenAI (ChatGPT API). OPENAI_API_KEY 가 비어 있으면 AI를 부르지 않고 규칙 기반 문구로 동작한다.
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
