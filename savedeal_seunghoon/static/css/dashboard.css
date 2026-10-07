@@ -1131,6 +1131,11 @@
   background: color-mix(in srgb, var(--color-warning) 7%, var(--color-surface));
 }
 
+/* display:flex 가 hidden 속성을 덮어 빈 배너 테두리가 보이지 않도록 */
+.event-banner[hidden] {
+  display: none;
+}
+
 .event-banner.is-entering {
   animation: banner-enter var(--duration-tick) var(--ease-out) both;
 }

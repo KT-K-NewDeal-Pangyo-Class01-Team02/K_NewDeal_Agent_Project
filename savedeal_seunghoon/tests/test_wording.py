@@ -43,3 +43,11 @@ def test_actions_history_and_mails_have_no_demo_wording(client):
         text = notification["subject"] + notification["body"] + notification["kind_label"] + notification["status_label"]
         assert not BANNED.search(text), notification
     assert not [h for h in approved["history"] if BANNED.search(h["description"])]
+
+
+def test_hidden_event_banner_is_not_drawn():
+    """이벤트 배너는 hidden 일 때 빈 테두리도 보이면 안 된다 (display:flex 가 hidden 을 덮지 않게)."""
+    from pathlib import Path
+
+    css = (Path(__file__).resolve().parent.parent / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
+    assert ".event-banner[hidden]" in css
