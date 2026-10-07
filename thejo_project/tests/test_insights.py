@@ -301,6 +301,14 @@ class ScreenTest(InsightBase):
         self.assertNotIn('data-open-sms="TX-없는거래"', html)
         self.assertIn("disabled", html)
 
+    def test_current_sheet_transactions_enable_button(self):
+        """2026-10-06 시트의 위험 거래(TX-202610-008/009)는 거래 확인 버튼이 켜져야 한다."""
+        rows = [dict(HIGH_RISK, insight_id=f"RISK-1006-{n}", transaction_id=f"TX-202610-00{n}")
+                for n in (8, 9)]
+        html = self._html("/thejo/warnings", rows)
+        self.assertIn('data-open-sms="TX-202610-008"', html)
+        self.assertIn('data-open-sms="TX-202610-009"', html)
+
     def test_no_invented_fields(self):
         """daily_insights 에 없는 값을 만들어 쓰지 않는다."""
         html = self._html("/thejo/warnings")

@@ -63,6 +63,38 @@ _TRANSACTIONS = [
         "store_id": "STORE-01",
         "store_phone": "02-1234-5678",
     },
+    # ── 2026-10-06 부터 Google Sheets 위험 인사이트에 나오는 거래 ──
+    # 시트(daily_insights)에는 거래 ID·마스킹 이름·단말·영향 금액만 있다.
+    # 전화번호·요금제·개통일은 시트에 없어 **데모 값**이다. 실제 거래 데이터가 생기면 교체한다.
+    # 전화번호는 실제 사람에게 문자가 가지 않도록 개통될 수 없는 010-0000-xxxx 를 쓴다.
+    {
+        "transaction_id": "TX-202610-008",
+        "customer_id": "C-008",
+        "customer_name": "정O현",
+        "customer_phone": "010-0000-0008",
+        "device_model": "갤럭시 S26",
+        "plan_name": "5GX 레귤러",
+        "activation_date": date(2026, 10, 1),
+        "required_maintenance_days": 180,   # 시트 사유: "요금제 유지기간 180일"
+        "benefit_amount": 320_000,
+        "expected_clawback": 320_000,       # 시트 amount
+        "store_id": "STORE-01",
+        "store_phone": "02-1234-5678",
+    },
+    {
+        "transaction_id": "TX-202610-009",
+        "customer_id": "C-009",
+        "customer_name": "박O수",
+        "customer_phone": "010-0000-0009",
+        "device_model": "아이폰 17 Pro 256GB",
+        "plan_name": "5GX 프리미엄",
+        "activation_date": date(2026, 10, 2),
+        "required_maintenance_days": 180,
+        "benefit_amount": 40_000,           # 시트 사유: "예상 수익 40,000원"
+        "expected_clawback": 30_000,        # 시트 amount (최소 기준 대비 부족액)
+        "store_id": "STORE-01",
+        "store_phone": "02-1234-5678",
+    },
 ]
 
 # 위험 경고. kind: clawback(환수) / settlement(정산 불일치) / margin(마진 미달)

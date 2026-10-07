@@ -4,6 +4,7 @@
 """
 import json
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from command_center.app import app
@@ -117,6 +118,20 @@ class TransactionTest(unittest.TestCase):
 
     def test_unknown_transaction(self):
         self.assertIsNone(transaction_service.get_transaction("TX-없음"))
+
+    def test_sheet_risk_transactions_exist(self):
+        """2026-10-06 부터 시트 위험 인사이트에 나오는 거래도 거래 확인이 되어야 한다."""
+        for tx_id in ("TX-202610-008", "TX-202610-009"):
+            with self.subTest(tx=tx_id):
+                tx = transaction_service.get_transaction(tx_id)
+                self.assertIsNotNone(tx)
+                # 데모 전화번호는 실제로 개통될 수 없는 번호여야 한다
+                self.assertTrue(tx["customer_phone"].startswith("010-0000-"))
+
+    def test_tests_do_not_touch_real_sms_log(self):
+        """테스트가 실제 발송 기록을 지우면 '문자 안내 완료' 배지가 사라진다."""
+        real = Path(sms_store.__file__).resolve().parent / "sms_log.json"
+        self.assertNotEqual(sms_store.SMS_LOG_FILE.resolve(), real)
 
     def test_every_warning_links_to_a_transaction(self):
         for w in warning_service.get_warning_items():
@@ -244,6 +259,12 @@ class SmsSendTest(unittest.TestCase):
         self.assertEqual(transaction_service.get_transaction(TX_ID)["sms_status"], "발송 완료")
         html = self.client.get("/thejo/warnings").get_data(as_text=True)
         self.assertIn("문자 안내 완료", html)
+
+    def test_send_to_sheet_transaction(self):
+        res = self._send(transaction_id="TX-202610-008")
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.get_json()["success"])
+        self.assertEqual(transaction_service.get_transaction("TX-202610-008")["sms_status"], "발송 완료")
 
     def test_rejects_empty_message(self):
         res = self._send(message="   ")
