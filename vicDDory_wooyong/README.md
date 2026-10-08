@@ -19,6 +19,9 @@ python -m vicddory_campaign.app
 
 `.env` 의 `N8N_WEBHOOK_URL` 과 `N8N_BASE_URL` 을 모두 비우면 **데모 모드**로 떠서, n8n 없이 화면 흐름만 확인할 수 있습니다.
 
+지사 승인 화면(`/hq`)과 승인 · 반려 API는 `.env` 의 `HQ_USER` / `HQ_PASSWORD` 로 로그인해야 열립니다(브라우저 기본 로그인 창). `HQ_PASSWORD` 가 비어 있으면 승인 화면이 열리지 않습니다.
+개발 중 코드 자동 재시작과 디버거가 필요하면 `.env` 에 `VICDDORY_DEBUG=1` 을 넣습니다. 공개 주소(ngrok)로 열 때는 비워 둡니다.
+
 ## 구조
 
 | 파일 | 역할 |

@@ -43,9 +43,14 @@ def init_cc_layout(app):
         agents = load_agents()
         if not any(a.get("id") == AGENT_ID for a in agents):
             agents = agents + [AGENT]
+        # 허브 안에서 도는 에이전트(더 줘 · 통하길)는 url 이 비어 있고 path 만 있다 → 허브 주소 + path 로 찾아간다
+        hub = os.getenv("COMMAND_CENTER_URL", "http://localhost:5000").rstrip("/")
+        for agent in agents:
+            if not (agent.get("url") or "").strip() and (agent.get("path") or "").strip():
+                agent["url"] = hub + "/" + agent["path"].strip().lstrip("/")
         return {
             "agents": agents,
             "active_agent_id": AGENT_ID,
-            "command_center_url": os.getenv("COMMAND_CENTER_URL", "http://localhost:5000"),
+            "command_center_url": hub,
             "user_name": os.getenv("CC_USER_NAME", "김지현 매니저"),
         }

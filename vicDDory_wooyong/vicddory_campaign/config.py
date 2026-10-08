@@ -45,5 +45,15 @@ F06_DECIDE_URL = f"{N8N_BASE_URL}/f06-decide" if N8N_BASE_URL else ""
 # F-09 환류: POS 퍼널 → 차기 기준선
 F09_REPORT_URL = f"{N8N_BASE_URL}/f09-report" if N8N_BASE_URL else ""
 
-# 통하길 스튜디오(이승현, 포트 5004): 입지 이미지 자리에서 포스터 제작 화면으로 링크만 건다.
-TONGHAGIL_URL = os.getenv("TONGHAGIL_URL", "http://localhost:5004").rstrip("/")
+# 통하길 스튜디오(이승현): 입지 이미지 자리에서 포스터 제작 화면으로 링크만 건다.
+# 스튜디오는 허브와 같은 서버의 /studio/ 에서 돈다. 비워 두면 허브 주소(COMMAND_CENTER_URL) 뒤에 붙인다.
+_HUB_URL = os.getenv("COMMAND_CENTER_URL", "http://localhost:5000").rstrip("/")
+TONGHAGIL_URL = os.getenv("TONGHAGIL_URL", "").strip() or f"{_HUB_URL}/studio/"
+
+# 지사 승인 화면(/hq)과 승인 · 반려 API 는 이 계정으로 로그인해야 열린다 (브라우저 기본 로그인 창).
+# HQ_PASSWORD 를 비워 두면 승인 화면을 아예 열지 않는다.
+HQ_USER = os.getenv("HQ_USER", "hq").strip()
+HQ_PASSWORD = os.getenv("HQ_PASSWORD", "").strip()
+
+# 개발할 때만 켠다 (코드 자동 재시작 + 오류 화면에 디버거). 공개 주소로 열 때는 반드시 끈다.
+DEBUG = os.getenv("VICDDORY_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")

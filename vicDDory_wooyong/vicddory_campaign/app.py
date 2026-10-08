@@ -3,16 +3,18 @@
 실행: vicDDory_wooyong 폴더에서  python -m vicddory_campaign.app
       (VS Code 실행 ▶ 버튼으로 이 파일을 직접 돌려도 된다)
 """
+import hmac
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from pathlib import Path
 
 if not __package__:
     # 'python app.py' 로 직접 실행해도 vicddory_campaign 패키지를 찾을 수 있게 한다
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 from vicddory_campaign import config
 from vicddory_campaign.layout import AGENT, AGENT_ID, init_cc_layout
@@ -65,6 +67,40 @@ app = Flask(__name__)
 init_cc_layout(app)
 
 
+def _body():
+    """요청 본문(JSON 객체). 객체가 아니면(배열 · 문자열 · 깨진 JSON) 빈 dict 로 본다."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+@app.errorhandler(500)
+def server_error(exc):
+    # 내부 오류 내용(스택 · 경로)은 서버 로그에만 남기고 화면에는 일반 문구만 보낸다
+    return jsonify(error="서버에서 요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요."), 500
+
+
+def hq_login_required(view):
+    """지사 화면 · 승인 API 보호: HQ_USER / HQ_PASSWORD 로 로그인(HTTP Basic)해야 통과한다."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        is_api = request.path.startswith("/api/")
+        if not config.HQ_PASSWORD:
+            message = "지사 승인 화면이 잠겨 있어요. .env 에 HQ_PASSWORD 를 넣고 서버를 다시 켜 주세요."
+            return (jsonify(error=message), 503) if is_api else (message, 503)
+        auth = request.authorization
+        ok = (auth is not None and auth.type == "basic"
+              and hmac.compare_digest((auth.username or "").encode(), config.HQ_USER.encode())
+              and hmac.compare_digest((auth.password or "").encode(), config.HQ_PASSWORD.encode()))
+        if not ok:
+            message = "지사 담당자 로그인이 필요합니다."
+            response = jsonify(error=message) if is_api else Response(message, mimetype="text/plain")
+            response.status_code = 401
+            response.headers["WWW-Authenticate"] = 'Basic realm="vicddory-hq", charset="UTF-8"'
+            return response
+        return view(*args, **kwargs)
+    return wrapper
+
+
 @app.get("/")
 def home():
     return render_template(
@@ -85,6 +121,7 @@ def home():
 
 
 @app.get("/hq")
+@hq_login_required
 def hq():
     """지사 승인 화면 (F-06): 점장이 요청한 기획안을 보고 승인 · 반려한다."""
     return render_template("hq.html", agent=AGENT, f06_connected=bool(config.F06_DECIDE_URL))
@@ -105,7 +142,7 @@ def _call_f06(url, payload, demo):
 
 @app.post("/api/f06/submit")
 def f06_submit():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     plan = str(data.get("plan_markdown") or "")
     if not data.get("campaign_id"):
         return jsonify(error="F-01 카드로 시작한 캠페인만 승인을 요청할 수 있어요."), 400
@@ -117,14 +154,14 @@ def f06_submit():
 
 @app.post("/api/f06/status")
 def f06_status():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     return _call_f06(config.F06_SUBMIT_URL, {"action": "status", "campaign_id": data.get("campaign_id")}, _demo_f06)
 
 
 @app.post("/api/f09/report")
 def f09_report():
     """F-09 환류: 지난 캠페인 POS 퍼널(부스 방문 → 내방 → 개통)과 차기 기준선 제안."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     store = _store(data.get("store_id")) or STORES[0]
     if not config.F09_REPORT_URL:
         return jsonify({**_DEMO_F09, "store_id": store["id"], "store_name": store["name"]})
@@ -140,7 +177,7 @@ def f09_report():
 @app.post("/api/f06/mine")
 def f06_mine():
     """점장 화면: 이 매장의 진행 중(승인 전) 캠페인. 새로고침해도 이어서 수정 · 재요청할 수 있게."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     store = _store(data.get("store_id"))
     if not store:
         return jsonify(error="매장을 골라 주세요."), 400
@@ -148,13 +185,15 @@ def f06_mine():
 
 
 @app.post("/api/f06/list")
+@hq_login_required
 def f06_list():
     return _call_f06(config.F06_DECIDE_URL, {"action": "list"}, _demo_f06)
 
 
 @app.post("/api/f06/decide")
+@hq_login_required
 def f06_decide():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     decision = data.get("decision")
     if decision not in ("approve", "reject"):
         return jsonify(error="승인 또는 반려를 골라 주세요."), 400
@@ -207,7 +246,7 @@ def _store(store_id):
 @app.post("/api/f02/options")
 def f02_options():
     """F-02 폼 채우기: 그날 근무자 · 운영 장소 · 사은품 재고."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     store, target_date = _store(data.get("store_id")), str(data.get("target_date") or "")
     if not store or len(target_date) != 10:
         return jsonify(error="매장과 운영 일자를 먼저 골라 주세요."), 400
@@ -225,14 +264,15 @@ def f02_options():
 @app.post("/api/f02/validate")
 def f02_validate():
     """F-02: 8개 파라미터를 규칙(R-01 2인 1조 · R-02 잔류 인력 · 예산 · 재고)으로 판정한다."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     store = _store(data.get("store_id"))
     if not store:
         return jsonify(error="운영 매장을 골라 주세요."), 400
     constraints = str(data.get("constraints") or "").strip()
     if len(constraints) > MAX_CONSTRAINTS:
         return jsonify(error=f"제약조건은 {MAX_CONSTRAINTS}자까지 입력할 수 있어요."), 400
-    staff_ids = [str(x) for x in (data.get("staff_ids") or []) if x][:4]
+    raw_staff = data.get("staff_ids")
+    staff_ids = [str(x) for x in (raw_staff if isinstance(raw_staff, list) else []) if x][:4]
     payload = {
         "action": "validate", "store_id": store["id"],
         "target_date": str(data.get("target_date") or ""),
@@ -258,7 +298,7 @@ def f02_validate():
 @app.post("/api/f01/scan")
 def f01_scan():
     """F-01: 내일부터 7일의 옥외 캠페인 기회를 점수화해 카드 3건을 받아 온다."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     store = next((s for s in STORES if s["id"] == data.get("store_id")), None)
     if not store:
         return jsonify(error="기회를 찾을 매장을 선택해 주세요."), 400
@@ -280,7 +320,7 @@ def f01_scan():
 @app.post("/api/f01/select")
 def f01_select():
     """F-01: 점장이 고른 기회 카드로 캠페인을 연다 (기획 마감 = 선택 후 3시간)."""
-    data = request.get_json(silent=True) or {}
+    data = _body()
     try:
         card_id = int(data.get("card_id"))
     except (TypeError, ValueError):
@@ -302,9 +342,9 @@ def f01_select():
 @app.post("/api/plan")
 def create_plan():
     """캠페인 파라미터를 n8n 으로 넘겨 3시간 기획 확정안을 받아 온다."""
-    data = request.get_json(silent=True) or {}
-    store_name = (data.get("store_name") or "").strip()
-    constraints = (data.get("constraints") or "").strip()
+    data = _body()
+    store_name = str(data.get("store_name") or "").strip()
+    constraints = str(data.get("constraints") or "").strip()
     target = next((t for t in TARGET_GROUPS if t["id"] == data.get("target_group")), TARGET_GROUPS[0])
 
     if not store_name:
@@ -476,4 +516,4 @@ def _demo_plan(store_name, target_label, constraints):
 
 
 if __name__ == "__main__":
-    app.run(port=config.VICDDORY_PORT, debug=True)
+    app.run(port=config.VICDDORY_PORT, debug=config.DEBUG)

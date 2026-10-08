@@ -162,7 +162,7 @@
         <text x="320" y="204" text-anchor="middle" font-size="12" fill="#8a4a0c">캠페인 이미지 자리 · 현장 부스 시안이 여기에 들어갑니다</text>
       </svg>
       <figcaption><span>${name} 현장 부스 · 홍보 포스터 이미지 (예정)</span>
-        <a href="${esc(planBox.dataset.tonghagil || 'http://localhost:5004')}" target="_blank" rel="noopener">통하길 스튜디오에서 포스터 만들기 ↗</a></figcaption>`;
+        <a href="${esc(planBox.dataset.tonghagil || 'http://localhost:5000/studio/')}" target="_blank" rel="noopener">통하길 스튜디오에서 포스터 만들기 ↗</a></figcaption>`;
     return fig;
   }
 
