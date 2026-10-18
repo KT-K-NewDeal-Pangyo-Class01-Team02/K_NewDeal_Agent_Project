@@ -29,9 +29,6 @@
     {% if error == "wait" %}<p class="s-error" role="alert">여러 번 틀려서 잠시 막았어요. 30초 뒤에 다시 시도해 주세요.</p>{% endif %}
     <button type="submit" class="cc-btn cc-btn-primary">들어가기</button>
   </form>
-  {% if pin_is_default %}
-  <p class="s-hint">시연용 기본 PIN은 <code>1234</code>예요. 바꾸려면 <code>tonghagil_LEESEUNGHYUN/.env</code>에 <code>QR_STAFF_PIN</code>을 넣으세요.</p>
-  {% endif %}
   <a class="s-link" href="{{ url_for('tonghagil_qr.home') }}" target="_blank" rel="noopener">방문객 화면 열어 보기 →</a>
 </section>
 {% endblock %}
