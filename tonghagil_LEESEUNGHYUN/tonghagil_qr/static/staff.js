@@ -112,6 +112,145 @@
     });
   }
 
+  // ---------------- 순찰 알림 (오른쪽 아래 메신저 창) ----------------
+  // n8n 순찰 에이전트가 넣은 알림을 15초마다 다시 읽는다. 창이 닫혀 있으면 안 읽은 알림 수를 버튼 위 숫자로 보여 준다.
+  // 어디까지 읽었는지는 이 브라우저에만 기억한다(담당자마다 따로).
+  // PIN 으로 들어올 때마다(?welcome=1) 맨 위 인사 메시지를 '안 읽음 1'로 만든다 → 로그인하자마자 창을 열어 보게.
+  const patrol = document.getElementById('patrol');
+  if (patrol) {
+    const panel = document.getElementById('patrol-panel');
+    const fab = document.getElementById('patrol-fab');
+    const log = document.getElementById('patrol-log');
+    const hello = document.getElementById('patrol-hello');
+    const count = document.getElementById('patrol-count');
+    const status = document.getElementById('patrol-status');
+    const SEEN_KEY = 'tq_patrol_seen';
+    const HELLO_KEY = 'tq_patrol_hello';   // 인사 메시지: 'unread' | 'read'
+    const HELLO_AT_KEY = 'tq_patrol_hello_at';
+    let seen = Number(readStore(SEEN_KEY)) || 0;
+    let latest = 0;    // 지금 받은 알림 중 가장 큰 id
+    let shown = null;  // 마지막으로 그린 목록 (바뀌었을 때만 다시 그린다)
+    let unread = 0;
+    let alertsUnread = 0;
+
+    if (patrol.dataset.welcome) {
+      const now = new Date();
+      writeStore(HELLO_KEY, 'unread');
+      writeStore(HELLO_AT_KEY, `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      // 새로고침할 때마다 다시 '안 읽음'이 되지 않게 주소에서 welcome=1 을 뗀다
+      const url = new URL(window.location.href);
+      url.searchParams.delete('welcome');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+    let helloUnread = patrol.dataset.welcome ? true : readStore(HELLO_KEY) === 'unread';
+    document.getElementById('patrol-hello-time').textContent = readStore(HELLO_AT_KEY) || '';
+    setCount(helloUnread ? 1 : 0);
+
+    const open = (yes) => {
+      panel.hidden = !yes;
+      fab.setAttribute('aria-expanded', String(yes));
+      fab.setAttribute('aria-label', yes ? '에이전트 알림 닫기' : '에이전트 알림 열기');
+      if (yes) {
+        markRead();
+        log.scrollTop = log.scrollHeight;
+      }
+    };
+    fab.addEventListener('click', () => open(panel.hidden));
+    document.getElementById('patrol-close').addEventListener('click', () => open(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !panel.hidden) open(false);
+    });
+
+    const load = async () => {
+      try {
+        const res = await fetch(patrol.dataset.api);
+        if (!res.ok) return;
+        const body = await res.json();
+        status.textContent = body.last_patrol ? `마지막 순찰 ${body.last_patrol}` : '아직 순찰 기록 없음';
+        // 서버는 최근 것부터 준다 → 뒤집어서 오래된 것이 위, 가장 최근 메시지가 맨 아래 (카카오톡 순서)
+        const items = body.alerts.slice().reverse();
+        latest = items.length ? items[items.length - 1].id : 0;
+        if (latest < seen) seen = 0;  // DB 를 새로 만들어 번호가 처음부터 다시 시작한 경우
+        const key = items.map((a) => a.id).join(',');
+        if (key !== shown) {
+          shown = key;
+          log.replaceChildren(hello, ...items.map(message));
+          log.scrollTop = log.scrollHeight;
+        }
+        if (!panel.hidden) {
+          markRead();
+        } else {
+          alertsUnread = items.filter((a) => a.id > seen).length;
+          setCount(alertsUnread + (helloUnread ? 1 : 0));
+        }
+      } catch (_e) {
+        // 잠깐 끊겨도 다음 주기에 다시 시도한다
+      }
+    };
+    load();
+    setInterval(load, 15000);
+
+    function message(a) {
+      const row = document.createElement('div');
+      row.className = `s-patrol-msg is-${a.level}`;
+      const bubble = document.createElement('p');
+      bubble.className = 's-patrol-bubble';
+      const title = document.createElement('strong');
+      title.textContent = a.title;
+      const text = document.createElement('span');
+      text.textContent = a.message;
+      bubble.append(title, text);
+      const time = document.createElement('time');
+      time.textContent = a.time;
+      row.append(bubble, time);
+      return row;
+    }
+
+    function setCount(n) {
+      count.hidden = n === 0;
+      count.textContent = n > 99 ? '99+' : String(n);
+      if (n > unread) {
+        // 새 알림이 오면 숫자가 톡 튀어나온다
+        count.classList.remove('is-new');
+        void count.offsetWidth;
+        count.classList.add('is-new');
+      }
+      unread = n;
+    }
+
+    function markRead() {
+      seen = Math.max(seen, latest);
+      writeStore(SEEN_KEY, String(seen));
+      if (helloUnread) {
+        helloUnread = false;
+        writeStore(HELLO_KEY, 'read');
+      }
+      alertsUnread = 0;
+      setCount(0);
+    }
+
+    // 저장이 막힌 브라우저(사생활 보호 모드 등)에서도 이번 화면에서는 동작한다
+    function readStore(name) {
+      try { return localStorage.getItem(name); } catch (_e) { return null; }
+    }
+    function writeStore(name, value) {
+      try { localStorage.setItem(name, value); } catch (_e) { /* 무시 */ }
+    }
+  }
+
+  // ---------------- 비밀 값 복사 (설정) ----------------
+  document.querySelectorAll('[data-copy]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy);
+        button.textContent = '복사됨';
+      } catch (_e) {
+        button.textContent = '복사 안 됨 · 보기를 눌러 직접 복사';
+      }
+      setTimeout(() => { button.textContent = '복사'; }, 2000);
+    });
+  });
+
   // ---------------- 관리자 에이전트 ----------------
   const panel = document.getElementById('agent');
   if (!panel) return;

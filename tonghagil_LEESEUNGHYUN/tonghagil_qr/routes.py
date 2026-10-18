@@ -9,7 +9,10 @@ Command Center(command_center/app.py)에 Blueprint 로 등록되어 /qr/ 아래�
     /qr/s/<token>   스탬프 지점 QR 이 가리키는 주소 → 스탬프 찍고 /qr/stamps 로
     /qr/chat        채팅 에이전트 (QR_CHAT_WEBHOOK_URL 이 없으면 고정 답변)
 부스 담당자 화면 (허브 사이드바 · PIN)
-    /qr/staff/      현황 · 관리자 에이전트 채팅 · 쿠폰 지급 · QR 인쇄 · 시연 초기화
+    /qr/staff/      현황 · 순찰 알림 · 관리자 에이전트 채팅 · 쿠폰 지급 · QR 인쇄 · 시연 초기화
+n8n 순찰 에이전트 (비밀 값 헤더)
+    GET  /qr/api/agent/stats   현황 가져가기
+    POST /qr/api/agent/alert   담당자 화면에 알림 넣기
 
 주소는 모두 url_for 로 만든다. ngrok 같은 공개 주소로 들어와도 localhost 로 새지 않는다.
 QR 코드에 넣는 주소만 QR_PUBLIC_BASE_URL(없으면 지금 접속한 주소) 기준의 전체 주소다.
@@ -27,6 +30,7 @@ from urllib.parse import urlsplit
 from flask import Blueprint, Response, abort, g, jsonify, redirect, render_template, request, url_for
 
 from . import chat_client, config, gift_client, network, qr_image
+from . import seed as seed_data
 from .event import Event
 from .store import QrStore, normalize_code
 
@@ -52,22 +56,32 @@ _VISITOR_ID = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 event = Event(config.EVENT_FILE)
 store = QrStore(config.DB_FILE)
 
-PURGE_EVERY = 600  # 초. 보관 기간이 지난 기록을 이 간격으로 확인한다
+PURGE_EVERY = 600  # 초. 보관 기간이 지난 기록과 더미 방문객을 이 간격으로 정리한다
 _purge = {"next": 0.0}
 
 
 @qr_bp.before_request
 def _purge_old_records():
-    """보관 기간(QR_RETENTION_HOURS, 기본 24시간)이 지난 방문객 기록을 지운다.
+    """10분에 한 번: 더미 방문객을 '지금' 기준 시각으로 다시 넣고, 보관 기간(QR_RETENTION_HOURS, 기본 24시간)이 지난 실제 방문객 기록을 지운다.
 
-    따로 도는 예약 작업이 없어서, /qr/ 로 요청이 올 때 10분에 한 번만 확인한다. 서버를 켠 뒤 첫 요청에서도 확인한다.
+    따로 도는 예약 작업이 없어서 /qr/ 로 요청이 올 때 확인한다. 서버를 켠 뒤 첫 요청에서도 한다.
     """
-    if config.RETENTION_HOURS <= 0 or time.monotonic() < _purge["next"]:
+    if time.monotonic() < _purge["next"]:
         return
     _purge["next"] = time.monotonic() + PURGE_EVERY
+    _refresh_seed()
+    if config.RETENTION_HOURS <= 0:
+        return
     removed = store.purge_inactive(config.RETENTION_HOURS)
     if removed:
         print(f"[통하길 QR] {config.RETENTION_HOURS:g}시간 넘게 활동이 없는 방문객 {removed}명의 기록을 지웠어요.", file=sys.stderr)
+
+
+def _refresh_seed():
+    """시연용 더미 방문객(data/seed.json)을 다시 넣는다. 파일이 없거나 꺼져 있으면 더미만 지운다. (seed.py 참고)"""
+    cfg = seed_data.load(config.SEED_FILE)
+    people = seed_data.build(cfg, [s["id"] for s in event.data["stamps"]], event.required_stamps, _gift_items()) if cfg else []
+    store.replace_seed(people)
 
 
 # ───────────────────────────── 방문객 ─────────────────────────────
@@ -299,6 +313,11 @@ def staff():
         stats=stats,
         rate=lambda part, whole: f"{part / whole * 100:.0f}%" if whole else "-",
         coupons=_coupon_rows(),
+        # .env 의 값(스튜디오와 공유 등)은 화면에 내보이지 않는다. 앱이 만든 값만 보여 주고 복사하게 한다
+        agent_key=_agent_secret() if not config.AGENT_API_SECRET else "",
+        agent_key_from=config.AGENT_API_SECRET_FROM,
+        agent_header=config.CHAT_SECRET_HEADER,
+        welcome=request.args.get("welcome") == "1",  # 방금 PIN 으로 들어왔으면 순찰 창에 인사 메시지(안 읽음 1)
         test_tools=config.TEST_QR,
         result=request.args.get("result"),
         code=normalize_code(request.args.get("code")),
@@ -310,6 +329,7 @@ def staff():
         staff_chat_connected=bool(config.STAFF_CHAT_WEBHOOK_URL),
         gift_connected=bool(config.GIFT_WEBHOOK_URL),
         retention_hours=config.RETENTION_HOURS,
+        seed_count=store.seed_count(),
         max_chat=MAX_CHAT,
         kakao_connected=bool(config.KAKAO_MAP_KEY),
         pin_is_default=config.STAFF_PIN_IS_DEFAULT,
@@ -328,7 +348,7 @@ def staff_login():
                 _login_fail.update(count=0, until=time.monotonic() + 30)
             return redirect(url_for(".staff", error="pin"))
         _login_fail["count"] = 0
-    resp = redirect(url_for(".staff"))
+    resp = redirect(url_for(".staff", welcome=1))
     resp.set_cookie(STAFF_COOKIE, _staff_token(), max_age=STAFF_HOURS * 3600,
                     httponly=True, samesite="Lax", path=url_for(".staff"))
     return resp
@@ -391,6 +411,7 @@ def staff_reset():
     if not _is_staff():
         abort(403)
     store.reset()
+    _refresh_seed()  # 더미 방문객은 남긴다
     return redirect(url_for(".staff", result="reset"))
 
 
@@ -538,6 +559,97 @@ def _forecast(spots, required, now=None):
         waiting.append({"visitor": _alias(c["visitor_id"]), "completed_at": c["issued_at"][11:16],
                         "waited_min": round(waited), "eta_min": eta})
     return closest, waiting, avg_pace, pace_basis, etas
+
+
+# ───────────────────────────── n8n 순찰 에이전트 ─────────────────────────────
+# n8n 의 Schedule Trigger 가 10분마다: 현황 가져가기(GET) → AI Agent 가 판단 → 알릴 일이면 알림 넣기(POST).
+# 사람(브라우저)이 아니라 n8n 만 부르는 주소라 PIN 쿠키 대신 비밀 값 헤더로 확인한다.
+
+ALERT_LEVELS = ("info", "warn", "urgent")  # 참고 · 곧 행동 · 지금 바로 행동
+_patrol = {"last": None}  # 마지막으로 n8n 이 현황을 가져간 시각 (담당자 화면에 '마지막 순찰'로 보여 준다)
+
+
+def _agent_secret():
+    """순찰 주소의 비밀 값. .env 의 QR_AGENT_API_SECRET 이 있으면 그것, 없으면 처음 한 번 만들어 data/.agent_key 에 둔다.
+    담당자 화면(PIN 잠금)의 설정에서 복사해 n8n Header Auth 에 붙여 넣는다 → .env 를 고치지 않아도 된다."""
+    if config.AGENT_API_SECRET:
+        return config.AGENT_API_SECRET
+    path = config.DATA_DIR / ".agent_key"
+    try:
+        key = path.read_text(encoding="utf-8").strip()
+        if key:
+            return key
+    except OSError:
+        pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    key = secrets.token_urlsafe(24)
+    path.write_text(key, encoding="utf-8")
+    return key
+
+
+def _agent_auth_error():
+    """비밀 값 헤더가 맞으면 None, 아니면 (응답, 상태 코드).
+    ngrok 공개 주소는 누구나 부를 수 있어서, 없으면 아무나 담당자 화면에 가짜 알림을 넣을 수 있다. n8n 은 PIN 을 못 치므로 이것이 n8n 용 PIN 이다."""
+    secret = _agent_secret()
+    given = request.headers.get(config.CHAT_SECRET_HEADER, "")
+    if not hmac.compare_digest(given.encode(), secret.encode()):
+        return jsonify(error=f"인증 실패: {config.CHAT_SECRET_HEADER} 헤더 값을 확인해 주세요."), 401
+    return None
+
+
+def _alert_rows(limit=30):
+    """최근 알림부터. id 는 담당자 화면이 '안 읽은 알림 수'를 셀 때 쓴다."""
+    return [{"id": a["id"], "level": a["level"], "title": a["title"], "message": a["message"],
+             "time": a["created_at"][11:16]} for a in store.recent_alerts(limit)]
+
+
+@qr_bp.get("/api/agent/stats")
+def agent_stats_api():
+    """순찰 에이전트가 가져가는 현황. 관리자 에이전트 채팅에 보내는 stats 와 같은 숫자다.
+    최근 알림(recent_alerts)도 같이 줘서, 에이전트가 10분 전에 보낸 알림을 또 보내지 않게 한다."""
+    denied = _agent_auth_error()
+    if denied:
+        return denied
+    now = datetime.now()
+    _patrol["last"] = now.strftime("%H:%M")
+    booth = event.data["booth"]
+    return jsonify(
+        now=now.strftime("%Y-%m-%d %H:%M"),
+        event={"name": event.data["name"], "date": event.data["date_label"],
+               "booth": booth["name"], "booth_hours": booth.get("hours", "")},
+        stats=_staff_stats(),
+        network=_network_summary(),
+        recent_alerts=[{k: a[k] for k in ("level", "title", "message", "time")} for a in _alert_rows(5)],
+    )
+
+
+@qr_bp.post("/api/agent/alert")
+def agent_alert_api():
+    """순찰 에이전트가 담당자 화면에 알림을 넣는다. body: {"level": "info|warn|urgent", "title": "…", "message": "…"}
+    AI Agent 의 결과를 그대로 보내도 되게 {"output": {…}} 모양도 받고, alert 가 false 면 저장하지 않는다."""
+    denied = _agent_auth_error()
+    if denied:
+        return denied
+    data = request.get_json(silent=True) or {}
+    if isinstance(data.get("output"), dict):
+        data = data["output"]
+    if data.get("alert") is False:
+        return jsonify(saved=False, reason="alert 가 false 라 저장하지 않았어요.")
+    message = str(data.get("message") or "").strip()[:400]
+    if not message:
+        return jsonify(error="message 가 비어 있어요."), 400
+    level = data.get("level") if data.get("level") in ALERT_LEVELS else "warn"
+    title = str(data.get("title") or "").strip()[:60] or "순찰 알림"
+    store.add_alert(level, title, message)
+    return jsonify(saved=True)
+
+
+@qr_bp.get("/staff/api/alerts")
+def staff_alerts_api():
+    """담당자 화면이 순찰 알림을 주기적으로 다시 읽는다 (staff.js)."""
+    if not _is_staff():
+        return jsonify(error="잠금이 풀렸어요."), 403
+    return jsonify(alerts=_alert_rows(), last_patrol=_patrol["last"])
 
 
 @qr_bp.get("/staff/qr/<kind>.svg")

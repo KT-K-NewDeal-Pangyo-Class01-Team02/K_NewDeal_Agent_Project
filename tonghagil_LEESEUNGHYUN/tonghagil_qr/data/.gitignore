@@ -2,3 +2,4 @@
 qr.db
 qr.db-*
 .secret
+.agent_key

@@ -1,0 +1,14 @@
+{
+  "_설명": "시연용 더미 방문객. 현장에 이미 사람이 다녀간 것처럼 보이게 한다. id 가 seed- 로 시작하고, 24시간 자동 삭제와 '시연 기록 초기화'에서 빠진다. 끄려면 enabled 를 false 로.",
+  "enabled": true,
+  "random_seed": 2026,
+  "poster_ratio": 0.6,
+  "map_ratio": 0.4,
+  "groups": [
+    {"stamps": 5, "count": 1, "code": "KTSEED", "gift": "KT 키링", "redeemed": true},
+    {"stamps": 4, "count": 5},
+    {"stamps": 3, "count": 20},
+    {"stamps": 2, "count": 25},
+    {"stamps": 1, "count": 50}
+  ]
+}

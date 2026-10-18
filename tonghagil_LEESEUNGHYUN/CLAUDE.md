@@ -107,6 +107,17 @@ tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
     - 주소가 없으면 `event.json`의 `benefit.gifts`(9종 1,151개)에서 앱 기록의 뽑힌 수를 빼고 뽑는다. `coupons`에 `gift_id/gift_name/drawn_at` 열을 더했다(기존 DB는 자동으로 열 추가).
     - 담당자 화면 **[뽑기 테스트]**(`POST /qr/staff/api/gift-test`): 쿠폰 없이 한 번 뽑는다. 시트가 연결돼 있으면 **실제로 수량이 1 줄어든다.** 앱 기록에는 안 남긴다.
   - 혜택 문구를 "KT 사은품 뽑기"로 바꿨다. 채팅 에이전트에는 사은품 이름만 보내고 수량은 보내지 않는다.
+- **2026-10-18 n8n 순찰 에이전트용 주소** (평가 기준이 "n8n이 주"라서, 사람이 묻지 않아도 n8n이 스스로 판단·행동하는 흐름을 추가했다):
+  - n8n: Schedule Trigger(10분) → HTTP GET `/qr/api/agent/stats` → AI Agent(순찰용, 재고 시트 도구, Structured Output) → If `output.alert` → HTTP POST `/qr/api/agent/alert`. 관리자 에이전트 워크플로와 **같은 화면에 별도 줄**로 둔다(기존 AI Agent1은 `$('tonghagil_staff')`를 참조해서 같이 쓸 수 없다).
+  - 두 주소는 PIN 쿠키 대신 헤더(`QR_CHAT_SECRET_HEADER`, 기본 `X-Tonghagil-Key`)로 확인한다. 값은 `.env`의 `QR_AGENT_API_SECRET` → 없으면 **스튜디오의 `N8N_WEBHOOK_SECRET`**(n8n에 이미 있는 Header Auth를 그대로 고르게. 이 경우 화면에 값을 보이지 않는다) → 그것도 없으면 **앱이 만들어 `data/.agent_key`에 둔다**(사용자가 `.env` 수정을 귀찮아해서. git 제외). 담당자 화면 설정의 "순찰 에이전트 비밀 값"에서 복사해 n8n Header Auth에 붙인다.
+  - 버튼은 78px 원 + "에이전트" 글자. PIN 로그인 직후(`?welcome=1`, JS가 주소에서 뗌) 인사 메시지 "안녕하세요, 통하길 AI Agent입니다."를 안 읽음 1로 띄운다(localStorage `tq_patrol_hello`). 메시지는 오래된 것이 위, 최근이 아래.
+  - stats 응답 = `now`, `event`(이름·날짜·부스·운영 시간), `stats`(= `_staff_stats()`), `network`, `recent_alerts`(최근 5개, 같은 알림 반복 방지용). alert는 `{level: info|warn|urgent, title, message}` 또는 `{output: {...}}`를 받고 `alert: false`면 저장하지 않는다. DB `alerts` 표에 최근 50개만 남기고, 시연 초기화 때 같이 지운다.
+  - 담당자 화면 **오른쪽 아래 메신저 창**(사용자 요청: 카카오톡처럼 열고 닫기, 안 읽은 알림 수 빨간 숫자)으로 보여 준다. 15초마다 갱신하고, 읽은 위치는 브라우저 localStorage `tq_patrol_seen`(알림 id)에 둔다.
+  - 비밀 값이 필요한 이유(사용자 질문): ngrok 주소는 누구나 열 수 있어서, 없으면 아무나 POST로 가짜 알림을 넣거나 현황을 읽을 수 있다. n8n은 PIN을 못 치므로 헤더 비밀 값이 n8n용 PIN이다.
+- **2026-10-18 시연용 더미 방문객** (사용자 요청): `data/seed.json`(구성) + `seed.py`(생성). 스탬프 5개 1명(쿠폰 `KTSEED`, KT 키링 증정 완료) · 4개 5명 · 3개 20명 · 2개 25명 · 1개 50명 = 101명. id가 `seed-`로 시작한다.
+  - 24시간 자동 삭제(`purge_inactive`)에서 빠지고, 시연 초기화 뒤에는 바로 다시 넣는다. 실제 QR 방문객은 그대로 24시간 뒤 삭제된다.
+  - 10분마다(`before_request`) '지금' 기준 시각으로 다시 넣는다(`random_seed` 고정이라 구성은 같음). 서버를 오래 켜 둬도 도착 예측이 '멈춤'이 되지 않게 하려는 것이다. 이 시점의 도착 예측은 10분 안 5명이라 순찰 에이전트가 "곧 몰려와요"를 보낼 수 있다.
+  - 구글 시트 수량은 건드리지 않는다. 끄려면 `enabled: false`.
 - 실제 n8n 주소가 `.env`에 있으므로 **테스트 스크립트는 웹훅 주소를 비우고 돌린다**(2026-10-01에 스모크 테스트가 실제 n8n을 한 번 호출한 일이 있었다).
 - `data/.gitignore`(이 폴더 안)가 `qr.db`와 `.secret`을 막는다. 루트 `.gitignore`는 공용 파일이라 건드리지 않았다.
 - 검증(2026-09-30): 임시 DB로 방문객·스탬프·쿠폰·챗봇(가짜 n8n 응답 포함)·담당자 PIN·지급·초기화 57개 항목을 확인했고 모두 통과했다. 실제 서버에서도 `/qr/` 전 화면이 200이었다. **브라우저·휴대폰 화면은 아직 눈으로 확인하지 않았다.**
@@ -125,6 +136,7 @@ tonghagil_studio/  스튜디오 Blueprint (허브 안 /studio/)
 - [ ] ngrok 공개 전에: 직원 화면 비밀번호 잠금 여부를 정한다.
 
 ## 작업 방식
+- **`.env` 파일은 절대 읽지 않는다** (2026-10-18 사용자 지시). 키 이름은 `config.py`·`.env.example`로 파악하고, 값이 필요하면 사용자에게 확인을 부탁한다.
 - 사용자는 한국어로 소통한다. UI 문구와 코드 주석도 한국어로 쓴다.
 - 사용자가 "먼저 설명해 달라"고 하면 코드를 작성하지 않고 이해한 내용부터 설명한다.
 - 커밋과 push는 사용자가 GitHub Desktop으로 직접 한다.

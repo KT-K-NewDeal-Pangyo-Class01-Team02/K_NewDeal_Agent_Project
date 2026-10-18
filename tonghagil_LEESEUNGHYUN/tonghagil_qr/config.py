@@ -31,6 +31,9 @@ EVENT_FILE = _path("QR_EVENT_FILE", DATA_DIR / "event.json")
 # 방문객·스탬프·쿠폰 기록 (SQLite). git 에 올라가지 않는다.
 DB_FILE = _path("QR_DB_FILE", DATA_DIR / "qr.db")
 
+# 시연용 더미 방문객 (스탬프 1~5개를 찍은 가짜 방문객). 24시간 자동 삭제와 시연 초기화에서 빠진다. 끄려면 파일의 enabled 를 false 로.
+SEED_FILE = _path("QR_SEED_FILE", DATA_DIR / "seed.json")
+
 # 방문객 기록(접속·스탬프·쿠폰)을 보관하는 시간. 마지막 활동 뒤 이 시간이 지나면 자동으로 지운다.
 # 비워 두면 24시간, 0 이면 지우지 않는다.
 RETENTION_HOURS = float(_get("QR_RETENTION_HOURS").strip() or "24")
@@ -65,3 +68,14 @@ CHAT_TIMEOUT = float(_get("QR_CHAT_TIMEOUT") or "30")
 # 비워 두면 고정 답변을 돌려준다. 비밀 값을 따로 안 적으면 방문객용 값을 같이 쓴다 (헤더 이름·제한 시간은 공통).
 STAFF_CHAT_WEBHOOK_URL = _get("QR_STAFF_CHAT_WEBHOOK_URL").strip()
 STAFF_CHAT_WEBHOOK_SECRET = _get("QR_STAFF_CHAT_WEBHOOK_SECRET").strip() or CHAT_WEBHOOK_SECRET
+
+# n8n 순찰 에이전트(Schedule Trigger)가 부르는 주소 두 개의 비밀 값: 현황 가져가기(GET /qr/api/agent/stats),
+# 담당자 화면에 알림 넣기(POST /qr/api/agent/alert). n8n 은 요청 헤더(QR_CHAT_SECRET_HEADER)에 이 값을 담아 보낸다.
+# 비워 두면 스튜디오의 N8N_WEBHOOK_SECRET 을 같이 쓴다 → n8n 에 이미 만들어 둔 Header Auth(X-Tonghagil-Key)를 그대로 고르면 된다.
+# 그것도 없으면 앱이 처음 한 번 만들어 data/.agent_key 에 두고, 담당자 화면 설정에서 복사할 수 있게 한다.
+if _get("QR_AGENT_API_SECRET").strip():
+    AGENT_API_SECRET, AGENT_API_SECRET_FROM = _get("QR_AGENT_API_SECRET").strip(), "QR_AGENT_API_SECRET"
+elif _get("N8N_WEBHOOK_SECRET").strip():
+    AGENT_API_SECRET, AGENT_API_SECRET_FROM = _get("N8N_WEBHOOK_SECRET").strip(), "N8N_WEBHOOK_SECRET"
+else:
+    AGENT_API_SECRET, AGENT_API_SECRET_FROM = "", ""

@@ -119,10 +119,19 @@
     <dl class="s-settings">
       <div><dt>채팅 에이전트 (방문객)</dt><dd>{% if chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
       <div><dt>관리자 에이전트</dt><dd>{% if staff_chat_connected %}<span class="cc-badge is-live">n8n 연결됨</span>{% else %}<span class="cc-badge">고정 답변 (테스트)</span>{% endif %}</dd></div>
+      {#- n8n 순찰 에이전트용 비밀 값. .env 에 있는 값이면 n8n 의 기존 Header Auth 를 고르면 되고 화면에는 값을 보여 주지 않는다.
+          없으면 앱이 만든 값을 복사해 n8n Header Auth 에 붙여 넣는다 #}
+      <div><dt>순찰 에이전트 비밀 값</dt><dd class="s-key">
+        {% if agent_key_from == "N8N_WEBHOOK_SECRET" %}<span class="cc-badge is-live">스튜디오와 같은 값</span><small>n8n에서 기존 <code>{{ agent_header }}</code> Header Auth를 그대로 고르세요</small>
+        {% elif agent_key_from %}<span class="cc-badge is-live">.env 의 {{ agent_key_from }}</span>
+        {% else %}<button type="button" class="cc-btn s-copy" data-copy="{{ agent_key }}">복사</button>
+        <details><summary>보기</summary><small>Header Auth · Name <code>{{ agent_header }}</code> · Value <code>{{ agent_key }}</code></small></details>{% endif %}
+      </dd></div>
       <div><dt>사은품 뽑기</dt><dd>{% if gift_connected %}<span class="cc-badge is-live">n8n 연결됨 (구글 시트 재고)</span>{% else %}<span class="cc-badge">앱 내부 목록 (시트 미연결)</span>{% endif %}</dd></div>
       <div><dt>지도</dt><dd>{% if kakao_connected %}<span class="cc-badge is-live">카카오맵 키 있음</span>{% else %}<span class="cc-badge">그림 약도 (QR_KAKAO_MAP_KEY 없음)</span>{% endif %}</dd></div>
       <div><dt>담당자 PIN</dt><dd>{% if pin_is_default %}<span class="cc-badge">기본값 1234</span>{% else %}<span class="cc-badge is-live">설정됨</span>{% endif %}</dd></div>
       <div><dt>방문객 기록 보관</dt><dd>{% if retention_hours > 0 %}<span class="cc-badge is-live">마지막 활동 후 {{ "%g"|format(retention_hours) }}시간 뒤 자동 삭제</span>{% else %}<span class="cc-badge">자동 삭제 안 함</span>{% endif %}</dd></div>
+      <div><dt>시연용 더미 방문객</dt><dd>{% if seed_count %}<span class="cc-badge is-live">{{ seed_count }}명 포함 (자동 삭제·초기화 제외)</span>{% else %}<span class="cc-badge">없음</span>{% endif %}</dd></div>
       <div><dt>방문객 주소 (QR)</dt><dd><code>{{ visitor_url }}</code></dd></div>
     </dl>
   </section>
@@ -150,12 +159,40 @@
 <section class="cc-card s-panel s-danger">
   <div>
     <h2>시연 기록 초기화</h2>
-    <p class="s-desc">리허설이 끝나면 방문객·스탬프·쿠폰 기록을 모두 지우세요. 행사 정보(event.json)는 그대로예요.</p>
+    <p class="s-desc">리허설이 끝나면 방문객·스탬프·쿠폰 기록을 모두 지우세요. 행사 정보(event.json)와 시연용 더미 방문객(seed.json)은 그대로예요.</p>
   </div>
   <form method="post" action="{{ url_for('tonghagil_qr.staff_reset') }}" onsubmit="return confirm('방문객·스탬프·쿠폰 기록을 모두 지울까요? 되돌릴 수 없어요.');">
     <button type="submit" class="cc-btn s-btn-danger">{{ icon("trash", 16) }}기록 모두 지우기</button>
   </form>
 </section>
+
+{#- 순찰 알림: 오른쪽 아래 메신저 창. n8n 순찰 에이전트가 10분마다 현황을 보고 알릴 일이 있으면 넣는다 (routes.agent_alert_api).
+    staff.js 가 15초마다 다시 읽고, 안 읽은 알림 수를 버튼 위 숫자로 보여 준다 #}
+{#- welcome: 방금 PIN 으로 들어왔으면 인사 메시지를 '안 읽음 1'로 띄운다. 창을 열어 읽으면 숫자가 사라진다 (staff.js) #}
+<div class="s-patrol" id="patrol" data-api="{{ url_for('tonghagil_qr.staff_alerts_api') }}" data-welcome="{{ '1' if welcome else '' }}">
+  <section class="s-patrol-panel" id="patrol-panel" role="dialog" aria-labelledby="patrol-title" hidden>
+    <header class="s-patrol-head">
+      <span class="s-patrol-avatar">{{ icon("bot", 20) }}</span>
+      <div>
+        <strong id="patrol-title">통하길 AI Agent</strong>
+        <small id="patrol-status">아직 순찰 기록 없음</small>
+      </div>
+      <button type="button" class="s-patrol-close" id="patrol-close" aria-label="닫기">{{ icon("x", 18) }}</button>
+    </header>
+    {#- 오래된 메시지가 위, 가장 최근 메시지가 맨 아래 (카카오톡과 같은 순서) #}
+    <div class="s-patrol-log" id="patrol-log" aria-live="polite">
+      <div class="s-patrol-msg is-info" id="patrol-hello">
+        <p class="s-patrol-bubble"><strong>안녕하세요, 통하길 AI Agent입니다.</strong><span>10분마다 행사 현황과 사은품 재고를 살펴보고, 챙길 일이 생기면 여기로 바로 알려 드릴게요.</span></p>
+        <time id="patrol-hello-time"></time>
+      </div>
+    </div>
+  </section>
+  <button type="button" class="s-patrol-fab" id="patrol-fab" aria-controls="patrol-panel" aria-expanded="false" aria-label="에이전트 알림 열기">
+    {{ icon("bot", 30) }}
+    <span class="s-patrol-label">에이전트</span>
+    <span class="s-patrol-count" id="patrol-count" hidden>0</span>
+  </button>
+</div>
 {% endblock %}
 
 {% block scripts %}

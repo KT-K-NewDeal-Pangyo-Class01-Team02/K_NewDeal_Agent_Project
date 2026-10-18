@@ -59,6 +59,51 @@
 .s-flash.is-bad { background: #fdecee; color: #a11d28; }
 .s-page-head + .s-flash { margin: 0 0 16px; }
 
+/* ---------- 순찰 알림: 오른쪽 아래 메신저 창 (n8n 순찰 에이전트) ---------- */
+.s-patrol { position: fixed; right: 24px; bottom: 24px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.s-patrol-fab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 78px; height: 78px; border: 0; border-radius: 50%; background: var(--cc-accent); color: #fff; box-shadow: 0 6px 20px rgba(227, 49, 63, .35); cursor: pointer; transition: transform .15s; }
+.s-patrol-label { font-size: 12px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+.s-patrol-fab:hover { transform: scale(1.06); background: var(--cc-accent-hover); }
+.s-patrol-fab:focus-visible { outline: none; box-shadow: var(--cc-focus-ring), 0 6px 20px rgba(227, 49, 63, .35); }
+.s-patrol-count { position: absolute; top: -4px; right: -4px; min-width: 24px; height: 24px; padding: 0 7px; border: 2px solid #fff; border-radius: 12px; background: #ff3b30; color: #fff; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+.s-patrol-count.is-new { animation: s-pop .4s ease-out; }
+@keyframes s-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+.s-patrol-panel { display: flex; flex-direction: column; width: 360px; max-width: calc(100vw - 32px); height: 480px; max-height: calc(100vh - 120px); border-radius: 18px; background: var(--cc-surface); box-shadow: 0 12px 40px rgba(16, 24, 40, .22); overflow: hidden; }
+.s-patrol-panel[hidden] { display: none; }
+.s-patrol-head { display: flex; align-items: center; gap: 10px; padding: 14px 14px 14px 16px; background: var(--cc-sidebar); color: #fff; }
+.s-patrol-head div { flex: 1; display: flex; flex-direction: column; }
+.s-patrol-head strong { font-size: 15px; }
+.s-patrol-head small { font-size: 12px; color: var(--cc-sidebar-text); }
+.s-patrol-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--cc-accent); }
+.s-patrol-close { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #fff; cursor: pointer; }
+.s-patrol-close:hover { background: var(--cc-sidebar-hover); }
+
+/* 메시지: 카카오톡처럼 말풍선 + 옆에 시간. 알림 단계는 왼쪽 띠 색으로 */
+.s-patrol-log { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 16px 14px; overflow-y: auto; background: #b9d1e6; }
+.s-patrol-note { align-self: center; max-width: 90%; margin: 0; padding: 8px 12px; border-radius: 12px; background: rgba(0, 0, 0, .12); color: #1f2a37; font-size: 12.5px; line-height: 1.55; text-align: center; }
+.s-patrol-note code { font-size: 12px; }
+.s-patrol-msg { display: flex; align-items: flex-end; gap: 6px; max-width: 92%; }
+.s-patrol-bubble { padding: 10px 12px; border-left: 4px solid #22a06b; border-radius: 4px 14px 14px 14px; background: #fff; font-size: 14px; line-height: 1.55; word-break: keep-all; overflow-wrap: anywhere; }
+.s-patrol-bubble strong { display: block; margin-bottom: 2px; }
+.s-patrol-bubble span { white-space: pre-wrap; }
+.s-patrol-msg.is-warn .s-patrol-bubble { border-left-color: #f59e0b; }
+.s-patrol-msg.is-urgent .s-patrol-bubble { border-left-color: var(--cc-accent); }
+.s-patrol-msg.is-urgent strong::before { content: "긴급 · "; color: var(--cc-accent); }
+.s-patrol-msg time { flex: none; font-size: 11px; color: #44546a; }
+
+.s-key { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.s-key .s-copy { padding: 4px 12px; font-size: 13px; }
+.s-key summary { cursor: pointer; font-size: 13px; color: var(--cc-text-sub); }
+.s-key details small { display: block; margin-top: 4px; word-break: break-all; }
+
+.s-danger { margin-bottom: 104px; } /* 맨 아래 버튼이 알림 버튼에 가리지 않게 */
+
+@media (max-width: 640px) {
+  .s-patrol { right: 16px; bottom: 16px; }
+  .s-patrol-panel { height: 70vh; }
+}
+
 .s-list { margin: 0; padding: 0; list-style: none; }
 .s-list li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #eef0f3; font-size: 14px; }
 .s-list li:first-child { border-top: 0; }

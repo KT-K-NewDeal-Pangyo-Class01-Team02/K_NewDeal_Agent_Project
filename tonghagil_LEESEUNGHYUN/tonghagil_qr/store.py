@@ -13,6 +13,10 @@ from pathlib import Path
 # 쿠폰 코드: 헷갈리는 글자(0/O, 1/I/L)를 뺀 6자리
 _CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
+# 시연용 더미 방문객(seed.py)의 id 앞부분. 24시간 자동 삭제에서 빠진다.
+SEED_PREFIX = "seed-"
+_SEED_LIKE = SEED_PREFIX + "%"
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS visitors (
     id TEXT PRIMARY KEY,
@@ -39,7 +43,16 @@ CREATE TABLE IF NOT EXISTS views (
     page TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    level TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
+
+MAX_ALERTS = 50  # 순찰 알림은 최근 이만큼만 남긴다
 
 
 def _now():
@@ -189,27 +202,63 @@ class QrStore:
         return [dict(r) for r in self._rows(
             "SELECT visitor_id, issued_at FROM coupons WHERE redeemed_at IS NULL ORDER BY issued_at LIMIT ?", (limit,))]
 
+    # ── 순찰 알림 (n8n 순찰 에이전트가 넣는다) ──
+    def add_alert(self, level, title, message):
+        with self._lock, self._connect() as db, db:
+            db.execute("INSERT INTO alerts (level, title, message, created_at) VALUES (?, ?, ?, ?)",
+                       (level, title, message, _now()))
+            db.execute("DELETE FROM alerts WHERE id NOT IN (SELECT id FROM alerts ORDER BY id DESC LIMIT ?)", (MAX_ALERTS,))
+
+    def recent_alerts(self, limit=5):
+        """최근 알림부터. → [{id, level, title, message, created_at}]"""
+        return [dict(r) for r in self._rows(
+            "SELECT id, level, title, message, created_at FROM alerts ORDER BY id DESC LIMIT ?", (limit,))]
+
     def purge_inactive(self, hours):
         """마지막 활동(접속·화면 조회·스탬프·쿠폰)이 hours 시간보다 오래된 방문객의 기록을 모두 지운다. → 지운 방문객 수
 
         처음 접속한 시각이 아니라 마지막 활동 기준이다. 스탬프를 모으는 중인 사람의 기록이 중간에 사라지지 않게 하려는 것이다.
+        시연용 더미 방문객(id 가 seed- 로 시작)은 지우지 않는다.
         """
         cutoff = (datetime.now() - timedelta(hours=hours)).isoformat(timespec="seconds")
         with self._lock, self._connect() as db, db:
             ids = [(r[0],) for r in db.execute(
-                "SELECT v.id FROM visitors v WHERE v.created_at < ? "
+                "SELECT v.id FROM visitors v WHERE v.created_at < ? AND v.id NOT LIKE ? "
                 "AND NOT EXISTS (SELECT 1 FROM views w WHERE w.visitor_id = v.id AND w.created_at >= ?) "
                 "AND NOT EXISTS (SELECT 1 FROM stamps s WHERE s.visitor_id = v.id AND s.created_at >= ?) "
                 "AND NOT EXISTS (SELECT 1 FROM coupons c WHERE c.visitor_id = v.id AND (c.issued_at >= ? OR c.redeemed_at >= ?))",
-                (cutoff,) * 5)]
+                (cutoff, _SEED_LIKE) + (cutoff,) * 4)]
             for table, column in (("views", "visitor_id"), ("stamps", "visitor_id"), ("coupons", "visitor_id"), ("visitors", "id")):
                 db.executemany(f"DELETE FROM {table} WHERE {column} = ?", ids)
             return len(ids)
 
-    def reset(self):
-        """시연 리허설용: 모든 방문객·스탬프·쿠폰·조회 기록을 지운다."""
+    # ── 시연용 더미 방문객 ──
+    def replace_seed(self, people):
+        """더미 방문객(seed-…)을 모두 지우고 people 로 다시 넣는다. 실제 방문객 기록은 건드리지 않는다. (seed.build 참고)"""
         with self._lock, self._connect() as db, db:
-            for table in ("views", "coupons", "stamps", "visitors"):
+            for table, column in (("views", "visitor_id"), ("stamps", "visitor_id"), ("coupons", "visitor_id"), ("visitors", "id")):
+                db.execute(f"DELETE FROM {table} WHERE {column} LIKE ?", (_SEED_LIKE,))
+            for p in people:
+                db.execute("INSERT INTO visitors (id, source, created_at) VALUES (?, ?, ?)", (p["id"], p["source"], p["created_at"]))
+                db.executemany("INSERT INTO stamps (visitor_id, stamp_id, created_at) VALUES (?, ?, ?)",
+                               [(p["id"], sid, at) for sid, at in p["stamps"]])
+                db.executemany("INSERT INTO views (visitor_id, page, created_at) VALUES (?, ?, ?)",
+                               [(p["id"], page, at) for page, at in p["views"]])
+                c = p["coupon"]
+                if c:
+                    # 코드가 실제 방문객 쿠폰과 겹치면(아주 드묾) 그 더미의 쿠폰만 건너뛴다
+                    db.execute("INSERT OR IGNORE INTO coupons (visitor_id, code, issued_at, redeemed_at, gift_id, gift_name, drawn_at) "
+                               "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                               (p["id"], c["code"], c["issued_at"], c["redeemed_at"], c["gift_id"], c["gift_name"], c["drawn_at"]))
+
+    def seed_count(self):
+        return self._rows("SELECT COUNT(*) FROM visitors WHERE id LIKE ?", (_SEED_LIKE,))[0][0]
+
+    def reset(self):
+        """시연 리허설용: 모든 방문객·스탬프·쿠폰·조회 기록과 순찰 알림을 지운다.
+        더미 방문객도 같이 지워지지만, routes.staff_reset 이 바로 다시 넣는다."""
+        with self._lock, self._connect() as db, db:
+            for table in ("views", "coupons", "stamps", "visitors", "alerts"):
                 db.execute(f"DELETE FROM {table}")
 
 
