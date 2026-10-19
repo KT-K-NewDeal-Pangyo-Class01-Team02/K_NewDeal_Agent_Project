@@ -17,7 +17,7 @@
 - 판정·우선순위·해결책 생성은 모두 Python 규칙 기반 서비스에서 한다. 프론트 JavaScript에는 업무 판정 로직을 넣지 않고, API가 준 값(라벨, `can_approve` 같은 플래그)을 그리기만 한다.
 - **AI(OpenAI)는 글을 읽고 쓰는 일만** 한다: 메모 해석, 고객 안내문, 직원 브리핑. 판정에는 개입하지 않는다. 키가 없거나 실패하면 규칙 기반 결과로 대체하고, 모든 호출을 `ai_logs`에 남긴다.
 - **n8n은 전달만** 한다 (SaveDeal → n8n Webhook → Gmail). 메일 문구는 SaveDeal이 만든다. 주소가 없으면 데모 기록만 남긴다.
-- **외부 이벤트**(개통 반려·입고 지연·서류 도착·개통 완료·취소)는 n8n이 `POST /api/events`로 보내거나, SaveDeal 서버가 백그라운드로 `EVENT_SYNC_SECONDS`마다 n8n에서 가져온다(`N8N_EVENTS_URL`, `services/event_sync.py`, `python -m app`으로 켤 때만 돌고 테스트에서는 돌지 않음). 반영 규칙은 `services/event_service.py`: 문제 발생 → 문제 추가·해결책 생성(진행 중인 안이 있으면 실패 처리 후 재제안, 이미 있는 문제가 다시 생기면 재시도 +1), 문제 해소 → 해결 처리, 종료 이벤트 → 예약 종료. 같은 이벤트는 `external_id`로 한 번만 반영한다. 시연에서는 구글시트를 가짜 전산으로 쓴다 (`docs/n8n_events_setup.md`).
+- **외부 이벤트**(개통 반려·입고 지연·서류 도착·개통 완료·취소)는 n8n이 `POST /api/events`로 보내거나, SaveDeal 서버가 백그라운드로 `EVENT_SYNC_SECONDS`마다 n8n에서 가져온다(`N8N_EVENTS_URL`, `services/event_sync.py`, `python -m app`으로 켤 때만 돌고 테스트에서는 돌지 않음). 반영 규칙은 `services/event_service.py`: 문제 발생 → 문제 추가·해결책 생성(진행 중인 안이 있으면 실패 처리 후 재제안, 이미 있는 문제가 다시 생기면 재시도 +1), 문제 해소 → 해결 처리, 종료 이벤트 → 예약 종료. 같은 이벤트는 `external_id`로 한 번만 반영한다. 시연에서는 구글시트를 가짜 전산으로 쓴다 (`docs/n8n_events_setup.md`). 현재 운영은 서버 60초 가져오기(주) + n8n `SaveDeal알림` 워크플로의 30분 정기 최신화 줄(보조, ngrok 서버 대상)을 함께 쓴다 (문서 0장).
 - **정기 점검**(`POST /api/monitor/scan`, `services/monitor_service.py`): 시간이 지나 새로 고위험이 된 예약만 알린다. 알린 예약은 `risk_alerts`에 기록해 반복하지 않는다.
 - `routes`(요청/응답) → `services`(판정·비즈니스 로직) → `repositories`(데이터 I/O) 순으로 계층을 나누고, `schemas`는 요청 검증을 맡는다. 현업 전환 시 repositories 만 실제 DB·전산 API로 바꾸면 된다.
 - API 응답은 `{"success": bool, "data": ..., "error": {"code", "message"} | null}` 형태로 통일한다.

@@ -20,6 +20,23 @@ SaveDeal은 예약을 등록할 때의 데이터로 문제를 판정합니다. �
 
 ---
 
+## 0. 현재 운영 구성 (2026-10-19 기준)
+
+n8n 워크플로 **`SaveDeal알림`** 하나에 세 줄이 있고, 두 방식(가져오기 + 보내기)을 함께 씁니다. 같은 이벤트는 한 번만 반영되므로 겹쳐도 안전합니다.
+
+| 줄 | 노드 | 역할 |
+|---|---|---|
+| ① 알림 | Webhook(`savedeal-notify`) → Send a message(Gmail) → Respond to Webhook | SaveDeal이 만든 메일 발송 |
+| ② 이벤트 목록 | Webhook1(`savedeal-events`) → 시트읽기 → 이벤트 목록 응답 | **SaveDeal 서버가 60초마다** 가져감 (3-B, 주 경로) |
+| ③ 30분 정기 최신화 | Schedule Trigger(30분) → 시트 읽기(정기) → 이벤트 묶기(Code) → SaveDeal 이벤트 반영(`POST /api/events`) → SaveDeal 고위험 점검(`POST /api/monitor/scan`) | **n8n이 30분마다** 서버(`https://savedeal.ngrok.dev`)로 보냄 (3-A, 보조 경로) |
+
+- ③의 HTTP Request 두 개는 ①과 같은 Header Auth credential(`X-SaveDeal-Key`)을 쓴다.
+- ③은 공개 주소가 필요해서 **ngrok이 켜진 서버에서만** 동작한다. 내 PC 개발 환경은 ②(60초 가져오기)만으로 충분하다.
+- **워크플로를 고친 뒤에는 꼭 Publish 상태(초록 점)인지 확인한다.** 게시가 풀리면 세 줄이 모두 멈추고, SaveDeal 대시보드 칩이 "외부 이벤트 연결 확인 필요"로 바뀌며 알림 메일은 "발송 실패"로 쌓인다(대시보드에서 재시도 가능).
+- 왜 주 경로가 ②인가: 서버가 직접 확인하므로 공개 주소 없이 어디서나 되고, 실패를 화면에서 바로 알 수 있다. ③은 n8n 화면에서 주기·실행 기록을 보기 좋은 보조 장치다.
+
+---
+
 ## 1. 구글시트 만들기
 
 `samples/외부이벤트_시트_예시.csv`를 구글시트로 가져오거나(파일 → 가져오기), 아래 머리글로 새 시트를 만듭니다.
